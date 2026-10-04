@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String        @id @default(uuid())
+  name           String
+  email          String        @unique
+  passwordHash   String
+  phone          String?
+  departmentId   String?
+  department     Department?   @relation(fields: [departmentId], references: [id])
+  role           String        @default("USER") // USER, FACULTY, ADMIN, SUPER_ADMIN
+  status         String        @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  bookings       Booking[]
+  notifications  Notification[]
+  activityLogs   ActivityLog[]
+}
+
+model Department {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  code        String    @unique
+  description String?
+  status      String    @default("ACTIVE")
+  users       User[]
+  bookings    Booking[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Hall {
+  id           String        @id @default(uuid())
+  name         String        @unique // Seminar Hall, AV Hall
+  code         String        @unique // SEMINAR-HALL-01, AV-HALL-01
+  description  String
+  location     String
+  capacity     Int           // Informational only, no seats
+  image        String?
+  facilities   String        // JSON string of amenities
+  status       String        @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  bookings     Booking[]
+  blockedDates BlockedDate[]
+  maintenances Maintenance[]
+}
+
+model Booking {
+  id                  String      @id @default(uuid())
+  bookingId           String      @unique // e.g. HB-2026-0001
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  hallId              String
+  hall                Hall        @relation(fields: [hallId], references: [id])
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  eventName           String
+  description         String?
+  purpose             String
+  requestedBy         String
+  coordinatorName     String?
+  contactNumber       String
+  email               String
+  bookingDate         String      // YYYY-MM-DD
+  bookingType         String      @default("FULL_DAY") // FULL_DAY, MORNING, AFTERNOON, CUSTOM
+  startTime           String      @default("09:00")
+  endTime             String      @default("17:00")
+  participantCount    Int         @default(0) // Informational only
+  specialRequirements String?     // JSON string of requirements
+  additionalNotes     String?
+  status              String      @default("PENDING") // PENDING, APPROVED (BOOKED), REJECTED, CANCELLED
+  adminNotes          String?
+  approvedById        String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model BlockedDate {
+  id          String   @id @default(uuid())
+  hallId      String?  // null if all halls blocked
+  hall        Hall?    @relation(fields: [hallId], references: [id])
+  startDate   String   // YYYY-MM-DD
+  endDate     String   // YYYY-MM-DD
+  reason      String   // MAINTENANCE, EXAMINATION, OFFICIAL_EVENT, HOLIDAY, EMERGENCY, OTHER
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+}
+
+model Maintenance {
+  id                String   @id @default(uuid())
+  hallId            String
+  hall              Hall     @relation(fields: [hallId], references: [id])
+  startDate         String   // YYYY-MM-DD
+  endDate           String   // YYYY-MM-DD
+  reason            String
+  notes             String?
+  responsiblePerson String?
+  createdAt         DateTime @default(now())
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  name        String
+  date        String   // YYYY-MM-DD
+  description String?
+  hallScope   String   @default("ALL") // ALL, SEMINAR_HALL, AV_HALL
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ALERT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  entityType  String
+  entityId    String?
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model SystemSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
