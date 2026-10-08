@@ -65,7 +65,8 @@ router.post('/register', authRateLimiter, async (req: Request, res: Response): P
     }
 
     const approvalSetting = await prisma.systemSetting.findUnique({ where: { key: 'requireUserApproval' } });
-    const requireApproval = approvalSetting?.value === 'true';
+    // Default to true (safe-by-default for institutional access) unless explicitly configured otherwise
+    const requireApproval = approvalSetting ? approvalSetting.value === 'true' : true;
     
     // Security Guard: Anyone registering with a department requesting FACULTY role,
     // or when requireUserApproval is enabled, must be reviewed and activated by an administrator.

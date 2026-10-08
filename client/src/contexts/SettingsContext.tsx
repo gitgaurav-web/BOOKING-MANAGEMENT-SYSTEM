@@ -32,7 +32,7 @@ const defaultSettings: SystemSettings = {
   minAdvanceNoticeDays: '1',
   maxAdvanceNoticeDays: '90',
   requireAdminApproval: 'true',
-  requireUserApproval: 'false',
+  requireUserApproval: 'true',
   allowWeekendBookings: 'true',
   allowHolidayBookings: 'false',
   emailNotificationsEnabled: 'true',

@@ -686,3 +686,110 @@ test('Registration Security: Faculty affiliation requests start as INACTIVE pend
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
+test('Availability API Privacy: Never leaks pending private titles or IDs to public visitors', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const hall = await prisma.hall.findFirst();
+  const user = await prisma.user.findFirst();
+  if (!hall || !user) return;
+
+  const testDate = getDynamicFutureDate(45);
+  const secretTitle = `Super Secret Pending Strategy ${Date.now()}`;
+
+  const pendingBooking = await prisma.booking.create({
+    data: {
+      bookingId: `BK-TEST-AVAIL-PRIV-${Date.now()}`,
+      userId: user.id,
+      hallId: hall.id,
+      eventName: secretTitle,
+      purpose: 'Private Session',
+      bookingDate: testDate,
+      bookingType: 'MORNING',
+      startTime: '09:00',
+      endTime: '12:00',
+      participantCount: 20,
+      requestedBy: 'Secret Requester',
+      contactNumber: '9876543210',
+      email: 'secret@college.edu',
+      status: 'PENDING',
+    },
+  });
+
+  try {
+    const res = await fetch(`${baseUrl}/api/availability?startDate=${testDate}&endDate=${testDate}&hallId=${hall.id}`);
+    assert.strictEqual(res.status, 200);
+    const body = (await res.json()) as any;
+    const dayData = body.availability[testDate]?.[hall.id];
+    assert.ok(dayData, 'Day data must exist');
+    assert.strictEqual(dayData.eventName, 'Pending Reservation', 'Top-level eventName must NOT leak pending title');
+    assert.strictEqual(dayData.bookingId, 'HB-PENDING', 'Top-level bookingId must NOT leak real pending ID');
+    assert.strictEqual(dayData.bookedBy, undefined, 'bookedBy must be undefined for public visitors');
+
+    const evt = dayData.events?.[0];
+    assert.ok(evt, 'Events array must have an item');
+    assert.strictEqual(evt.eventName, 'Pending Reservation', 'Events item eventName must NOT leak pending title');
+    assert.strictEqual(evt.bookingId, 'HB-PENDING', 'Events item bookingId must NOT leak real pending ID');
+  } finally {
+    await prisma.booking.delete({ where: { id: pendingBooking.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Booking Creation Authorization: Blocks non-faculty regular USER accounts with HTTP 403', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const hall = await prisma.hall.findFirst();
+  if (!hall) return;
+
+  const studentUser = await prisma.user.create({
+    data: {
+      name: 'Student Applicant',
+      email: `student.${Date.now()}@college.edu`,
+      passwordHash: 'hashed_pw',
+      role: 'USER',
+      status: 'ACTIVE',
+    },
+  });
+
+  const studentUserToken = jwt.sign(
+    { id: studentUser.id, email: studentUser.email, role: 'USER', name: studentUser.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  try {
+    const res = await fetch(`${baseUrl}/api/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${studentUserToken}`,
+      },
+      body: JSON.stringify({
+        hallId: hall.id,
+        eventName: 'Unauthorized Student Fest',
+        purpose: 'Extracurricular Club',
+        bookingDate: getDynamicFutureDate(20),
+        bookingType: 'MORNING',
+        startTime: '09:00',
+        endTime: '12:00',
+        participantCount: 50,
+        contactNumber: '9876543210',
+        email: studentUser.email,
+      }),
+    });
+
+    assert.strictEqual(res.status, 403, 'Regular USER role must be rejected with 403 Forbidden');
+    const data = (await res.json()) as any;
+    assert.match(data.error, /faculty/i, 'Error message should mention faculty authorization required');
+  } finally {
+    await prisma.user.delete({ where: { id: studentUser.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});

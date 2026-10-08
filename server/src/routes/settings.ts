@@ -41,7 +41,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       minAdvanceNoticeDays: '1',
       maxAdvanceNoticeDays: '90',
       requireAdminApproval: 'true',
-      requireUserApproval: 'false',
+      requireUserApproval: 'true',
       allowWeekendBookings: 'true',
       allowHolidayBookings: 'false',
       emailNotificationsEnabled: 'true',

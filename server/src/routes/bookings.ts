@@ -100,6 +100,15 @@ export async function checkBookingConflict(
 // Create Booking Request
 router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    // Authorization Guard: Only verified faculty members and administrators can reserve halls
+    const isAuthorizedBooker = ['FACULTY', 'ADMIN', 'SUPER_ADMIN'].includes(req.user!.role);
+    if (!isAuthorizedBooker) {
+      res.status(403).json({
+        error: 'Only verified faculty members and campus administrators are authorized to submit seminar hall reservations.',
+      });
+      return;
+    }
+
     const {
       hallId,
       eventName,

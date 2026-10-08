@@ -107,6 +107,14 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
     });
     const allowHolidayBookings = holidayPolicySetting?.value === 'true';
 
+    const displaySetting = await prisma.systemSetting.findUnique({
+      where: { key: 'publicUpcomingDisplay' },
+    });
+    const displayMode = displaySetting?.value || 'EVENT_TITLE'; // 'EVENT_TITLE' | 'DEPARTMENT_EVENT' | 'RESERVED_SLOT'
+
+    const requester = req.user;
+    const isRequesterAdmin = requester && ['ADMIN', 'SUPER_ADMIN'].includes(requester.role);
+
     // Fetch halls
     const halls = hallId 
       ? await prisma.hall.findMany({ where: { id: hallId } })
@@ -271,17 +279,53 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
 
           const primaryBooking = approved[0] || pending[0];
 
-          const eventsList = matchingBookings.map(b => ({
-            bookingId: isAuthenticated ? b.bookingId : (b.status === 'APPROVED' ? b.bookingId : 'HB-PENDING'),
-            eventName: isAuthenticated ? b.eventName : (b.status === 'APPROVED' ? b.eventName : 'Pending Reservation'),
-            status: b.status,
-            bookingType: b.bookingType,
-            startTime: b.startTime,
-            endTime: b.endTime,
-            department: isAuthenticated ? (b.department?.name || 'Department') : 'Academic Department',
-            bookedBy: isAuthenticated ? b.requestedBy : undefined,
-            purpose: isAuthenticated ? b.purpose : undefined,
-          }));
+          const sanitizeBookingForAvailability = (b: any) => {
+            const isOwner = requester && requester.id === b.userId;
+            const canSeePrivateDetails = isRequesterAdmin || isOwner;
+
+            let sanitizedTitle: string;
+            let sanitizedBookingId: string;
+            let sanitizedDept: string | null = null;
+
+            if (canSeePrivateDetails) {
+              sanitizedTitle = b.eventName;
+              sanitizedBookingId = b.bookingId;
+              sanitizedDept = b.department?.name || 'Academic Dept';
+            } else if (b.status === 'PENDING') {
+              sanitizedTitle = 'Pending Reservation';
+              sanitizedBookingId = 'HB-PENDING';
+              sanitizedDept = displayMode === 'RESERVED_SLOT' ? null : 'Academic Department';
+            } else {
+              if (displayMode === 'RESERVED_SLOT') {
+                sanitizedTitle = 'Reserved Academic Session';
+                sanitizedBookingId = 'RESERVED';
+                sanitizedDept = null;
+              } else if (displayMode === 'DEPARTMENT_EVENT') {
+                sanitizedTitle = b.department?.name ? `${b.department.name} Academic Event` : 'Department Academic Event';
+                sanitizedBookingId = b.bookingId;
+                sanitizedDept = b.department?.name || 'Academic Department';
+              } else {
+                sanitizedTitle = b.eventName;
+                sanitizedBookingId = b.bookingId;
+                sanitizedDept = b.department?.name || 'Academic Department';
+              }
+            }
+
+            return {
+              bookingId: sanitizedBookingId,
+              eventName: sanitizedTitle,
+              status: b.status,
+              bookingType: b.bookingType,
+              startTime: b.startTime,
+              endTime: b.endTime,
+              department: sanitizedDept,
+              bookedBy: canSeePrivateDetails ? b.requestedBy : undefined,
+              purpose: canSeePrivateDetails ? b.purpose : undefined,
+            };
+          };
+
+          const eventsList = matchingBookings.map(b => sanitizeBookingForAvailability(b));
+          const sanitizedPrimary = sanitizeBookingForAvailability(primaryBooking);
 
           const freeWindows = (primaryStatus === 'BOOKED' || isFullDayApproved)
             ? []
@@ -307,14 +351,14 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             freeWindows,
             holidayName: hol?.name,
             isHoliday: Boolean(hol),
-            bookingId: primaryBooking.bookingId,
-            eventName: primaryBooking.eventName,
-            bookingType: primaryBooking.bookingType,
-            startTime: primaryBooking.startTime,
-            endTime: primaryBooking.endTime,
-            department: primaryBooking.department?.name || 'Academic Dept',
-            bookedBy: isAuthenticated ? primaryBooking.requestedBy : undefined,
-            purpose: isAuthenticated ? primaryBooking.purpose : undefined,
+            bookingId: sanitizedPrimary.bookingId,
+            eventName: sanitizedPrimary.eventName,
+            bookingType: sanitizedPrimary.bookingType,
+            startTime: sanitizedPrimary.startTime,
+            endTime: sanitizedPrimary.endTime,
+            department: sanitizedPrimary.department,
+            bookedBy: sanitizedPrimary.bookedBy,
+            purpose: sanitizedPrimary.purpose,
             events: eventsList,
           };
           continue;
