@@ -272,16 +272,21 @@ async function main() {
   const blockEnd = new Date(todayObj);
   blockEnd.setDate(blockEnd.getDate() + 14);
 
-  await prisma.blockedDate.create({
-    data: {
-      hallId: null, // All halls
-      startDate: formatYMD(blockStart),
-      endDate: formatYMD(blockEnd),
-      reason: 'EXAMINATION',
-      description: 'Mid-term centralized university examinations. All halls reserved for paper evaluation and exam control.',
-      createdById: admin.id,
-    },
+  const existingBlock = await prisma.blockedDate.findFirst({
+    where: { reason: 'EXAMINATION', startDate: formatYMD(blockStart) },
   });
+  if (!existingBlock) {
+    await prisma.blockedDate.create({
+      data: {
+        hallId: null, // All halls
+        startDate: formatYMD(blockStart),
+        endDate: formatYMD(blockEnd),
+        reason: 'EXAMINATION',
+        description: 'Mid-term centralized university examinations. All halls reserved for paper evaluation and exam control.',
+        createdById: admin.id,
+      },
+    });
+  }
 
   // 6. Maintenance (e.g. AV Hall acoustic upgrade)
   const maintStart = new Date(todayObj);
@@ -289,29 +294,39 @@ async function main() {
   const maintEnd = new Date(todayObj);
   maintEnd.setDate(maintEnd.getDate() + 7);
 
-  await prisma.maintenance.create({
-    data: {
-      hallId: avHall.id,
-      startDate: formatYMD(maintStart),
-      endDate: formatYMD(maintEnd),
-      reason: 'Audio-Visual Rigging & Projector Calibration',
-      notes: 'Quarterly sound servicing, firmware upgrades, and lens alignment.',
-      responsiblePerson: 'Mr. Arvind Gupta (Head AV Technician)',
-    },
+  const existingMaint = await prisma.maintenance.findFirst({
+    where: { hallId: avHall.id, startDate: formatYMD(maintStart) },
   });
+  if (!existingMaint) {
+    await prisma.maintenance.create({
+      data: {
+        hallId: avHall.id,
+        startDate: formatYMD(maintStart),
+        endDate: formatYMD(maintEnd),
+        reason: 'Audio-Visual Rigging & Projector Calibration',
+        notes: 'Quarterly sound servicing, firmware upgrades, and lens alignment.',
+        responsiblePerson: 'Mr. Arvind Gupta (Head AV Technician)',
+      },
+    });
+  }
 
   // 7. Institutional Holiday
   const holidayDate = new Date(todayObj);
   holidayDate.setDate(holidayDate.getDate() + 18);
 
-  await prisma.holiday.create({
-    data: {
-      name: 'College Founder Day Celebration',
-      date: formatYMD(holidayDate),
-      description: 'Annual commemoration holiday across all campus departments.',
-      hallScope: 'ALL',
-    },
+  const existingHoliday = await prisma.holiday.findFirst({
+    where: { name: 'College Founder Day Celebration', date: formatYMD(holidayDate) },
   });
+  if (!existingHoliday) {
+    await prisma.holiday.create({
+      data: {
+        name: 'College Founder Day Celebration',
+        date: formatYMD(holidayDate),
+        description: 'Annual commemoration holiday across all campus departments.',
+        hallScope: 'ALL',
+      },
+    });
+  }
 
   console.log('Seeding completed successfully!');
 }

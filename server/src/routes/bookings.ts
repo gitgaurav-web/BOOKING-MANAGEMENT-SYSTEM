@@ -122,47 +122,107 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
 
     const effectiveEnd = endDate && endDate >= bookingDate ? endDate : bookingDate;
 
-    // Check conflict
-    const conflict = await checkBookingConflict(hallId, bookingDate, effectiveEnd, startTime, endTime);
-    if (conflict.hasConflict) {
-      res.status(409).json({ error: conflict.reason });
-      return;
+    // Load active system settings
+    const settingsList = await prisma.systemSetting.findMany();
+    const settingsMap: Record<string, string> = {
+      minAdvanceNoticeDays: '1',
+      maxAdvanceNoticeDays: '90',
+      allowWeekendBookings: 'true',
+      allowHolidayBookings: 'false',
+    };
+    for (const s of settingsList) {
+      settingsMap[s.key] = s.value;
     }
 
-    const bookingId = await generateBookingId();
-    const user = req.user!;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const requestedStart = new Date(bookingDate + 'T00:00:00');
+    const todayDate = new Date(todayStr + 'T00:00:00');
+    const diffDays = Math.round((requestedStart.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Auto-approve if created directly by ADMIN or SUPER_ADMIN
-    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(user.role);
+    const minNotice = parseInt(settingsMap.minAdvanceNoticeDays || '1', 10);
+    const maxNotice = parseInt(settingsMap.maxAdvanceNoticeDays || '90', 10);
+
+    const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(req.user!.role);
+
+    if (!isAdmin) {
+      if (diffDays < minNotice) {
+        res.status(400).json({
+          error: `Minimum advance booking notice required is ${minNotice} day(s). Cannot book dates in the past or on short notice.`,
+        });
+        return;
+      }
+      if (diffDays > maxNotice) {
+        res.status(400).json({
+          error: `Booking exceeds maximum advance reservation window of ${maxNotice} days.`,
+        });
+        return;
+      }
+
+      // Check Weekend policy
+      if (settingsMap.allowWeekendBookings === 'false') {
+        const startDay = requestedStart.getDay(); // 0 is Sunday, 6 is Saturday
+        const endDay = new Date(effectiveEnd + 'T00:00:00').getDay();
+        if (startDay === 0 || startDay === 6 || endDay === 0 || endDay === 6) {
+          res.status(400).json({ error: 'Institutional policy restricts weekend facility reservations.' });
+          return;
+        }
+      }
+    }
+
+    // Department ownership and authorization check
+    let finalDepartmentId: string | null = null;
+    if (isAdmin) {
+      finalDepartmentId = departmentId || null;
+    } else {
+      if (req.user!.departmentId) {
+        finalDepartmentId = req.user!.departmentId;
+      } else if (departmentId) {
+        const deptExists = await prisma.department.findUnique({ where: { id: departmentId } });
+        finalDepartmentId = deptExists ? deptExists.id : null;
+      }
+    }
+
+    // Atomic transaction to avoid race conditions during concurrent bookings
+    const user = req.user!;
     const initialStatus = isAdmin ? 'APPROVED' : 'PENDING';
 
-    const booking = await prisma.booking.create({
-      data: {
-        bookingId,
-        userId: user.id,
-        hallId,
-        eventName,
-        description,
-        purpose,
-        departmentId: departmentId || null,
-        bookingDate,
-        endDate: effectiveEnd !== bookingDate ? effectiveEnd : null,
-        bookingType,
-        startTime,
-        endTime,
-        participantCount: Number(participantCount) || 0,
-        requestedBy: user.name,
-        coordinatorName: coordinatorName || user.name,
-        contactNumber,
-        email,
-        specialRequirements: typeof specialRequirements === 'string' ? specialRequirements : JSON.stringify(specialRequirements || []),
-        attachmentUrl: attachmentUrl || null,
-        additionalNotes,
-        status: initialStatus,
-        approvedById: isAdmin ? user.id : null,
-        approvedAt: isAdmin ? new Date() : null,
-      },
-      include: { hall: true, department: true },
+    const booking = await prisma.$transaction(async (tx) => {
+      // Re-evaluate conflict inside transaction lock
+      const conflict = await checkBookingConflict(hallId, bookingDate, effectiveEnd, startTime, endTime);
+      if (conflict.hasConflict) {
+        throw new Error(`CONFLICT: ${conflict.reason}`);
+      }
+
+      const bookingId = await generateBookingId();
+
+      return await tx.booking.create({
+        data: {
+          bookingId,
+          userId: user.id,
+          hallId,
+          eventName,
+          description,
+          purpose,
+          departmentId: finalDepartmentId,
+          bookingDate,
+          endDate: effectiveEnd !== bookingDate ? effectiveEnd : null,
+          bookingType,
+          startTime,
+          endTime,
+          participantCount: Number(participantCount) || 0,
+          requestedBy: user.name,
+          coordinatorName: coordinatorName || user.name,
+          contactNumber,
+          email,
+          specialRequirements: typeof specialRequirements === 'string' ? specialRequirements : JSON.stringify(specialRequirements || []),
+          attachmentUrl: attachmentUrl || null,
+          additionalNotes,
+          status: initialStatus,
+          approvedById: isAdmin ? user.id : null,
+          approvedAt: isAdmin ? new Date() : null,
+        },
+        include: { hall: true, department: true },
+      });
     });
 
     await logActivity(
@@ -170,7 +230,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       'CREATE_BOOKING',
       'BOOKING',
       booking.id,
-      `Booking request ${bookingId} submitted for ${booking.hall.name} on ${bookingDate} (${initialStatus}).`
+      `Booking request ${booking.bookingId} submitted for ${booking.hall.name} on ${bookingDate} (${initialStatus}).`
     );
 
     // Notify user
@@ -178,8 +238,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       user.id,
       isAdmin ? 'Booking Confirmed' : 'Booking Request Submitted',
       isAdmin
-        ? `Your booking ${bookingId} for ${booking.hall.name} on ${bookingDate} is confirmed.`
-        : `Your booking request ${bookingId} for ${booking.hall.name} on ${bookingDate} is submitted and awaiting admin approval.`,
+        ? `Your booking ${booking.bookingId} for ${booking.hall.name} on ${bookingDate} is confirmed.`
+        : `Your booking request ${booking.bookingId} for ${booking.hall.name} on ${bookingDate} is submitted and awaiting admin approval.`,
       isAdmin ? 'SUCCESS' : 'INFO'
     );
 
@@ -190,7 +250,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
         await createNotification(
           adm.id,
           'New Booking Request',
-          `New request ${bookingId} by ${user.name} for ${booking.hall.name} on ${bookingDate}.`,
+          `New request ${booking.bookingId} by ${user.name} for ${booking.hall.name} on ${bookingDate}.`,
           'ALERT'
         );
       }
@@ -291,10 +351,18 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
       orderBy: { bookingDate: 'desc' },
     });
 
-    const parsed = bookings.map(b => ({
-      ...b,
-      specialRequirements: JSON.parse(b.specialRequirements || '[]'),
-    }));
+    const parsed = bookings.map(b => {
+      const isOwner = b.userId === req.user!.id;
+      const showPrivate = isAdmin || isOwner;
+      return {
+        ...b,
+        contactNumber: showPrivate ? b.contactNumber : 'Protected',
+        email: showPrivate ? b.email : 'Protected',
+        attachmentUrl: showPrivate ? b.attachmentUrl : null,
+        user: showPrivate ? b.user : { name: b.requestedBy, email: 'Protected', phone: 'Protected' },
+        specialRequirements: JSON.parse(b.specialRequirements || '[]'),
+      };
+    });
 
     res.json(parsed);
   } catch (error) {
@@ -348,30 +416,31 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       return;
     }
 
-    // Check conflict before approving
-    const conflict = await checkBookingConflict(
-      existing.hallId,
-      existing.bookingDate,
-      existing.endDate || existing.bookingDate,
-      existing.startTime,
-      existing.endTime,
-      existing.id
-    );
+    // Check conflict and update inside transaction to prevent race conditions
+    const updated = await prisma.$transaction(async (tx) => {
+      const conflict = await checkBookingConflict(
+        existing.hallId,
+        existing.bookingDate,
+        existing.endDate || existing.bookingDate,
+        existing.startTime,
+        existing.endTime,
+        existing.id
+      );
 
-    if (conflict.hasConflict) {
-      res.status(409).json({ error: `Cannot approve booking: ${conflict.reason}` });
-      return;
-    }
+      if (conflict.hasConflict) {
+        throw new Error(`CONFLICT: ${conflict.reason}`);
+      }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: {
-        status: 'APPROVED',
-        approvedById: req.user!.id,
-        approvedAt: new Date(),
-        adminNotes: adminNotes || existing.adminNotes,
-      },
-      include: { hall: true, department: true },
+      return await tx.booking.update({
+        where: { id },
+        data: {
+          status: 'APPROVED',
+          approvedById: req.user!.id,
+          approvedAt: new Date(),
+          adminNotes: adminNotes || existing.adminNotes,
+        },
+        include: { hall: true, department: true },
+      });
     });
 
     await logActivity(

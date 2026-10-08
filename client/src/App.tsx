@@ -14,6 +14,7 @@ import { BookingRequestPage } from './pages/BookingRequestPage';
 import { LoginPage } from './pages/LoginPage';
 import { HowItWorksPage } from './pages/HowItWorksPage';
 import { MyBookingsPage } from './pages/MyBookingsPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Admin Layout & Pages
 import { AdminLayout } from './layouts/AdminLayout';
@@ -44,10 +45,24 @@ export function App() {
                 <Route path="/halls" element={<HallsPage />} />
                 <Route path="/availability" element={<AvailabilityPage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/book" element={<BookingRequestPage />} />
+                <Route
+                  path="/book"
+                  element={
+                    <ProtectedRoute>
+                      <BookingRequestPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route path="/how-it-works" element={<HowItWorksPage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/user/bookings" element={<MyBookingsPage />} />
+                <Route
+                  path="/user/bookings"
+                  element={
+                    <ProtectedRoute>
+                      <MyBookingsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Admin Management Routes */}
                 <Route path="/admin" element={<AdminLayout />}>

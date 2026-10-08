@@ -49,3 +49,29 @@ export async function apiRequest<T = any>(
 
   return data as T;
 }
+
+export async function downloadCsvFile(endpoint: string, filename: string = 'facility_bookings_report.csv'): Promise<void> {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to download file. Please ensure you are logged in with admin privileges.');
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}

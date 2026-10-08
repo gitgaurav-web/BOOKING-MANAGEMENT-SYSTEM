@@ -27,12 +27,24 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (_req, file, cb) => {
-    const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'];
+    const allowedExts = ['.pdf', '.png', '.jpg', '.jpeg', '.doc', '.docx'];
+    const allowedMimes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/jpg',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+
     const ext = path.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) {
+    const isExtAllowed = allowedExts.includes(ext);
+    const isMimeAllowed = allowedMimes.includes(file.mimetype.toLowerCase());
+
+    if (isExtAllowed && isMimeAllowed) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF, JPG, PNG, and DOC files are allowed.'));
+      cb(new Error('Invalid file type. Only PDF, JPG, PNG, and DOC files are permitted.'));
     }
   },
 });

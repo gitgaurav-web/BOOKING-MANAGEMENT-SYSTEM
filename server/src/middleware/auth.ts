@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
     name: string;
+    departmentId?: string | null;
   };
 }
 
@@ -25,7 +26,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, name: true, status: true },
+      select: { id: true, email: true, role: true, name: true, status: true, departmentId: true },
     });
 
     if (!user || user.status !== 'ACTIVE') {
@@ -65,7 +66,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string; name: string };
       const user = await prisma.user.findUnique({
         where: { id: decoded.id },
-        select: { id: true, email: true, role: true, name: true, status: true },
+        select: { id: true, email: true, role: true, name: true, status: true, departmentId: true },
       });
       if (user && user.status === 'ACTIVE') {
         req.user = user;

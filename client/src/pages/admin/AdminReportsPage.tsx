@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../../services/api';
+import { apiRequest, downloadCsvFile } from '../../services/api';
 import { BarChart3, FileSpreadsheet, Printer, Download, TrendingUp } from 'lucide-react';
 import {
   BarChart,
@@ -58,15 +58,19 @@ export const AdminReportsPage: React.FC = () => {
             <Printer className="w-3.5 h-3.5" />
             <span>Print Report</span>
           </button>
-          <a
-            href="/api/reports/export-csv"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition"
+          <button
+            onClick={async () => {
+              try {
+                await downloadCsvFile('/reports/export-csv', 'facility_bookings_report.csv');
+              } catch (err: any) {
+                alert(err.message || 'Failed to download CSV');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
             <span>Export CSV</span>
-          </a>
+          </button>
         </div>
       </div>
 

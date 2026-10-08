@@ -72,6 +72,26 @@ router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), async (req: AuthReq
     const { id } = req.params;
     const { role, status, departmentId } = req.body;
 
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN') {
+      if (role && role !== 'SUPER_ADMIN') {
+        const count = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+        if (count <= 1) {
+          res.status(400).json({ error: 'Cannot demote the last remaining Super Admin.' });
+          return;
+        }
+      }
+      if (status === 'INACTIVE' && req.user!.id === targetUser.id) {
+        res.status(400).json({ error: 'Cannot deactivate your own Super Admin account.' });
+        return;
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data: {

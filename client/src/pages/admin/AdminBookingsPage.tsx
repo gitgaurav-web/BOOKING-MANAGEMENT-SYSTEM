@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../../services/api';
+import { apiRequest, downloadCsvFile } from '../../services/api';
 import { Booking, Hall, Department } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import {
@@ -94,15 +94,19 @@ export const AdminBookingsPage: React.FC = () => {
           </p>
         </div>
 
-        <a
-          href="/api/reports/export-csv"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white font-semibold text-xs transition"
+        <button
+          onClick={async () => {
+            try {
+              await downloadCsvFile('/reports/export-csv', 'facility_bookings_report.csv');
+            } catch (err: any) {
+              alert(err.message || 'Failed to download CSV');
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold text-xs transition cursor-pointer"
         >
           <FileSpreadsheet className="w-3.5 h-3.5" />
           <span>Export All Bookings CSV</span>
-        </a>
+        </button>
       </div>
 
       {/* Filter Bar */}
