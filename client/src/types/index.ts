@@ -4,9 +4,11 @@ export interface User {
   email: string;
   role: 'USER' | 'FACULTY' | 'ADMIN' | 'SUPER_ADMIN';
   phone?: string;
-  department?: string;
-  departmentId?: string;
+  department?: Department | string | null;
+  departmentId?: string | null;
   status?: string;
+  createdAt?: string;
+  _count?: { bookings: number };
 }
 
 export interface Department {

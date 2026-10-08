@@ -121,7 +121,7 @@ router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimi
       data: {
         ...(role ? { role } : {}),
         ...(status ? { status } : {}),
-        ...(departmentId ? { departmentId } : {}),
+        ...(departmentId !== undefined ? { departmentId: departmentId || null } : {}),
       },
     });
 
@@ -129,6 +129,76 @@ router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimi
     res.json({ message: 'User updated successfully.' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update user.' });
+  }
+});
+
+// Users: Create new user (Super Admin only)
+router.post('/', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, email, password, phone, departmentId, role, status } = req.body;
+    if (!name || !email || !password) {
+      res.status(400).json({ error: 'Name, email, and temporary password are required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ error: 'Please provide a valid email address.' });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) {
+      res.status(400).json({ error: 'A user with this email address is already registered.' });
+      return;
+    }
+
+    let finalDeptId: string | null = null;
+    if (departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+      if (!dept) {
+        res.status(400).json({ error: 'Selected department does not exist.' });
+        return;
+      }
+      finalDeptId = dept.id;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email: cleanEmail,
+        passwordHash,
+        phone: phone || null,
+        departmentId: finalDeptId,
+        role: role || 'FACULTY',
+        status: status || 'ACTIVE',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        department: true,
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    await logActivity(req.user!.id, 'CREATE_USER', 'USER', newUser.id, `Created user ${newUser.name} (${newUser.role})`);
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user.' });
   }
 });
 
