@@ -79,12 +79,20 @@ export const Navbar: React.FC = () => {
             <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">
               {settings.institutionName || 'Sri Sairam College of Engineering, Bengaluru'}
             </span>
-            <span className="hidden md:inline text-slate-400">|</span>
-            <span className="hidden md:inline text-slate-300 font-normal">Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited</span>
+            {settings.accreditationText && (
+              <>
+                <span className="hidden md:inline text-slate-400">|</span>
+                <span className="hidden md:inline text-slate-300 font-normal">
+                  {settings.accreditationText}
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-4 text-slate-300">
             <span className="hidden sm:inline">Central Campus Facility Portal</span>
-            <span className="text-amber-400/90 font-bold">Academic Session 2026-27</span>
+            <span className="text-amber-400/90 font-bold">
+              {settings.academicSession || 'Academic Session 2026-27'}
+            </span>
           </div>
         </div>
       </div>

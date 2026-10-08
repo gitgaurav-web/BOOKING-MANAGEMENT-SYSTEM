@@ -12,6 +12,9 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'contactEmail',
   'contactPhone',
   'address',
+  'academicSession',
+  'accreditationText',
+  'allowedEmailDomain',
   'minAdvanceNoticeDays',
   'maxAdvanceNoticeDays',
   'requireAdminApproval',
@@ -32,6 +35,9 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       contactEmail: 'info@sairamce.edu.in',
       contactPhone: '080-27830221',
       address: 'Sai Leo Nagar, Guddanahalli Village, Samandur Post, Anekal, Bengaluru, Karnataka - 562106',
+      academicSession: 'Academic Session 2026-27',
+      accreditationText: 'Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited',
+      allowedEmailDomain: '',
       minAdvanceNoticeDays: '1',
       maxAdvanceNoticeDays: '90',
       requireAdminApproval: 'true',
@@ -100,6 +106,34 @@ router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRa
         });
         return;
       }
+    }
+
+    // 2.2 Validate academic session, accreditation, and domain restrictions
+    if (updates.academicSession !== undefined) {
+      const sessStr = String(updates.academicSession).trim();
+      if (sessStr.length > 80) {
+        res.status(400).json({ error: 'academicSession must be at most 80 characters.' });
+        return;
+      }
+      updates.academicSession = sessStr;
+    }
+
+    if (updates.accreditationText !== undefined) {
+      const accStr = String(updates.accreditationText).trim();
+      if (accStr.length > 250) {
+        res.status(400).json({ error: 'accreditationText must be at most 250 characters.' });
+        return;
+      }
+      updates.accreditationText = accStr;
+    }
+
+    if (updates.allowedEmailDomain !== undefined) {
+      const domStr = String(updates.allowedEmailDomain).trim().toLowerCase().replace(/^@/, '');
+      if (domStr.length > 100) {
+        res.status(400).json({ error: 'allowedEmailDomain must be at most 100 characters.' });
+        return;
+      }
+      updates.allowedEmailDomain = domStr;
     }
 
     // 3. Validate notice day numerical ranges strictly (reject non-digits like '2abc')

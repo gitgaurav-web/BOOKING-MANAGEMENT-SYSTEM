@@ -387,7 +387,10 @@ router.get('/upcoming', async (_req, res: Response): Promise<void> => {
     const bookings = await prisma.booking.findMany({
       where: {
         status: 'APPROVED',
-        bookingDate: { gte: today },
+        OR: [
+          { bookingDate: { gte: today } },
+          { endDate: { gte: today } },
+        ],
       },
       include: {
         hall: true,
@@ -399,15 +402,20 @@ router.get('/upcoming', async (_req, res: Response): Promise<void> => {
 
     const sanitized = bookings.map((b) => {
       let publicTitle = b.eventName;
+      let publicBookingId = b.bookingId;
+      let publicDept = b.department ? { id: b.department.id, name: b.department.name, code: b.department.code } : null;
+
       if (displayMode === 'DEPARTMENT_EVENT') {
         publicTitle = b.department?.name ? `${b.department.name} Academic Event` : 'Department Academic Event';
       } else if (displayMode === 'RESERVED_SLOT') {
         publicTitle = 'Reserved Academic Session';
+        publicBookingId = 'RESERVED';
+        publicDept = null;
       }
 
       return {
         id: b.id,
-        bookingId: b.bookingId,
+        bookingId: publicBookingId,
         eventName: publicTitle,
         bookingDate: b.bookingDate,
         endDate: b.endDate,
@@ -416,7 +424,7 @@ router.get('/upcoming', async (_req, res: Response): Promise<void> => {
         bookingType: b.bookingType,
         status: b.status,
         hall: b.hall ? { id: b.hall.id, name: b.hall.name, code: b.hall.code, location: b.hall.location } : null,
-        department: b.department ? { id: b.department.id, name: b.department.name, code: b.department.code } : null,
+        department: publicDept,
       };
     });
 

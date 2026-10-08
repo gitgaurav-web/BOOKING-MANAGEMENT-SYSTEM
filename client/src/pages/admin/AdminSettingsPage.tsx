@@ -128,6 +128,45 @@ export const AdminSettingsPage: React.FC = () => {
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
               />
             </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Current Academic Session
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Academic Session 2026-27"
+                value={settings.academicSession || ''}
+                onChange={(e) => handleChange('academicSession', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Accreditation &amp; Affiliation Claims
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited"
+                value={settings.accreditationText || ''}
+                onChange={(e) => handleChange('accreditationText', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
+
+            <div>
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Restricted Email Domain (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. sairamce.edu.in (leave empty to allow all domains)"
+                value={settings.allowedEmailDomain || ''}
+                onChange={(e) => handleChange('allowedEmailDomain', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+              />
+            </div>
           </div>
         </div>
 

@@ -387,7 +387,7 @@ export const HomePage: React.FC = () => {
                       {booking.eventName}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {booking.hall?.name} · {booking.department?.name || 'Department Requisition'}
+                      {booking.hall?.name}{booking.department?.name ? ` · ${booking.department.name}` : ''}
                     </p>
                   </div>
                 </div>

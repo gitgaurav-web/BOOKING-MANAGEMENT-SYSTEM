@@ -7,6 +7,9 @@ export interface SystemSettings {
   contactEmail: string;
   contactPhone: string;
   address: string;
+  academicSession: string;
+  accreditationText: string;
+  allowedEmailDomain: string;
   minAdvanceNoticeDays: string;
   maxAdvanceNoticeDays: string;
   requireAdminApproval: string;
@@ -23,6 +26,9 @@ const defaultSettings: SystemSettings = {
   contactEmail: 'info@sairamce.edu.in',
   contactPhone: '080-27830221',
   address: 'Sai Leo Nagar, Guddanahalli Village, Samandur Post, Anekal, Bengaluru, Karnataka - 562106',
+  academicSession: 'Academic Session 2026-27',
+  accreditationText: 'Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited',
+  allowedEmailDomain: '',
   minAdvanceNoticeDays: '1',
   maxAdvanceNoticeDays: '90',
   requireAdminApproval: 'true',

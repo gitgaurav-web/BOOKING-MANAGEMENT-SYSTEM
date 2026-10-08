@@ -13,7 +13,10 @@ export const Footer: React.FC = () => {
         <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-4 text-xs text-amber-200/90 font-medium">
           <div className="flex items-center gap-3">
             <Award className="h-4 w-4 text-amber-400" />
-            <span>{settings.institutionName || 'Sri Sairam College of Engineering, Bengaluru'} · Approved by AICTE &amp; Affiliated to VTU Belagavi</span>
+            <span>
+              {settings.institutionName || 'Sri Sairam College of Engineering, Bengaluru'}
+              {settings.accreditationText ? ` · ${settings.accreditationText}` : ''}
+            </span>
           </div>
           <div className="flex items-center gap-4 text-slate-300">
             <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-amber-400" /> {settings.contactPhone || '080-27830221'}</span>

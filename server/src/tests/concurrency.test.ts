@@ -593,6 +593,8 @@ test('Public Upcoming Events Privacy Modes: Sanitizes event titles based on sett
     const dataSlot = (await resSlot.json()) as any[];
     if (dataSlot.length > 0) {
       assert.strictEqual(dataSlot[0].eventName, 'Reserved Academic Session');
+      assert.strictEqual(dataSlot[0].bookingId, 'RESERVED', 'Booking ID must be masked in RESERVED_SLOT mode');
+      assert.strictEqual(dataSlot[0].department, null, 'Department must be null in RESERVED_SLOT mode');
     }
   } finally {
     // Restore default
@@ -601,6 +603,86 @@ test('Public Upcoming Events Privacy Modes: Sanitizes event titles based on sett
       update: { value: 'EVENT_TITLE' },
       create: { key: 'publicUpcomingDisplay', value: 'EVENT_TITLE' },
     });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Multi-Day Booking: Ongoing bookings spanning today are included in public upcoming events', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const hall = await prisma.hall.findFirst();
+  const user = await prisma.user.findFirst();
+  if (!hall || !user) return;
+
+  const yesterday = getDynamicFutureDate(-1);
+  const tomorrow = getDynamicFutureDate(2);
+
+  const ongoingBooking = await prisma.booking.create({
+    data: {
+      bookingId: `BK-TEST-MULTI-${Date.now()}`,
+      userId: user.id,
+      hallId: hall.id,
+      eventName: 'Live Multiday Colloquium Overlap',
+      purpose: 'Ongoing Academic Event',
+      bookingDate: yesterday,
+      endDate: tomorrow,
+      bookingType: 'FULL_DAY',
+      startTime: '09:00',
+      endTime: '17:00',
+      participantCount: 50,
+      requestedBy: 'Test Coordinator',
+      contactNumber: '9876543210',
+      email: 'test@college.edu',
+      status: 'APPROVED',
+    },
+  });
+
+  try {
+    const res = await fetch(`${baseUrl}/api/bookings/upcoming`);
+    const list = (await res.json()) as any[];
+    const found = list.some((b) => b.id === ongoingBooking.id);
+    assert.strictEqual(found, true, 'Ongoing booking starting yesterday and ending tomorrow must be included');
+  } finally {
+    await prisma.booking.delete({ where: { id: ongoingBooking.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Registration Security: Faculty affiliation requests start as INACTIVE pending admin verification', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const dept = await prisma.department.findFirst();
+  if (!dept) return;
+
+  const testEmail = `pending.faculty.${Date.now()}@example.com`;
+  let registeredUserId: string | null = null;
+
+  try {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Prospective Faculty Applicant',
+        email: testEmail,
+        password: 'Password123!',
+        departmentId: dept.id,
+      }),
+    });
+
+    assert.strictEqual(res.status, 201);
+    const data = (await res.json()) as any;
+    assert.strictEqual(data.user.status, 'INACTIVE', 'Faculty affiliation registrations must require admin activation');
+    registeredUserId = data.user.id;
+  } finally {
+    if (registeredUserId) {
+      await prisma.user.delete({ where: { id: registeredUserId } });
+    }
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
