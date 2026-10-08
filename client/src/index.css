@@ -3,28 +3,38 @@
 @layer base {
   :root {
     --color-surface: #ffffff;
-    --color-surface-subtle: #f8fafc;
-    --color-border: #e2e8f0;
-    --color-text-main: #0f172a;
-    --color-text-muted: #64748b;
+    --color-surface-subtle: #f7f6f1;
+    --color-border: #e4e2d9;
+    --color-text-main: #1b332c;
+    --color-text-muted: #66736b;
   }
 
   .dark {
-    --color-surface: #0f172a;
-    --color-surface-subtle: #1e293b;
-    --color-border: #334155;
-    --color-text-main: #f8fafc;
-    --color-text-muted: #94a3b8;
+    --color-surface: #111c19;
+    --color-surface-subtle: #101815;
+    --color-border: #34433d;
+    --color-text-main: #f4f3ed;
+    --color-text-muted: #a7b1ab;
   }
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   background-color: var(--color-surface-subtle);
   color: var(--color-text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::selection {
+  color: #fff;
+  background: #315b48;
+}
+
+:focus-visible {
+  outline: 2px solid #8d9b63;
+  outline-offset: 2px;
 }
 
 /* Custom scrollbars */

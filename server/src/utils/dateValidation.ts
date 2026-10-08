@@ -19,3 +19,16 @@ export function isValidStrictIsoDate(dateStr: string): boolean {
     date.getUTCDate() === day
   );
 }
+
+/**
+ * Returns the current calendar date in YYYY-MM-DD according to a specified timezone (default: Asia/Kolkata).
+ */
+export function getLocalIsoDate(timeZone: string = 'Asia/Kolkata'): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+}

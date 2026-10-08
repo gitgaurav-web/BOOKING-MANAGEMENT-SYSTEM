@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import { logActivity } from '../utils/helpers';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.get('/departments', async (_req: Request, res: Response): Promise<void> =
 });
 
 // Departments: Create new
-router.post('/departments', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/departments', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, code, description } = req.body;
     if (!name || !code) {
@@ -44,7 +45,7 @@ router.post('/departments', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
 });
 
 // Departments: Update department
-router.put('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { name, code, description, status } = req.body;
@@ -90,7 +91,7 @@ router.get('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: 
 });
 
 // Users: Update user role / status
-router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { role, status, departmentId } = req.body;

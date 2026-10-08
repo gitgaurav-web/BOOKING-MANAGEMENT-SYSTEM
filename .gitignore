@@ -27,5 +27,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # OS Files
-.DS_Store
-Thumbs.db
+# Uploads
+server/uploads/*
+!server/uploads/.gitkeep
+uploads/

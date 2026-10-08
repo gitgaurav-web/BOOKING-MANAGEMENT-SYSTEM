@@ -95,6 +95,12 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
+    // Fetch system settings
+    const holidayPolicySetting = await prisma.systemSetting.findUnique({
+      where: { key: 'allowHolidayBookings' },
+    });
+    const allowHolidayBookings = holidayPolicySetting?.value === 'true';
+
     // Fetch halls
     const halls = hallId 
       ? await prisma.hall.findMany({ where: { id: hallId } })
@@ -188,11 +194,11 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           continue;
         }
 
-        // 3. Check Holidays
+        // 3. Check Holidays (honoring system allowHolidayBookings policy)
         const hol = holidays.find(
           h => h.date === dateStr && (h.hallScope === 'ALL' || h.hallScope === hall.name)
         );
-        if (hol) {
+        if (hol && !allowHolidayBookings) {
           availabilityMap[dateStr][hall.id] = {
             hallId: hall.id,
             hallName: hall.name,
@@ -271,9 +277,17 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             purpose: isAuthenticated ? b.purpose : undefined,
           }));
 
-          const freeWindows = (primaryStatus === 'BOOKED')
+          const freeWindows = (primaryStatus === 'BOOKED' || isFullDayApproved)
             ? []
-            : calculateFreeTimeWindows(approved.map(b => ({ startTime: b.startTime, endTime: b.endTime })));
+            : calculateFreeTimeWindows(
+                approved.map(b => {
+                  const bEnd = b.endDate || b.bookingDate;
+                  if (b.bookingDate !== bEnd || b.bookingType === 'FULL_DAY') {
+                    return { startTime: '09:00', endTime: '18:00' };
+                  }
+                  return { startTime: b.startTime, endTime: b.endTime };
+                })
+              );
 
           availabilityMap[dateStr][hall.id] = {
             hallId: hall.id,
@@ -285,6 +299,8 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             freeSlots,
             occupiedSlots,
             freeWindows,
+            holidayName: hol?.name,
+            isHoliday: Boolean(hol),
             bookingId: primaryBooking.bookingId,
             eventName: primaryBooking.eventName,
             bookingType: primaryBooking.bookingType,
@@ -307,6 +323,8 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           freeSlots: ['MORNING', 'AFTERNOON', 'FULL_DAY'],
           occupiedSlots: [],
           freeWindows: [{ start: '09:00', end: '18:00' }],
+          holidayName: hol?.name,
+          isHoliday: Boolean(hol),
         };
       }
 

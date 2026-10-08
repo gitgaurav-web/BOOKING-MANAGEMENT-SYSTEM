@@ -1,108 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Mail, Phone, MapPin, Calendar, ShieldCheck, Heart } from 'lucide-react';
+import { ArrowUpRight, Landmark, ShieldCheck } from 'lucide-react';
 
-export const Footer: React.FC = () => {
-  return (
-    <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Col 1 */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <span className="font-bold text-slate-900 dark:text-white">CampusHalls</span>
-                <span className="block text-xs text-slate-500">Facility Portal</span>
-              </div>
-            </div>
-            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              Official date-wise reservation system for Seminar Hall and AV Hall. Simplifying event coordination and preventing facility scheduling conflicts.
-            </p>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-xs font-medium border border-emerald-200 dark:border-emerald-800">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Full Hall Date Reservations (No Seats)</span>
-            </div>
-          </div>
-
-          {/* Col 2: Quick Links */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Quick Links</h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <Link to="/availability" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  Check Hall Availability
-                </Link>
-              </li>
-              <li>
-                <Link to="/calendar" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  Monthly Event Calendar
-                </Link>
-              </li>
-              <li>
-                <Link to="/halls" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  Halls & Audio-Visual Specs
-                </Link>
-              </li>
-              <li>
-                <Link to="/book" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  Submit Booking Request
-                </Link>
-              </li>
-              <li>
-                <Link to="/how-it-works" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  How Reservation Works
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: Facility Specs */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Our Facilities</h4>
-            <ul className="space-y-3 text-xs">
-              <li className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block">Seminar Hall</span>
-                <span className="text-slate-500 text-[11px]">Academic Block • Capacity 200 • Full Stage & Audio</span>
-              </li>
-              <li className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block">AV Hall (Audio Visual)</span>
-                <span className="text-slate-500 text-[11px]">Tech Block • Capacity 120 • Smartboard & Telepresence</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 4: Campus Contact */}
-          <div>
-            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">Campus Facilities Office</h4>
-            <div className="space-y-2.5 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <span>Knowledge Park IV, Academic Campus, Building A</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>+91 98765 00001 (Facilities Desk)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-indigo-500 shrink-0" />
-                <span>facilities@college.edu</span>
-              </div>
-            </div>
-          </div>
+export const Footer: React.FC = () => (
+  <footer className="border-t-4 border-[#a58b51] bg-[#17372e] text-white">
+    <div className="mx-auto max-w-7xl px-4 py-11 sm:px-6 lg:px-8">
+      <div className="grid gap-9 md:grid-cols-[1.3fr_.7fr_.7fr]">
+        <div>
+          <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center border border-white/25 text-[#e8dbb5]"><Landmark className="h-5 w-5" /></span><div><p className="font-serif text-lg font-bold">College Facilities</p><p className="text-[10px] uppercase tracking-[.16em] text-white/55">Campus booking portal</p></div></div>
+          <p className="mt-4 max-w-md text-sm leading-6 text-white/65">A central place to explore campus halls, check dates and send facility booking requests for review.</p>
+          <div className="mt-4 inline-flex items-center gap-2 border border-white/15 px-3 py-2 text-[11px] text-white/75"><ShieldCheck className="h-4 w-4 text-[#c5b783]" />Managed through the campus booking process</div>
         </div>
-
-        <div className="mt-12 pt-6 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Campus Facilities Administration. All rights reserved.</p>
-          <div className="flex items-center gap-4 mt-4 sm:mt-0">
-            <Link to="/login" className="hover:text-blue-600 transition">Staff Portal</Link>
-            <span>•</span>
-            <Link to="/admin" className="hover:text-blue-600 transition">Administrator Desk</Link>
-          </div>
-        </div>
+        <div><h2 className="text-xs font-bold uppercase tracking-[.17em] text-[#d8c995]">Explore</h2><ul className="mt-4 space-y-3 text-sm text-white/70"><li><Link className="hover:text-white" to="/halls">Facilities</Link></li><li><Link className="hover:text-white" to="/availability">Availability</Link></li><li><Link className="hover:text-white" to="/calendar">Campus calendar</Link></li><li><Link className="hover:text-white" to="/how-it-works">How it works</Link></li></ul></div>
+        <div><h2 className="text-xs font-bold uppercase tracking-[.17em] text-[#d8c995]">Booking</h2><ul className="mt-4 space-y-3 text-sm text-white/70"><li><Link className="hover:text-white" to="/book">Submit a request</Link></li><li><Link className="hover:text-white" to="/login">Staff sign in</Link></li><li><Link className="hover:text-white" to="/user/bookings">My requests</Link></li></ul><Link to="/availability" className="mt-5 inline-flex items-center gap-1 text-xs font-semibold text-[#e8dbb5] hover:text-white">Find a date <ArrowUpRight className="h-3.5 w-3.5" /></Link></div>
       </div>
-    </footer>
-  );
-};
+      <div className="mt-9 flex flex-col gap-2 border-t border-white/15 pt-5 text-[11px] text-white/50 sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} College Facilities Portal</span><span>For official institutional information, refer to your college administration.</span></div>
+    </div>
+  </footer>
+);

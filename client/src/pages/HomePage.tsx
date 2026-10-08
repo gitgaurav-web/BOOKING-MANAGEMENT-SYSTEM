@@ -1,20 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Users,
-  MapPin,
-  Volume2,
-  Wifi,
-  ChevronRight,
-  Sliders,
-  Filter,
+  ArrowRight, Building2, CalendarDays, Check, ChevronRight, Clock3,
+  Landmark, MapPin, ShieldCheck, Users,
 } from 'lucide-react';
 import { apiRequest } from '../services/api';
 import { Hall, Booking } from '../types';
@@ -23,359 +11,135 @@ import { StatusBadge } from '../components/StatusBadge';
 export const HomePage: React.FC = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const loadHomeData = async () => {
+      try {
+        const hallsData = await apiRequest<Hall[]>('/halls');
+        setHalls(hallsData);
+        try {
+          const bookingsData = await apiRequest<Booking[]>('/bookings?dateRange=UPCOMING');
+          setUpcomingBookings(bookingsData.slice(0, 5));
+        } catch {
+          setUpcomingBookings([]);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
     loadHomeData();
   }, []);
 
-  const loadHomeData = async () => {
-    try {
-      setLoading(true);
-      const [hallsData, bookingsData] = await Promise.all([
-        apiRequest<Hall[]>('/halls'),
-        apiRequest<Booking[]>('/bookings?dateRange=UPCOMING'),
-      ]);
-      setHalls(hallsData);
-      setUpcomingBookings(bookingsData.slice(0, 5));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const seminarHall = halls.find((h) => h.name.toLowerCase().includes('seminar')) || halls[0];
-  const avHall = halls.find((h) => h.name.toLowerCase().includes('av')) || halls[1];
+  const seminarHall = halls.find((hall) => hall.name.toLowerCase().includes('seminar')) || halls[0];
+  const avHall = halls.find((hall) => hall.name.toLowerCase().includes('av')) || halls[1];
+  const featuredHalls = [seminarHall, avHall].filter((hall): hall is Hall => Boolean(hall));
 
   return (
-    <div className="space-y-16 pb-20">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-16 lg:pb-28 border-b border-slate-200/80 dark:border-slate-800 bg-gradient-to-b from-blue-50/50 via-white to-transparent dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100/80 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-200 dark:border-blue-800 shadow-xs">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Campus Facility Availability System</span>
+    <main className="pb-20">
+      <section className="relative overflow-hidden bg-[#f4f2e9] dark:bg-slate-950">
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(23,63,54,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(23,63,54,.06)_1px,transparent_1px)] [background-size:42px_42px]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.02fr_.98fr] lg:px-8 lg:py-24">
+          <div className="max-w-2xl">
+            <div className="mb-7 inline-flex items-center gap-2 border-b border-[#a58b51]/50 pb-2 text-[11px] font-bold uppercase tracking-[.2em] text-[#52634f] dark:text-emerald-300">
+              <Landmark className="h-4 w-4" /> Institutional Facilities Portal
             </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.15]">
-              Seminar Hall & AV Hall <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                Booking Management System
-              </span>
+            <h1 className="font-serif text-5xl leading-[1.04] tracking-tight text-[#172f29] dark:text-white sm:text-6xl lg:text-[4.35rem]">
+              A campus built for <span className="italic text-[#7e7449] dark:text-amber-200">gathering.</span>
             </h1>
-
-            <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
-              Check hall availability, view upcoming bookings, and manage facility reservations with ease. Built specifically for institutional whole-hall date scheduling.
+            <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 dark:text-slate-300 sm:text-lg">
+              Find the right space for lectures, conferences and campus events. Check availability and submit a hall request through one clear, reliable portal.
             </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-              <Link
-                to="/availability"
-                className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-lg shadow-blue-500/25 transition-all transform active:scale-95 flex items-center gap-2"
-              >
-                <Calendar className="w-4 h-4" />
-                <span>Check Hall Availability</span>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link to="/availability" className="inline-flex items-center gap-2 bg-[#1c493e] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#1c493e]/15 transition hover:bg-[#14382f] focus:outline-none focus:ring-2 focus:ring-[#1c493e] focus:ring-offset-2">
+                <CalendarDays className="h-4 w-4" /> Check availability <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link
-                to="/calendar"
-                className="px-6 py-3.5 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-100 font-semibold text-sm border border-slate-200 dark:border-slate-700 shadow-xs transition"
-              >
-                <span>View Monthly Calendar</span>
-              </Link>
-              <Link
-                to="/book"
-                className="px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
-              >
-                <span>Request Booking</span>
-                <ArrowRight className="w-4 h-4" />
+              <Link to="/halls" className="inline-flex items-center gap-2 border border-[#c9c6b9] bg-white/70 px-5 py-3.5 text-sm font-semibold text-[#263d35] transition hover:border-[#1c493e] hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800">
+                Explore facilities
               </Link>
             </div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[#3c755d]" />Clear booking process</span>
+              <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-[#3c755d]" />Requests reviewed by staff</span>
+            </div>
+          </div>
 
-            {/* Informational Zero Seat Callout */}
-            <div className="pt-4 flex items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span>Date-Wise Full Hall Reservation</span>
+          <div className="relative mx-auto w-full max-w-xl lg:ml-auto">
+            <div className="absolute -right-4 -top-4 h-full w-full border border-[#a58b51]/55 sm:-right-5 sm:-top-5" />
+            <div className="relative aspect-[4/3] overflow-hidden bg-[#d8d5c9]">
+              <img className="h-full w-full object-cover" src={seminarHall?.image || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1400&q=85'} alt="College event hall" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#10261f]/75 via-transparent to-[#10261f]/10" />
+              <div className="absolute left-5 top-5 flex items-center gap-2 bg-white/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[.15em] text-[#294b3d] shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-[#568265]" /> Campus spaces
               </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-blue-500" />
-                <span>No Seat Reservation Complexity</span>
+              <div className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
+                <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-white/75">Plan your next gathering</p>
+                <p className="mt-2 font-serif text-3xl sm:text-4xl">Spaces that bring ideas together.</p>
+                <Link to="/calendar" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold hover:text-amber-200">View campus calendar <ArrowRight className="h-4 w-4" /></Link>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4 text-indigo-500" />
-                <span>Instant Conflict Detection</span>
-              </div>
+            </div>
+            <div className="absolute -bottom-6 -left-4 hidden w-48 border border-[#e6e1d3] bg-white p-4 shadow-xl dark:border-slate-700 dark:bg-slate-900 sm:block sm:-left-8">
+              <p className="text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">Facilities listed</p>
+              <p className="mt-1 font-serif text-3xl text-[#1c493e] dark:text-emerald-300">{halls.length.toString().padStart(2, '0')}</p>
+              <p className="mt-1 text-xs text-slate-500">Spaces available to request</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Today's Hall Status Live Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-3xl bg-slate-900 text-white p-6 sm:p-8 relative overflow-hidden shadow-xl">
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Live Status Today ({new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})</span>
-              </div>
-              <h2 className="text-2xl font-bold mt-1">Today's Hall Availability</h2>
-              <p className="text-slate-400 text-sm mt-0.5">
-                Quick real-time snapshot of facility occupancy for today.
-              </p>
+      <section className="border-y border-[#e5e2d8] bg-white dark:border-slate-800 dark:bg-slate-900">
+        <div className="mx-auto grid max-w-7xl divide-y divide-[#e5e2d8] px-4 sm:px-6 md:grid-cols-3 md:divide-x md:divide-y-0 lg:px-8 dark:divide-slate-800">
+          {[
+            { icon: CalendarDays, title: 'Check dates', copy: 'See facility status before planning your event.' },
+            { icon: Building2, title: 'Choose a space', copy: 'Review hall details, location and available facilities.' },
+            { icon: ShieldCheck, title: 'Send a request', copy: 'Submit your event details for an administrative review.' },
+          ].map(({ icon: Icon, title, copy }, index) => (
+            <div key={title} className="flex items-start gap-4 py-6 md:px-6 md:py-7 first:md:pl-0 last:md:pr-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-[#d9dfd5] bg-[#f4f6f1] text-[#315b48] dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-300">{index + 1}. <Icon className="ml-1 h-4 w-4" /></span>
+              <div><h2 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h2><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">{copy}</p></div>
             </div>
+          ))}
+        </div>
+      </section>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto">
-              {/* Seminar Hall Today Box */}
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-bold text-sm text-slate-100">Seminar Hall</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {seminarHall?.location || 'Academic Block'}
-                  </p>
-                </div>
-                <StatusBadge status={seminarHall?.todayStatus || 'AVAILABLE'} size="md" />
-              </div>
+      <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8 lg:pt-20">
+        <div className="flex flex-col justify-between gap-4 border-b border-[#deddd5] pb-5 sm:flex-row sm:items-end dark:border-slate-800">
+          <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#697d65] dark:text-emerald-300">Campus resources</p><h2 className="mt-2 font-serif text-3xl text-[#1b332c] dark:text-white sm:text-4xl">Spaces for every occasion</h2><p className="mt-2 max-w-xl text-sm text-slate-500 dark:text-slate-400">Explore the facilities, review their details and choose a date that works.</p></div>
+          <Link to="/halls" className="inline-flex items-center gap-1 text-sm font-semibold text-[#315b48] hover:text-[#173c30] dark:text-emerald-300">All facilities <ChevronRight className="h-4 w-4" /></Link>
+        </div>
 
-              {/* AV Hall Today Box */}
-              <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between gap-4">
-                <div>
-                  <h4 className="font-bold text-sm text-slate-100">AV Hall</h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {avHall?.location || 'Tech Block'}
-                  </p>
-                </div>
-                <StatusBadge status={avHall?.todayStatus || 'AVAILABLE'} size="md" />
+        {featuredHalls.length ? <div className="mt-7 grid gap-6 md:grid-cols-2">
+          {featuredHalls.map((hall) => (
+            <article key={hall.id} className="group overflow-hidden border border-[#e2e0d7] bg-white transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="relative h-56 overflow-hidden bg-slate-100 dark:bg-slate-800 sm:h-64">
+                <img src={hall.image || (hall === seminarHall ? 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80' : 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80')} alt={hall.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                <span className="absolute bottom-4 left-4 bg-white/95 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#294b3d]">{hall.code}</span>
+                <span className="absolute right-4 top-4"><StatusBadge status={hall.todayStatus || 'AVAILABLE'} size="md" /></span>
               </div>
-            </div>
+              <div className="p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-serif text-2xl text-[#1b332c] dark:text-white">{hall.name}</h3><p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><MapPin className="h-3.5 w-3.5" />{hall.location}</p></div><span className="inline-flex items-center gap-1.5 text-xs text-slate-500"><Users className="h-3.5 w-3.5" />{hall.capacity} seats</span></div>
+                <p className="mt-4 line-clamp-2 min-h-10 text-sm leading-5 text-slate-600 dark:text-slate-300">{hall.description}</p>
+                {hall.facilities.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{hall.facilities.slice(0, 4).map((facility) => <span key={facility} className="border border-[#e6e5de] bg-[#f8f8f5] px-2.5 py-1 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">{facility}</span>)}</div>}
+                <div className="mt-6 flex gap-3 border-t border-[#ecebe6] pt-4 dark:border-slate-800"><Link to={`/availability?hall=${hall.id}`} className="flex-1 border border-[#c9d2c8] py-2.5 text-center text-xs font-semibold text-[#315b48] transition hover:bg-[#f3f6f1] dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-800">Check dates</Link><Link to={`/book?hall=${encodeURIComponent(hall.name)}`} className="flex-1 bg-[#1c493e] py-2.5 text-center text-xs font-semibold text-white transition hover:bg-[#14382f]">Request this hall</Link></div>
+              </div>
+            </article>
+          ))}
+        </div> : <div className="mt-7 border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">Facility listings will appear here once they are configured.</div>}
+      </section>
+
+      <section className="mx-auto mt-16 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
+          <div className="bg-[#1d4035] p-7 text-white sm:p-9"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-emerald-200">Today on campus</p><h2 className="mt-3 font-serif text-3xl">Hall availability</h2><p className="mt-2 text-sm leading-6 text-white/65">A quick view of the current status for featured campus spaces.</p><p className="mt-6 text-xs text-white/60">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p><Link to="/availability" className="mt-6 inline-flex items-center gap-2 border-b border-white/50 pb-1 text-sm font-semibold hover:border-white">Open availability <ArrowRight className="h-4 w-4" /></Link></div>
+          <div className="grid gap-px border border-[#e2e0d7] bg-[#e2e0d7] sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-800">
+            {(featuredHalls.length ? featuredHalls : [{ id: 'seminar', name: 'Seminar Hall', location: '—', todayStatus: 'AVAILABLE' as const }, { id: 'av', name: 'AV Hall', location: '—', todayStatus: 'AVAILABLE' as const }]).map((hall) => <div key={hall.id} className="flex min-h-36 flex-col justify-between bg-white p-6 dark:bg-slate-900"><div><p className="text-[10px] font-bold uppercase tracking-[.15em] text-slate-400">{hall.location || 'Campus facility'}</p><h3 className="mt-2 font-serif text-xl text-slate-900 dark:text-white">{hall.name}</h3></div><div className="mt-5 flex items-center justify-between"><span className="text-xs text-slate-500">Status today</span><StatusBadge status={hall.todayStatus || 'AVAILABLE'} size="sm" /></div></div>)}
           </div>
         </div>
       </section>
 
-      {/* Two Large Hall Feature Cards */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-            Our Primary College Facilities
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400 text-sm mt-2">
-            Both halls are equipped for academic gatherings, symposiums, and cultural interactions. Capacity is informational only.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Card 1: Seminar Hall */}
-          {seminarHall && (
-            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col justify-between">
-              <div>
-                <div className="relative h-60 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img
-                    src={seminarHall.image || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80'}
-                    alt="Seminar Hall"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <StatusBadge status={seminarHall.todayStatus || 'AVAILABLE'} size="md" />
-                  </div>
-                  <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl font-medium">
-                    {seminarHall.code}
-                  </div>
-                </div>
-
-                <div className="p-6 sm:p-8 space-y-5">
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {seminarHall.name}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{seminarHall.location}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>Capacity: ~{seminarHall.capacity} Attendees (Informational)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {seminarHall.description}
-                  </p>
-
-                  <div>
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                      Equipped Facilities
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {seminarHall.facilities.map((fac, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium"
-                        >
-                          {fac}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 sm:p-8 pt-0 flex flex-wrap items-center gap-3">
-                <Link
-                  to={`/availability?hall=${seminarHall.id}`}
-                  className="flex-1 text-center py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold text-xs transition"
-                >
-                  Check Availability
-                </Link>
-                <Link
-                  to={`/book?hall=${encodeURIComponent(seminarHall.name)}`}
-                  className="flex-1 text-center py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition"
-                >
-                  Request Booking
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Card 2: AV Hall */}
-          {avHall && (
-            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm hover:shadow-md transition-all group flex flex-col justify-between">
-              <div>
-                <div className="relative h-60 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img
-                    src={avHall.image || 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80'}
-                    alt="AV Hall"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 right-4">
-                    <StatusBadge status={avHall.todayStatus || 'AVAILABLE'} size="md" />
-                  </div>
-                  <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl font-medium">
-                    {avHall.code}
-                  </div>
-                </div>
-
-                <div className="p-6 sm:p-8 space-y-5">
-                  <div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                      {avHall.name}
-                    </h3>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{avHall.location}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>Capacity: ~{avHall.capacity} Attendees (Informational)</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {avHall.description}
-                  </p>
-
-                  <div>
-                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-                      Equipped Facilities
-                    </span>
-                    <div className="flex flex-wrap gap-1.5">
-                      {avHall.facilities.map((fac, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium"
-                        >
-                          {fac}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 sm:p-8 pt-0 flex flex-wrap items-center gap-3">
-                <Link
-                  to={`/availability?hall=${avHall.id}`}
-                  className="flex-1 text-center py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-semibold text-xs transition"
-                >
-                  Check Availability
-                </Link>
-                <Link
-                  to={`/book?hall=${encodeURIComponent(avHall.name)}`}
-                  className="flex-1 text-center py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition"
-                >
-                  Request Booking
-                </Link>
-              </div>
-            </div>
-          )}
-        </div>
+      <section className="mx-auto mt-16 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between gap-4 border-b border-[#deddd5] pb-5 dark:border-slate-800"><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#697d65] dark:text-emerald-300">What's coming up</p><h2 className="mt-2 font-serif text-3xl text-[#1b332c] dark:text-white">Campus calendar</h2></div><Link to="/calendar" className="inline-flex items-center gap-1 text-sm font-semibold text-[#315b48] hover:text-[#173c30] dark:text-emerald-300">Full calendar <ChevronRight className="h-4 w-4" /></Link></div>
+        {upcomingBookings.length ? <div className="mt-5 divide-y divide-[#e7e5de] border-y border-[#e7e5de] dark:divide-slate-800 dark:border-slate-800">{upcomingBookings.map((booking) => <article key={booking.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center"><div className="flex items-start gap-4"><div className="min-w-14 border-r border-[#deddd5] pr-3 text-center dark:border-slate-700"><CalendarDays className="mx-auto h-4 w-4 text-[#52715b]" /><span className="mt-1 block text-[10px] font-bold text-slate-500">{booking.bookingDate}</span></div><div><p className="font-semibold text-slate-900 dark:text-white">{booking.eventName}</p><p className="mt-1 text-xs text-slate-500">{booking.hall?.name} · {booking.department?.name || 'Academic department'}</p></div></div><div className="flex items-center gap-4 sm:justify-end"><span className="inline-flex items-center gap-1 text-xs text-slate-500"><Clock3 className="h-3.5 w-3.5" />{booking.startTime}–{booking.endTime}</span><StatusBadge status={booking.status} size="sm" /></div></article>)}</div> : <div className="mt-5 flex items-center gap-3 border border-[#e6e4dc] bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900"><CalendarDays className="h-5 w-5 text-[#69806c]" />Upcoming approved events will be shown here.</div>}
       </section>
-
-      {/* Upcoming Bookings Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Upcoming Bookings
-            </h2>
-            <p className="text-slate-500 text-xs mt-0.5">
-              Confirmed reservations taking place across Seminar Hall and AV Hall.
-            </p>
-          </div>
-          <Link
-            to="/calendar"
-            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-          >
-            <span>Full Calendar</span>
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        {upcomingBookings.length === 0 ? (
-          <div className="p-10 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-500">
-            No upcoming bookings scheduled at this time.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {upcomingBookings.map((b) => (
-              <div
-                key={b.id}
-                className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
-                    {b.bookingId}
-                  </span>
-                  <StatusBadge status={b.status} size="sm" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">
-                    {b.eventName}
-                  </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {b.hall?.name} • {b.department?.name || 'Academic Dept'}
-                  </p>
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                    <span>{b.bookingDate}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{b.startTime} - {b.endTime}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+    </main>
   );
 };

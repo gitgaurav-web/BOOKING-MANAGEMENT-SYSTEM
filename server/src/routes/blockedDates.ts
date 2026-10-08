@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
 });
 
 // Admin: Create blocked date
-router.post('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { hallId, startDate, endDate, reason, description } = req.body;
 
@@ -55,7 +56,7 @@ router.post('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: 
 });
 
 // Admin: Delete/Unblock date
-router.delete('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.delete('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const existing = await prisma.blockedDate.findUnique({ where: { id }, include: { hall: true } });

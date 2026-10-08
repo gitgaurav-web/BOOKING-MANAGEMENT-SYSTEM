@@ -379,7 +379,145 @@ test('Live Express API: Settings Endpoint Allowlisting and Relational Validation
       body: JSON.stringify({ minAdvanceNoticeDays: '2', maxAdvanceNoticeDays: '60' }),
     });
     assert.strictEqual(resValid.status, 200, 'Valid settings update must return 200 OK');
+
+    // 4. Rejects non-digits like '2abc'
+    const resNonDigit = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ minAdvanceNoticeDays: '2abc' }),
+    });
+    assert.strictEqual(resNonDigit.status, 400, 'minNotice with non-digits must return 400');
+
+    // 5. Rejects invalid booleans like 'not-a-bool'
+    const resInvalidBool = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ allowWeekendBookings: 'maybe' }),
+    });
+    assert.strictEqual(resInvalidBool.status, 400, 'Invalid boolean must return 400');
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Search Privacy: Booking search never leaks other users pending bookings to regular users', async () => {
+  const users = await prisma.user.findMany({ take: 2 });
+  if (users.length < 2) return;
+  const [userA, userB] = users;
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const tokenUserB = jwt.sign(
+    { id: userB.id, email: userB.email, role: 'FACULTY', name: userB.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  const hall = await prisma.hall.findFirst();
+  if (!hall) return;
+
+  const secretKeyword = `SECRET_KEYWORD_${Date.now()}`;
+  const pendingBookingA = await prisma.booking.create({
+    data: {
+      bookingId: `BK-TEST-PRIV-${Date.now()}`,
+      userId: userA.id,
+      hallId: hall.id,
+      eventName: `Confidential Meeting ${secretKeyword}`,
+      purpose: 'Faculty Discussion',
+      bookingDate: getDynamicFutureDate(30),
+      bookingType: 'MORNING',
+      startTime: '09:00',
+      endTime: '12:00',
+      participantCount: 10,
+      requestedBy: userA.name,
+      contactNumber: '9876543210',
+      email: userA.email,
+      status: 'PENDING',
+    },
+  });
+
+  try {
+    // User B searches for User A's secret pending keyword
+    const res = await fetch(`${baseUrl}/api/bookings?search=${encodeURIComponent(secretKeyword)}`, {
+      headers: { Authorization: `Bearer ${tokenUserB}` },
+    });
+    assert.strictEqual(res.status, 200);
+    const data = (await res.json()) as any[];
+    const leaked = Array.isArray(data) && data.some((b) => b.id === pendingBookingA.id);
+    assert.strictEqual(leaked, false, 'User B must not see User A pending booking even with search match');
+  } finally {
+    await prisma.booking.delete({ where: { id: pendingBookingA.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Upload Authorization: Unattached files are restricted to uploader or admin', async () => {
+  const users = await prisma.user.findMany({ take: 2 });
+  if (users.length < 2) return;
+  const [userA, userB] = users;
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const tokenUserB = jwt.sign(
+    { id: userB.id, email: userB.email, role: 'FACULTY', name: userB.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+  const tokenUserA = jwt.sign(
+    { id: userA.id, email: userA.email, role: 'FACULTY', name: userA.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+  const unattachedFile = `u-${userA.id}-${Date.now()}-abc.pdf`;
+  const unattachedPath = path.join(uploadsDir, unattachedFile);
+  fs.writeFileSync(unattachedPath, 'unattached permission note');
+
+  try {
+    // User B tries to download User A's unattached file -> 403 Forbidden
+    const resB = await fetch(`${baseUrl}/uploads/${unattachedFile}`, {
+      headers: { Authorization: `Bearer ${tokenUserB}` },
+    });
+    assert.strictEqual(resB.status, 403, 'User B must get 403 for User A unattached file');
+
+    // User A downloads own unattached file -> 200 OK
+    const resA = await fetch(`${baseUrl}/uploads/${unattachedFile}`, {
+      headers: { Authorization: `Bearer ${tokenUserA}` },
+    });
+    assert.strictEqual(resA.status, 200, 'User A must get 200 for own unattached file');
+  } finally {
+    if (fs.existsSync(unattachedPath)) fs.unlinkSync(unattachedPath);
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('JWT Security: Rejects secrets shorter than 32 characters in production', () => {
+  const prevEnv = process.env.NODE_ENV;
+  const prevSecret = process.env.JWT_SECRET;
+  try {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'short_secret';
+    assert.throws(() => getJwtSecret(), /FATAL: JWT_SECRET must be at least 32 characters in production/);
+
+    process.env.JWT_SECRET = 'a_very_secure_long_secret_key_exceeding_32_characters';
+    assert.strictEqual(getJwtSecret(), 'a_very_secure_long_secret_key_exceeding_32_characters');
+  } finally {
+    process.env.NODE_ENV = prevEnv;
+    process.env.JWT_SECRET = prevSecret;
   }
 });

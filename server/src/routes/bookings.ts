@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
-import { isValidStrictIsoDate } from '../utils/dateValidation';
+import { isValidStrictIsoDate, getLocalIsoDate } from '../utils/dateValidation';
 import { sendBookingNotificationEmail } from '../utils/emailService';
 import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
@@ -189,7 +189,7 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       settingsMap[s.key] = s.value;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getLocalIsoDate();
     const requestedStart = new Date(bookingDate + 'T00:00:00');
     const todayDate = new Date(todayStr + 'T00:00:00');
     const diffDays = Math.round((requestedStart.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -391,13 +391,16 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
 
     // Filter conditions
     const whereClause: any = {};
+    const andConditions: any[] = [];
 
     if (!isAdmin) {
-      // Normal user only sees their own or public confirmed ones
-      whereClause.OR = [
-        { userId: req.user!.id },
-        { status: 'APPROVED' },
-      ];
+      // Normal user only sees their own or confirmed bookings
+      andConditions.push({
+        OR: [
+          { userId: req.user!.id },
+          { status: 'APPROVED' },
+        ],
+      });
     }
 
     if (hallId && hallId !== 'ALL') {
@@ -413,12 +416,18 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
     }
 
     if (search) {
-      whereClause.OR = [
-        { eventName: { contains: search } },
-        { bookingId: { contains: search } },
-        { requestedBy: { contains: search } },
-        { purpose: { contains: search } },
-      ];
+      andConditions.push({
+        OR: [
+          { eventName: { contains: search } },
+          { bookingId: { contains: search } },
+          { requestedBy: { contains: search } },
+          { purpose: { contains: search } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -492,7 +501,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response): Promis
 });
 
 // Admin: Approve Booking
-router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { adminNotes } = req.body;
@@ -580,7 +589,7 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
 });
 
 // Admin: Reject Booking
-router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { rejectionReason, adminNotes } = req.body;
@@ -705,7 +714,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
 });
 
 // Admin: Edit Booking details
-router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const {

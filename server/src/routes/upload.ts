@@ -18,9 +18,10 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadDir);
   },
-  filename: (_req, file, cb) => {
+  filename: (req: any, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const uploaderId = req.user?.id || 'anon';
+    const uniqueSuffix = `u-${uploaderId}-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     cb(null, uniqueSuffix);
   },
 });
@@ -51,7 +52,9 @@ const upload = multer({
   },
 });
 
-router.post('/', authenticate, upload.single('file'), (req: Request, res: Response): void => {
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
+
+router.post('/', authenticate, apiMutationRateLimiter, upload.single('file'), (req: Request, res: Response): void => {
   try {
     if (!req.file) {
       res.status(400).json({ error: 'No file uploaded.' });
@@ -90,6 +93,17 @@ export async function handleAuthorizedFileDownload(req: Request, res: Response):
     return;
   }
 
+  // Confirm user account is active in database
+  const dbUser = await prisma.user.findUnique({
+    where: { id: decoded.id },
+    select: { id: true, role: true, status: true, departmentId: true },
+  });
+
+  if (!dbUser || dbUser.status !== 'ACTIVE') {
+    res.status(403).json({ error: 'User account is inactive or not found.' });
+    return;
+  }
+
   const safeFilename = path.basename(req.params.filename);
   const filePath = path.join(uploadDir, safeFilename);
 
@@ -99,28 +113,38 @@ export async function handleAuthorizedFileDownload(req: Request, res: Response):
   }
 
   // Admins have campus-wide oversight
-  if (decoded.role === 'ADMIN' || decoded.role === 'SUPER_ADMIN') {
+  if (dbUser.role === 'ADMIN' || dbUser.role === 'SUPER_ADMIN') {
     res.sendFile(filePath);
     return;
   }
 
-  // Regular faculty/users: verify ownership via attached booking
+  // Verify ownership via attached booking if already saved
   const attachedBooking = await prisma.booking.findFirst({
     where: { attachmentUrl: { contains: safeFilename } },
   });
 
   if (attachedBooking) {
-    const isOwner = attachedBooking.userId === decoded.id;
-    const isSameDept = Boolean(decoded.departmentId && attachedBooking.departmentId === decoded.departmentId);
+    const isOwner = attachedBooking.userId === dbUser.id;
+    const isSameDept = Boolean(dbUser.departmentId && attachedBooking.departmentId === dbUser.departmentId);
     if (!isOwner && !isSameDept) {
       res.status(403).json({
         error: 'Access denied: You are not authorized to view permission documents belonging to other faculty or departments.',
       });
       return;
     }
+    res.sendFile(filePath);
+    return;
   }
 
-  res.sendFile(filePath);
+  // For unattached files, verify that the requester is the original uploader (encoded in filename prefix)
+  if (safeFilename.startsWith(`u-${dbUser.id}-`)) {
+    res.sendFile(filePath);
+    return;
+  }
+
+  res.status(403).json({
+    error: 'Access denied: You are not authorized to access this permission document.',
+  });
 }
 
 // Authenticated document retrieval route

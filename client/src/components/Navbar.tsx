@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Building2,
-  Calendar,
-  Clock,
+  Landmark,
   User,
   LogOut,
   Menu,
@@ -13,7 +11,6 @@ import {
   Bell,
   Shield,
   Layers,
-  CheckCircle,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -71,20 +68,25 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full border-b border-[#dcded5] bg-[#fffefa]/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95">
+      <div className="hidden border-b border-[#e9e7dd] bg-[#f4f2e9] dark:border-slate-800 dark:bg-slate-900 sm:block">
+        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold uppercase tracking-[.16em] text-[#68766b] sm:px-6 lg:px-8 dark:text-slate-400">
+          <span>College Facilities &amp; Events</span><span>Official campus booking portal</span>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-[4.5rem]">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Building2 className="w-5 h-5" />
+            <div className="flex h-11 w-11 items-center justify-center border border-[#a58b51]/70 bg-[#1c493e] text-[#f2e8c9] shadow-sm">
+              <Landmark className="h-5 w-5" />
             </div>
             <div>
-              <span className="font-bold text-lg text-slate-900 dark:text-white leading-tight block">
-                CampusHalls
+              <span className="block font-serif text-lg font-bold leading-tight tracking-tight text-[#18372e] dark:text-white">
+                College Facilities
               </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400 block -mt-0.5">
-                Seminar Hall & AV Hall
+              <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-[.15em] text-slate-500 dark:text-slate-400">
+                Campus booking portal
               </span>
             </div>
           </Link>
@@ -97,7 +99,7 @@ export const Navbar: React.FC = () => {
                 to={link.path}
                 className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(link.path)
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50'
+                    ? 'text-[#1c493e] dark:text-emerald-300 bg-[#edf2eb] dark:bg-emerald-950/40'
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -139,7 +141,7 @@ export const Navbar: React.FC = () => {
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllRead}
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-xs text-[#315b48] dark:text-emerald-300 hover:underline"
                         >
                           Mark all read
                         </button>
@@ -218,7 +220,7 @@ export const Navbar: React.FC = () => {
                 </Link>
                 <Link
                   to="/book"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-md shadow-blue-500/20 transition-all transform active:scale-95"
+                  className="px-4 py-2 rounded-lg bg-[#1c493e] hover:bg-[#14382f] text-white text-sm font-semibold shadow-sm transition-all transform active:scale-95"
                 >
                   Book Hall
                 </Link>
@@ -254,7 +256,7 @@ export const Navbar: React.FC = () => {
               onClick={() => setMobileMenuOpen(false)}
               className={`block px-3 py-2 rounded-lg text-base font-medium ${
                 isActive(link.path)
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                  ? 'bg-[#edf2eb] dark:bg-emerald-950/50 text-[#1c493e] dark:text-emerald-300'
                   : 'text-slate-700 dark:text-slate-200'
               }`}
             >
@@ -280,7 +282,7 @@ export const Navbar: React.FC = () => {
                   <Link
                     to="/user/bookings"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full text-center px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-semibold text-sm"
+                    className="block w-full text-center px-4 py-2.5 rounded-xl bg-[#edf2eb] dark:bg-emerald-950/50 text-[#315b48] dark:text-emerald-300 font-semibold text-sm"
                   >
                     My Bookings
                   </Link>
@@ -308,7 +310,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/book"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-xl bg-blue-600 text-white font-semibold text-sm shadow-md"
+                  className="w-full text-center py-2.5 rounded-xl bg-[#1c493e] text-white font-semibold text-sm shadow-md"
                 >
                   Request Hall Booking
                 </Link>

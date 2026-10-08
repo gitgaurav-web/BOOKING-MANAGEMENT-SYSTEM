@@ -6,5 +6,8 @@ export function getJwtSecret(): string {
     }
     return 'dev_campus_halls_jwt_secret_key_2026_secured';
   }
+  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+    throw new Error('FATAL: JWT_SECRET must be at least 32 characters in production.');
+  }
   return secret;
 }

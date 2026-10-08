@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { authenticate, optionalAuth, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -110,7 +111,7 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response): Promis
 });
 
 // Admin: Update hall details
-router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { name, code, description, location, capacity, facilities, image, status } = req.body;
@@ -142,7 +143,7 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
 });
 
 // Admin: Create new hall (optional extra facility)
-router.post('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { name, code, description, location, capacity, facilities, image, status } = req.body;
 

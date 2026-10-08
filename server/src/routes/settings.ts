@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
 });
 
 // PUT /api/settings - update settings (Admin only with strict allowlisting and validation)
-router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const updates = req.body as Record<string, any>;
 
@@ -69,24 +70,55 @@ router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: A
       }
     }
 
-    // 2. Validate notice day numerical ranges
+    // 2. Validate boolean settings strictly
+    const booleanKeys = [
+      'requireAdminApproval',
+      'requireUserApproval',
+      'allowWeekendBookings',
+      'allowHolidayBookings',
+      'emailNotificationsEnabled',
+    ];
+    for (const bKey of booleanKeys) {
+      if (updates[bKey] !== undefined) {
+        const valStr = String(updates[bKey]).trim().toLowerCase();
+        if (valStr !== 'true' && valStr !== 'false') {
+          res.status(400).json({ error: `${bKey} must be a boolean ('true' or 'false').` });
+          return;
+        }
+        updates[bKey] = valStr;
+      }
+    }
+
+    // 3. Validate notice day numerical ranges strictly (reject non-digits like '2abc')
     if (updates.minAdvanceNoticeDays !== undefined) {
-      const minDays = parseInt(String(updates.minAdvanceNoticeDays), 10);
-      if (isNaN(minDays) || minDays < 0 || minDays > 365) {
+      const minStr = String(updates.minAdvanceNoticeDays).trim();
+      if (!/^\d+$/.test(minStr)) {
+        res.status(400).json({ error: 'minAdvanceNoticeDays must be a non-negative integer between 0 and 365.' });
+        return;
+      }
+      const minDays = parseInt(minStr, 10);
+      if (minDays < 0 || minDays > 365) {
         res.status(400).json({ error: 'minAdvanceNoticeDays must be an integer between 0 and 365.' });
         return;
       }
+      updates.minAdvanceNoticeDays = String(minDays);
     }
 
     if (updates.maxAdvanceNoticeDays !== undefined) {
-      const maxDays = parseInt(String(updates.maxAdvanceNoticeDays), 10);
-      if (isNaN(maxDays) || maxDays < 1 || maxDays > 730) {
+      const maxStr = String(updates.maxAdvanceNoticeDays).trim();
+      if (!/^\d+$/.test(maxStr)) {
+        res.status(400).json({ error: 'maxAdvanceNoticeDays must be a positive integer between 1 and 730.' });
+        return;
+      }
+      const maxDays = parseInt(maxStr, 10);
+      if (maxDays < 1 || maxDays > 730) {
         res.status(400).json({ error: 'maxAdvanceNoticeDays must be an integer between 1 and 730.' });
         return;
       }
+      updates.maxAdvanceNoticeDays = String(maxDays);
     }
 
-    // 3. Validate relative relation (min <= max)
+    // 4. Validate relative relation (min <= max)
     if (updates.minAdvanceNoticeDays !== undefined || updates.maxAdvanceNoticeDays !== undefined) {
       const currentList = await prisma.systemSetting.findMany();
       const currentMap: Record<string, string> = { minAdvanceNoticeDays: '1', maxAdvanceNoticeDays: '90' };
