@@ -15,8 +15,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export const MyBookingsPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -63,6 +61,13 @@ export const MyBookingsPage: React.FC = () => {
 
     try {
       setDownloadingPdf(true);
+      const [html2canvasModule, jsPdfModule] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+      const html2canvas = html2canvasModule.default || html2canvasModule;
+      const jsPDF = jsPdfModule.default || jsPdfModule;
+
       const canvas = await html2canvas(voucherElement, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({

@@ -161,4 +161,5 @@ export interface AvailabilityDayInfo {
   hasApproved?: boolean;
   freeSlots?: string[];
   occupiedSlots?: string[];
+  freeWindows?: Array<{ start: string; end: string }>;
 }

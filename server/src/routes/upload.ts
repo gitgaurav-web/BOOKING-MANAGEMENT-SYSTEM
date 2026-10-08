@@ -69,8 +69,9 @@ router.post('/', authenticate, upload.single('file'), (req: Request, res: Respon
   }
 });
 
-// Authenticated document retrieval route
-router.get('/file/:filename', async (req: Request, res: Response): Promise<void> => {
+import { prisma } from '../prisma';
+
+export async function handleAuthorizedFileDownload(req: Request, res: Response): Promise<void> {
   const authHeader = req.headers.authorization;
   const token = (authHeader && authHeader.startsWith('Bearer ')) 
     ? authHeader.split(' ')[1] 
@@ -81,8 +82,9 @@ router.get('/file/:filename', async (req: Request, res: Response): Promise<void>
     return;
   }
 
+  let decoded: any;
   try {
-    jwt.verify(token, getJwtSecret());
+    decoded = jwt.verify(token, getJwtSecret());
   } catch {
     res.status(403).json({ error: 'Invalid or expired authentication token.' });
     return;
@@ -96,7 +98,32 @@ router.get('/file/:filename', async (req: Request, res: Response): Promise<void>
     return;
   }
 
+  // Admins have campus-wide oversight
+  if (decoded.role === 'ADMIN' || decoded.role === 'SUPER_ADMIN') {
+    res.sendFile(filePath);
+    return;
+  }
+
+  // Regular faculty/users: verify ownership via attached booking
+  const attachedBooking = await prisma.booking.findFirst({
+    where: { attachmentUrl: { contains: safeFilename } },
+  });
+
+  if (attachedBooking) {
+    const isOwner = attachedBooking.userId === decoded.id;
+    const isSameDept = Boolean(decoded.departmentId && attachedBooking.departmentId === decoded.departmentId);
+    if (!isOwner && !isSameDept) {
+      res.status(403).json({
+        error: 'Access denied: You are not authorized to view permission documents belonging to other faculty or departments.',
+      });
+      return;
+    }
+  }
+
   res.sendFile(filePath);
-});
+}
+
+// Authenticated document retrieval route
+router.get('/file/:filename', handleAuthorizedFileDownload);
 
 export default router;

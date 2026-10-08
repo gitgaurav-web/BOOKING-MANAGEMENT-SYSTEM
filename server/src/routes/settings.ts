@@ -5,6 +5,21 @@ import { logActivity } from '../utils/helpers';
 
 const router = Router();
 
+export const ALLOWED_SETTING_KEYS = new Set([
+  'siteName',
+  'institutionName',
+  'contactEmail',
+  'contactPhone',
+  'address',
+  'minAdvanceNoticeDays',
+  'maxAdvanceNoticeDays',
+  'requireAdminApproval',
+  'requireUserApproval',
+  'allowWeekendBookings',
+  'allowHolidayBookings',
+  'emailNotificationsEnabled',
+]);
+
 // GET /api/settings - retrieve public/configured settings
 router.get('/', async (_req: Request, res: Response): Promise<void> => {
   try {
@@ -18,13 +33,16 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       minAdvanceNoticeDays: '1',
       maxAdvanceNoticeDays: '90',
       requireAdminApproval: 'true',
+      requireUserApproval: 'false',
       allowWeekendBookings: 'true',
       allowHolidayBookings: 'false',
       emailNotificationsEnabled: 'true',
     };
 
     for (const item of list) {
-      settingsMap[item.key] = item.value;
+      if (ALLOWED_SETTING_KEYS.has(item.key)) {
+        settingsMap[item.key] = item.value;
+      }
     }
 
     res.json(settingsMap);
@@ -33,11 +51,59 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
-// PUT /api/settings - update settings (Admin only)
+// PUT /api/settings - update settings (Admin only with strict allowlisting and validation)
 router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const updates = req.body as Record<string, string>;
+    const updates = req.body as Record<string, any>;
 
+    if (!updates || typeof updates !== 'object') {
+      res.status(400).json({ error: 'Invalid settings payload. Expected an object.' });
+      return;
+    }
+
+    // 1. Validate keys against allowlist
+    for (const key of Object.keys(updates)) {
+      if (!ALLOWED_SETTING_KEYS.has(key)) {
+        res.status(400).json({ error: `Invalid setting key '${key}'. Not in allowed configuration keys.` });
+        return;
+      }
+    }
+
+    // 2. Validate notice day numerical ranges
+    if (updates.minAdvanceNoticeDays !== undefined) {
+      const minDays = parseInt(String(updates.minAdvanceNoticeDays), 10);
+      if (isNaN(minDays) || minDays < 0 || minDays > 365) {
+        res.status(400).json({ error: 'minAdvanceNoticeDays must be an integer between 0 and 365.' });
+        return;
+      }
+    }
+
+    if (updates.maxAdvanceNoticeDays !== undefined) {
+      const maxDays = parseInt(String(updates.maxAdvanceNoticeDays), 10);
+      if (isNaN(maxDays) || maxDays < 1 || maxDays > 730) {
+        res.status(400).json({ error: 'maxAdvanceNoticeDays must be an integer between 1 and 730.' });
+        return;
+      }
+    }
+
+    // 3. Validate relative relation (min <= max)
+    if (updates.minAdvanceNoticeDays !== undefined || updates.maxAdvanceNoticeDays !== undefined) {
+      const currentList = await prisma.systemSetting.findMany();
+      const currentMap: Record<string, string> = { minAdvanceNoticeDays: '1', maxAdvanceNoticeDays: '90' };
+      for (const item of currentList) currentMap[item.key] = item.value;
+
+      const effectiveMin = parseInt(String(updates.minAdvanceNoticeDays ?? currentMap.minAdvanceNoticeDays), 10);
+      const effectiveMax = parseInt(String(updates.maxAdvanceNoticeDays ?? currentMap.maxAdvanceNoticeDays), 10);
+
+      if (effectiveMin > effectiveMax) {
+        res.status(400).json({
+          error: `minAdvanceNoticeDays (${effectiveMin}) cannot be greater than maxAdvanceNoticeDays (${effectiveMax}).`,
+        });
+        return;
+      }
+    }
+
+    // 4. Upsert validated settings
     for (const [key, value] of Object.entries(updates)) {
       await prisma.systemSetting.upsert({
         where: { key },

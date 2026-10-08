@@ -131,6 +131,12 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                       );
                     })}
                   </div>
+                  {item.freeWindows && item.freeWindows.length > 0 && (
+                    <div className="pt-1 text-[11px] text-emerald-800 dark:text-emerald-300">
+                      <span className="font-semibold">Remaining Free Windows: </span>
+                      {item.freeWindows.map((w) => `${w.start} - ${w.end}`).join(', ')}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -6,6 +6,7 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
 import { isValidStrictIsoDate } from '../utils/dateValidation';
 import { sendBookingNotificationEmail } from '../utils/emailService';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -97,7 +98,7 @@ export async function checkBookingConflict(
 }
 
 // Create Booking Request
-router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const {
       hallId,
@@ -638,7 +639,7 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
 });
 
 // Cancel Booking (User can cancel their own pending/approved, Admin can cancel any)
-router.patch('/:id/cancel', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -680,6 +681,19 @@ router.patch('/:id/cancel', authenticate, async (req: AuthRequest, res: Response
         'ALERT'
       );
     }
+
+    // Trigger Outbound Cancellation Email Notification
+    sendBookingNotificationEmail({
+      to: existing.email,
+      recipientName: existing.requestedBy,
+      bookingId: existing.bookingId,
+      eventName: existing.eventName,
+      hallName: existing.hall.name,
+      bookingDate: existing.bookingDate,
+      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      status: 'CANCELLED',
+      rejectionReason: reason || 'Booking reservation cancelled upon request.',
+    }).catch(err => console.error('Cancellation email error:', err));
 
     res.json({
       ...updated,

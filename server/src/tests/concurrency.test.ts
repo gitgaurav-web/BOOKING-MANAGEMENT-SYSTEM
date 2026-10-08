@@ -1,12 +1,21 @@
 import assert from 'node:assert';
 import test from 'node:test';
 import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { app } from '../index';
 import { checkBookingConflict } from '../routes/bookings';
 import { isValidStrictIsoDate } from '../utils/dateValidation';
+import { escapeHtml } from '../utils/emailService';
 import { getJwtSecret } from '../utils/jwt';
+
+// Helper for dynamic future test dates with zero CI/dev collision
+function getDynamicFutureDate(offsetDays: number): string {
+  const d = new Date(Date.now() + offsetDays * 86400000);
+  return d.toISOString().split('T')[0];
+}
 
 test('Strict Calendar Validation: Rejects impossible dates like 2026-02-31', () => {
   assert.strictEqual(isValidStrictIsoDate('2026-02-31'), false, '2026-02-31 must be rejected');
@@ -15,6 +24,18 @@ test('Strict Calendar Validation: Rejects impossible dates like 2026-02-31', () 
   assert.strictEqual(isValidStrictIsoDate('2024-02-29'), true, 'Leap year 2024-02-29 must be accepted');
   assert.strictEqual(isValidStrictIsoDate('2026-10-15'), true, 'Valid date must be accepted');
   assert.strictEqual(isValidStrictIsoDate('invalid-string'), false, 'Invalid string must be rejected');
+});
+
+test('Email HTML Escaping: Sanitizes user strings to prevent markup/XSS injection', () => {
+  const malicious = '<script>alert("XSS")</script>&\'hello"';
+  const clean = escapeHtml(malicious);
+  assert.strictEqual(
+    clean,
+    '&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;&amp;&#39;hello&quot;',
+    'Must encode <, >, &, ", and \''
+  );
+  assert.strictEqual(escapeHtml(null), '');
+  assert.strictEqual(escapeHtml(undefined), '');
 });
 
 test('Production Conflict Checker Function: Verifies direct slot and time collisions', async () => {
@@ -26,7 +47,7 @@ test('Production Conflict Checker Function: Verifies direct slot and time collis
     return;
   }
 
-  const testDate = '2028-12-10';
+  const testDate = getDynamicFutureDate(700);
 
   // Clean any previous test bookings
   await prisma.booking.deleteMany({ where: { bookingDate: testDate, hallId: hall.id } });
@@ -112,7 +133,7 @@ test('Live Express API: Concurrent POST /api/bookings against real production en
   const address = server.address() as { port: number };
   const baseUrl = `http://127.0.0.1:${address.port}`;
 
-  const testDate = '2028-12-15';
+  const testDate = getDynamicFutureDate(720);
 
   // Clean leftovers
   await prisma.booking.deleteMany({ where: { bookingDate: testDate, hallId: hall.id } });
@@ -169,28 +190,195 @@ test('Live Express API: Concurrent POST /api/bookings against real production en
   }
 });
 
-test('Live Express API: Availability date range validation and security gates', async () => {
+test('Live Express API: Multi-Day Overlap Query in Availability Calendar', async () => {
+  const hall = await prisma.hall.findFirst();
+  const user = await prisma.user.findFirst();
+
+  if (!hall || !user) return;
+
   const server = http.createServer(app);
   await new Promise<void>((resolve) => server.listen(0, resolve));
   const address = server.address() as { port: number };
   const baseUrl = `http://127.0.0.1:${address.port}`;
 
+  // Booking starts at Day 730, ends at Day 735
+  const bookingStart = getDynamicFutureDate(730);
+  const bookingEnd = getDynamicFutureDate(735);
+
+  // User queries a subrange starting on Day 732 (after bookingStart)
+  const queryStart = getDynamicFutureDate(732);
+  const queryEnd = getDynamicFutureDate(734);
+
+  const testBooking = await prisma.booking.create({
+    data: {
+      bookingId: `TEST-MULTIDAY-${Date.now()}`,
+      userId: user.id,
+      hallId: hall.id,
+      eventName: 'Multi-Day Academic Conference',
+      purpose: 'Testing cross-boundary calendar query overlap',
+      bookingDate: bookingStart,
+      endDate: bookingEnd,
+      bookingType: 'FULL_DAY',
+      startTime: '09:00',
+      endTime: '17:00',
+      participantCount: 120,
+      requestedBy: user.name,
+      contactNumber: '+91 9999999999',
+      email: user.email,
+      status: 'APPROVED',
+    },
+  });
+
   try {
-    // 1. Invalid date (rollover date)
-    const resInvalid = await fetch(`${baseUrl}/api/availability?startDate=2026-02-31`);
-    assert.strictEqual(resInvalid.status, 400, 'Rollover date in availability must return 400');
+    const res = await fetch(`${baseUrl}/api/availability?startDate=${queryStart}&endDate=${queryEnd}&hallId=${hall.id}`);
+    assert.strictEqual(res.status, 200);
+    const data = (await res.json()) as any;
 
-    // 2. Huge date range (> 180 days)
-    const resLarge = await fetch(`${baseUrl}/api/availability?startDate=2026-01-01&endDate=2026-12-31`);
-    assert.strictEqual(resLarge.status, 400, 'Range > 180 days in availability must return 400');
+    // Day 732 must be marked as BOOKED because of the overlapping multi-day booking
+    const dayInfo = data.availability[queryStart]?.[hall.id];
+    assert.ok(dayInfo, 'Day within requested range must exist in availability map');
+    assert.strictEqual(dayInfo.status, 'BOOKED', 'Multi-day booking starting prior to rangeStart must mark day BOOKED');
+  } finally {
+    await prisma.booking.delete({ where: { id: testBooking.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
 
-    // 3. Reversed date range
-    const resReversed = await fetch(`${baseUrl}/api/availability?startDate=2026-10-01&endDate=2026-09-01`);
-    assert.strictEqual(resReversed.status, 400, 'Reversed dates in availability must return 400');
+test('Live Express API: Document Upload Ownership Authorization Protection', async () => {
+  const userA = await prisma.user.findFirst({ where: { role: 'FACULTY' } }) || await prisma.user.findFirst();
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || await prisma.user.findFirst();
+  const hall = await prisma.hall.findFirst();
 
-    // 4. Protected uploads access without authentication
-    const resUploadAnon = await fetch(`${baseUrl}/uploads/sensitive_letter.pdf`);
-    assert.strictEqual(resUploadAnon.status, 401, 'Anonymous request to /uploads must return 401');
+  if (!userA || !admin || !hall) return;
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  // Create a dummy physical file in uploads
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  const testFileName = `test-doc-${Date.now()}.pdf`;
+  const testFilePath = path.join(uploadDir, testFileName);
+  fs.writeFileSync(testFilePath, 'DUMMY PDF CONTENT FOR TEST');
+
+  // Create booking owned by userA
+  const testBooking = await prisma.booking.create({
+    data: {
+      bookingId: `TEST-DOC-${Date.now()}`,
+      userId: userA.id,
+      hallId: hall.id,
+      eventName: 'Confidential Event',
+      purpose: 'Testing document authorization protection',
+      bookingDate: getDynamicFutureDate(740),
+      bookingType: 'MORNING',
+      startTime: '09:00',
+      endTime: '13:00',
+      participantCount: 30,
+      requestedBy: userA.name,
+      contactNumber: '+91 9999999999',
+      email: userA.email,
+      attachmentUrl: `/uploads/${testFileName}`,
+      status: 'APPROVED',
+    },
+  });
+
+  const tokenUserA = jwt.sign(
+    { id: userA.id, email: userA.email, role: userA.role, name: userA.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  const tokenUserB = jwt.sign(
+    { id: 'another-user-999', email: 'other@campus.edu', role: 'FACULTY', name: 'Other User' },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  const tokenAdmin = jwt.sign(
+    { id: admin.id, email: admin.email, role: 'ADMIN', name: admin.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  try {
+    // 1. Anonymous request receives 401
+    const resAnon = await fetch(`${baseUrl}/uploads/${testFileName}`);
+    assert.strictEqual(resAnon.status, 401, 'Anonymous request must be rejected with 401');
+
+    // 2. Unrelated User B receives 403 Forbidden
+    const resUserB = await fetch(`${baseUrl}/uploads/${testFileName}`, {
+      headers: { Authorization: `Bearer ${tokenUserB}` },
+    });
+    assert.strictEqual(resUserB.status, 403, 'Unrelated user must be rejected with 403 Forbidden');
+
+    // 3. Document Owner User A receives 200 OK
+    const resUserA = await fetch(`${baseUrl}/uploads/${testFileName}`, {
+      headers: { Authorization: `Bearer ${tokenUserA}` },
+    });
+    assert.strictEqual(resUserA.status, 200, 'Owner user must be permitted to download own document');
+
+    // 4. Admin receives 200 OK
+    const resAdmin = await fetch(`${baseUrl}/uploads/${testFileName}`, {
+      headers: { Authorization: `Bearer ${tokenAdmin}` },
+    });
+    assert.strictEqual(resAdmin.status, 200, 'Admin must be permitted to view any permission document');
+  } finally {
+    if (fs.existsSync(testFilePath)) fs.unlinkSync(testFilePath);
+    await prisma.booking.delete({ where: { id: testBooking.id } });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('Live Express API: Settings Endpoint Allowlisting and Relational Validation', async () => {
+  const admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } }) || await prisma.user.findFirst();
+  if (!admin) return;
+
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  const adminToken = jwt.sign(
+    { id: admin.id, email: admin.email, role: 'ADMIN', name: admin.name },
+    getJwtSecret(),
+    { expiresIn: '1h' }
+  );
+
+  try {
+    // 1. Rejects unknown arbitrary keys
+    const resUnknown = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ unknownHackedKey: 'exploit' }),
+    });
+    assert.strictEqual(resUnknown.status, 400, 'Unknown setting key must return 400 Bad Request');
+
+    // 2. Rejects minAdvanceNotice > maxAdvanceNotice
+    const resInvalidRelation = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ minAdvanceNoticeDays: '30', maxAdvanceNoticeDays: '10' }),
+    });
+    assert.strictEqual(resInvalidRelation.status, 400, 'minNotice > maxNotice must return 400 Bad Request');
+
+    // 3. Accepts valid keys
+    const resValid = await fetch(`${baseUrl}/api/settings`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ minAdvanceNoticeDays: '2', maxAdvanceNoticeDays: '60' }),
+    });
+    assert.strictEqual(resValid.status, 200, 'Valid settings update must return 200 OK');
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }

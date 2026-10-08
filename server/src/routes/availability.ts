@@ -3,15 +3,67 @@ import { prisma } from '../prisma';
 import { optionalAuth, AuthRequest } from '../middleware/auth';
 import { isValidStrictIsoDate } from '../utils/dateValidation';
 
+function calculateFreeTimeWindows(
+  events: Array<{ startTime: string; endTime: string }>,
+  dayStart = '09:00',
+  dayEnd = '18:00'
+): Array<{ start: string; end: string }> {
+  if (events.length === 0) {
+    return [{ start: dayStart, end: dayEnd }];
+  }
+  const sorted = [...events].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const merged: Array<{ start: string; end: string }> = [];
+  for (const ev of sorted) {
+    const s = ev.startTime < dayStart ? dayStart : ev.startTime;
+    const e = ev.endTime > dayEnd ? dayEnd : ev.endTime;
+    if (s >= e) continue;
+    if (merged.length === 0) {
+      merged.push({ start: s, end: e });
+    } else {
+      const last = merged[merged.length - 1];
+      if (s <= last.end) {
+        if (e > last.end) last.end = e;
+      } else {
+        merged.push({ start: s, end: e });
+      }
+    }
+  }
+
+  const free: Array<{ start: string; end: string }> = [];
+  let cur = dayStart;
+  for (const block of merged) {
+    if (block.start > cur) {
+      free.push({ start: cur, end: block.start });
+    }
+    if (block.end > cur) {
+      cur = block.end;
+    }
+  }
+  if (cur < dayEnd) {
+    free.push({ start: cur, end: dayEnd });
+  }
+  return free;
+}
+
 const router = Router();
 
 router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { hallId, startDate, endDate } = req.query as {
-      hallId?: string;
-      startDate?: string;
-      endDate?: string;
-    };
+    const rawHallId = req.query.hallId;
+    const rawStart = req.query.startDate;
+    const rawEnd = req.query.endDate;
+
+    const hallId = Array.isArray(rawHallId) ? String(rawHallId[0]) : (rawHallId ? String(rawHallId) : undefined);
+    const startDate = Array.isArray(rawStart) ? String(rawStart[0]) : (rawStart ? String(rawStart) : undefined);
+    const endDate = Array.isArray(rawEnd) ? String(rawEnd[0]) : (rawEnd ? String(rawEnd) : undefined);
+
+    if (hallId) {
+      const hallExists = await prisma.hall.findUnique({ where: { id: hallId } });
+      if (!hallExists) {
+        res.status(404).json({ error: 'Specified hallId does not exist.' });
+        return;
+      }
+    }
 
     if (startDate && !isValidStrictIsoDate(startDate)) {
       res.status(400).json({ error: 'Invalid startDate. Must be valid calendar date in YYYY-MM-DD format.' });
@@ -48,12 +100,16 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
       ? await prisma.hall.findMany({ where: { id: hallId } })
       : await prisma.hall.findMany({ where: { status: 'ACTIVE' } });
 
-    // Fetch all bookings in range
+    // Fetch all bookings overlapping range (handles bookings starting before rangeStart but ending inside/after)
     const bookings = await prisma.booking.findMany({
       where: {
         ...(hallId ? { hallId } : {}),
-        bookingDate: { gte: rangeStart, lte: rangeEnd },
         status: { in: ['APPROVED', 'PENDING'] },
+        bookingDate: { lte: rangeEnd },
+        OR: [
+          { endDate: { gte: rangeStart } },
+          { endDate: null, bookingDate: { gte: rangeStart } },
+        ],
       },
       include: {
         department: true,
@@ -215,6 +271,10 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             purpose: isAuthenticated ? b.purpose : undefined,
           }));
 
+          const freeWindows = (primaryStatus === 'BOOKED')
+            ? []
+            : calculateFreeTimeWindows(approved.map(b => ({ startTime: b.startTime, endTime: b.endTime })));
+
           availabilityMap[dateStr][hall.id] = {
             hallId: hall.id,
             hallName: hall.name,
@@ -224,6 +284,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             hasPending: pending.length > 0,
             freeSlots,
             occupiedSlots,
+            freeWindows,
             bookingId: primaryBooking.bookingId,
             eventName: primaryBooking.eventName,
             bookingType: primaryBooking.bookingType,
@@ -245,6 +306,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           status: 'AVAILABLE',
           freeSlots: ['MORNING', 'AFTERNOON', 'FULL_DAY'],
           occupiedSlots: [],
+          freeWindows: [{ start: '09:00', end: '18:00' }],
         };
       }
 

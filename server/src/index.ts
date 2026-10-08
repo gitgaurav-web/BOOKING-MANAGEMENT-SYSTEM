@@ -15,10 +15,7 @@ import notificationsRoutes from './routes/notifications';
 import activityLogsRoutes from './routes/activityLogs';
 import settingsRoutes from './routes/settings';
 
-import uploadRoutes from './routes/upload';
-import path from 'path';
-import fs from 'fs';
-import jwt from 'jsonwebtoken';
+import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
 import { getJwtSecret } from './utils/jwt';
 
 dotenv.config();
@@ -37,35 +34,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// Protected file access for uploads (Requires Bearer token or ?token= query param)
-app.get('/uploads/:filename', (req, res) => {
-  const authHeader = req.headers.authorization;
-  const token = (authHeader && authHeader.startsWith('Bearer ')) 
-    ? authHeader.split(' ')[1] 
-    : (req.query.token as string);
-
-  if (!token) {
-    res.status(401).json({ error: 'Authentication required to access permission documents.' });
-    return;
-  }
-
-  try {
-    jwt.verify(token, getJwtSecret());
-  } catch {
-    res.status(403).json({ error: 'Invalid or expired authentication token.' });
-    return;
-  }
-
-  const safeFilename = path.basename(req.params.filename);
-  const filePath = path.join(process.cwd(), 'uploads', safeFilename);
-
-  if (!fs.existsSync(filePath)) {
-    res.status(404).json({ error: 'Requested file not found.' });
-    return;
-  }
-
-  res.sendFile(filePath);
-});
+// Protected file access for uploads (Requires Bearer token or ?token= query param with owner/admin authorization)
+app.get('/uploads/:filename', handleAuthorizedFileDownload);
 
 app.use('/api/upload', uploadRoutes);
 
