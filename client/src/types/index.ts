@@ -145,7 +145,7 @@ export interface AvailabilityDayInfo {
   hallId: string;
   hallName: string;
   date: string;
-  status: 'AVAILABLE' | 'BOOKED' | 'PENDING' | 'BLOCKED' | 'MAINTENANCE' | 'HOLIDAY';
+  status: 'AVAILABLE' | 'BOOKED' | 'PENDING' | 'BLOCKED' | 'MAINTENANCE' | 'HOLIDAY' | 'PARTIAL';
   reason?: string;
   bookingId?: string;
   eventName?: string;
@@ -159,4 +159,6 @@ export interface AvailabilityDayInfo {
   events?: AvailabilitySlotEvent[];
   hasPending?: boolean;
   hasApproved?: boolean;
+  freeSlots?: string[];
+  occupiedSlots?: string[];
 }

@@ -24,6 +24,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       label = 'Available';
       Icon = CheckCircle2;
       break;
+    case 'PARTIAL':
+      bgClass = 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700';
+      label = 'Partial (Slots Open)';
+      Icon = Clock;
+      break;
     case 'BOOKED':
     case 'APPROVED':
       bgClass = 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800';

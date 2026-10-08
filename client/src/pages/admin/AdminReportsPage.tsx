@@ -36,7 +36,7 @@ export const AdminReportsPage: React.FC = () => {
     return <div className="p-12 text-center text-slate-500 text-sm">Generating reports...</div>;
   }
 
-  const { metrics, deptUsage, monthlyTrends } = data;
+  const { metrics, deptUsage, monthlyTrends, hallUsage = [] } = data;
 
   return (
     <div className="space-y-8">
@@ -46,7 +46,7 @@ export const AdminReportsPage: React.FC = () => {
             Reports & Facility Analytics
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Detailed utilization metrics, department reservations breakdown, and downloadable spreadsheets.
+            Detailed utilization metrics, actual hall-use hours, department allocations, and downloadable spreadsheets.
           </p>
         </div>
 
@@ -72,6 +72,34 @@ export const AdminReportsPage: React.FC = () => {
             <span>Export CSV</span>
           </button>
         </div>
+      </div>
+
+      {/* Hall Utilization & Duration Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Today Available</span>
+          <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">
+            {metrics.availableToday} / {metrics.totalHalls}
+          </span>
+          <span className="text-[11px] text-slate-500 mt-1 block">Halls free today</span>
+        </div>
+        <div className="p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Active / Upcoming</span>
+          <span className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 mt-1 block">
+            {metrics.upcomingBookings}
+          </span>
+          <span className="text-[11px] text-slate-500 mt-1 block">Confirmed reservations</span>
+        </div>
+        {hallUsage.map((h: any) => (
+          <div key={h.id} className="p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block truncate">{h.name}</span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{h.totalHours || 0} hrs</span>
+              <span className="text-xs text-slate-500">({h.bookingsCount} events)</span>
+            </div>
+            <span className="text-[11px] text-slate-500 mt-1 block">Cumulative utilized duration</span>
+          </div>
+        ))}
       </div>
 
       {/* Monthly Trends Chart */}

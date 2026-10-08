@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
-  Calendar,
-  Clock,
   Building2,
   Users,
   CheckCircle2,
@@ -33,15 +31,19 @@ export const BookingRequestPage: React.FC = () => {
   const [bookingDate, setBookingDate] = useState<string>(searchParams.get('date') || '');
   const [isMultiDay, setIsMultiDay] = useState<boolean>(false);
   const [endDate, setEndDate] = useState<string>('');
-  const [bookingType, setBookingType] = useState<string>('FULL_DAY');
-  const [startTime, setStartTime] = useState<string>('09:00');
-  const [endTime, setEndTime] = useState<string>('17:00');
+  const initialSlot = searchParams.get('slot') || 'FULL_DAY';
+  const [bookingType, setBookingType] = useState<string>(initialSlot);
+  const [startTime, setStartTime] = useState<string>(
+    initialSlot === 'MORNING' ? '09:00' : initialSlot === 'AFTERNOON' ? '13:00' : '09:00'
+  );
+  const [endTime, setEndTime] = useState<string>(
+    initialSlot === 'MORNING' ? '13:00' : initialSlot === 'AFTERNOON' ? '17:00' : '17:00'
+  );
   const [eventName, setEventName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
   const [purpose, setPurpose] = useState<string>('');
   const [departmentId, setDepartmentId] = useState<string>('');
   const [participantCount, setParticipantCount] = useState<number>(100);
-  const [requestedBy, setRequestedBy] = useState<string>(user?.name || '');
   const [coordinatorName, setCoordinatorName] = useState<string>(user?.name || '');
   const [contactNumber, setContactNumber] = useState<string>(user?.phone || '');
   const [email, setEmail] = useState<string>(user?.email || '');
@@ -54,10 +56,6 @@ export const BookingRequestPage: React.FC = () => {
   const [uploadingFile, setUploadingFile] = useState<boolean>(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
-
-  useEffect(() => {
-    loadFormData();
-  }, []);
 
   const loadFormData = async () => {
     try {
@@ -73,24 +71,27 @@ export const BookingRequestPage: React.FC = () => {
       if (targetHallParam && hallsData.length > 0) {
         const found = hallsData.find(
           (h) =>
-            h.id === targetHallParam ||
-            h.name.toLowerCase() === targetHallParam.toLowerCase()
+            h.name.toLowerCase().includes(targetHallParam.toLowerCase()) ||
+            h.id === targetHallParam
         );
-        if (found) setHallId(found.id);
-        else setHallId(hallsData[0].id);
-      } else if (hallsData.length > 0) {
-        setHallId(hallsData[0].id);
+        if (found) {
+          setHallId(found.id);
+        }
       }
 
-      if (deptsData.length > 0) {
-        setDepartmentId(deptsData[0].id);
+      if (user?.departmentId && !departmentId) {
+        setDepartmentId(user.departmentId);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load form dependencies');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadFormData();
+  }, []);
 
   const handleBookingTypeChange = (type: string) => {
     setBookingType(type);

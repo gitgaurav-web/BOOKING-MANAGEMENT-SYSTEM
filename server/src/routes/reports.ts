@@ -18,29 +18,65 @@ router.get('/summary', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async 
     const blockedDatesCount = await prisma.blockedDate.count();
     const maintenanceCount = await prisma.maintenance.count();
 
-    // Today status
-    const todayApproved = await prisma.booking.count({
-      where: { bookingDate: today, status: 'APPROVED' },
+    // Today status (accounting for multi-day ranges)
+    const activeTodayBookings = await prisma.booking.findMany({
+      where: {
+        status: 'APPROVED',
+        bookingDate: { lte: today },
+      },
+      select: { hallId: true, bookingDate: true, endDate: true },
     });
-    const bookedToday = todayApproved;
+
+    const activeHallsToday = new Set<string>();
+    for (const b of activeTodayBookings) {
+      const bEnd = b.endDate || b.bookingDate;
+      if (bEnd >= today) {
+        activeHallsToday.add(b.hallId);
+      }
+    }
+
+    const bookedToday = activeHallsToday.size;
     const availableToday = Math.max(0, totalHalls - bookedToday);
 
-    // Upcoming bookings
-    const upcomingBookings = await prisma.booking.count({
-      where: { bookingDate: { gte: today }, status: 'APPROVED' },
+    // Upcoming bookings (including multi-day bookings ongoing or future)
+    const allApprovedBookings = await prisma.booking.findMany({
+      where: { status: 'APPROVED' },
+      select: { bookingDate: true, endDate: true },
     });
+    const upcomingBookings = allApprovedBookings.filter(b => (b.endDate || b.bookingDate) >= today).length;
 
-    // Hall usage stats
+    // Hall usage stats with actual utilized hours
     const halls = await prisma.hall.findMany();
     const hallUsage = await Promise.all(
       halls.map(async (h) => {
-        const count = await prisma.booking.count({
+        const bookings = await prisma.booking.findMany({
           where: { hallId: h.id, status: 'APPROVED' },
+          select: { bookingDate: true, endDate: true, startTime: true, endTime: true, bookingType: true },
         });
+
+        let totalHours = 0;
+        for (const b of bookings) {
+          const bEnd = b.endDate || b.bookingDate;
+          if (b.bookingDate !== bEnd) {
+            const startD = new Date(b.bookingDate).getTime();
+            const endD = new Date(bEnd).getTime();
+            const days = Math.max(1, Math.round((endD - startD) / (1000 * 3600 * 24)) + 1);
+            totalHours += days * 8;
+          } else if (b.bookingType === 'FULL_DAY') {
+            totalHours += 8;
+          } else {
+            const [sh, sm] = b.startTime.split(':').map(Number);
+            const [eh, em] = b.endTime.split(':').map(Number);
+            const duration = (eh * 60 + em - (sh * 60 + sm)) / 60;
+            totalHours += Math.max(0, duration);
+          }
+        }
+
         return {
           id: h.id,
           name: h.name,
-          bookingsCount: count,
+          bookingsCount: bookings.length,
+          totalHours: Math.round(totalHours * 10) / 10,
         };
       })
     );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 import { Hall } from '../../types';
-import { Building2, Edit, Check, X, Users, MapPin, Plus } from 'lucide-react';
+import { Building2, Edit, Check, X, Plus } from 'lucide-react';
 
 export const AdminHallsPage: React.FC = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
@@ -19,10 +19,6 @@ export const AdminHallsPage: React.FC = () => {
     status: 'ACTIVE',
   });
 
-  useEffect(() => {
-    loadHalls();
-  }, []);
-
   const loadHalls = async () => {
     try {
       setLoading(true);
@@ -34,6 +30,10 @@ export const AdminHallsPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadHalls();
+  }, []);
 
   const startEdit = (hall: Hall) => {
     setEditingId(hall.id);

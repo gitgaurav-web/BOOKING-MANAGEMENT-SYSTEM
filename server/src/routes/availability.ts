@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../prisma';
 import { optionalAuth, AuthRequest } from '../middleware/auth';
+import { isValidStrictIsoDate } from '../utils/dateValidation';
 
 const router = Router();
 
@@ -12,12 +13,35 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
       endDate?: string;
     };
 
+    if (startDate && !isValidStrictIsoDate(startDate)) {
+      res.status(400).json({ error: 'Invalid startDate. Must be valid calendar date in YYYY-MM-DD format.' });
+      return;
+    }
+    if (endDate && !isValidStrictIsoDate(endDate)) {
+      res.status(400).json({ error: 'Invalid endDate. Must be valid calendar date in YYYY-MM-DD format.' });
+      return;
+    }
+
     const today = new Date();
     const defaultStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
     const defaultEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0).toISOString().split('T')[0];
 
     const rangeStart = startDate || defaultStart;
     const rangeEnd = endDate || defaultEnd;
+
+    if (rangeStart > rangeEnd) {
+      res.status(400).json({ error: 'startDate must be earlier than or equal to endDate.' });
+      return;
+    }
+
+    const diffDays = Math.round(
+      (new Date(rangeEnd + 'T00:00:00Z').getTime() - new Date(rangeStart + 'T00:00:00Z').getTime()) /
+        (1000 * 3600 * 24)
+    );
+    if (diffDays > 180) {
+      res.status(400).json({ error: 'Date range cannot exceed 180 days (6 months).' });
+      return;
+    }
 
     // Fetch halls
     const halls = hallId 
@@ -134,7 +158,49 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           const approved = matchingBookings.filter(b => b.status === 'APPROVED');
           const pending = matchingBookings.filter(b => b.status === 'PENDING');
 
-          const primaryStatus = approved.length > 0 ? 'BOOKED' : 'PENDING';
+          // Determine standard slot occupancies (Morning: 09:00-13:00, Afternoon: 13:00-17:00)
+          const isMorningApproved = approved.some(b => {
+            const bEnd = b.endDate || b.bookingDate;
+            if (b.bookingType === 'FULL_DAY' || b.bookingDate !== bEnd) return true;
+            return b.startTime < '13:00' && b.endTime > '09:00';
+          });
+
+          const isAfternoonApproved = approved.some(b => {
+            const bEnd = b.endDate || b.bookingDate;
+            if (b.bookingType === 'FULL_DAY' || b.bookingDate !== bEnd) return true;
+            return b.startTime < '17:00' && b.endTime > '13:00';
+          });
+
+          const isFullDayApproved = approved.some(b => {
+            const bEnd = b.endDate || b.bookingDate;
+            return b.bookingType === 'FULL_DAY' || b.bookingDate !== bEnd || (b.startTime <= '09:30' && b.endTime >= '16:30');
+          });
+
+          const freeSlots: string[] = [];
+          const occupiedSlots: string[] = [];
+          let primaryStatus: 'BOOKED' | 'PARTIAL' | 'PENDING' = 'PENDING';
+
+          if (isFullDayApproved || (isMorningApproved && isAfternoonApproved)) {
+            primaryStatus = 'BOOKED';
+            occupiedSlots.push('FULL_DAY', 'MORNING', 'AFTERNOON');
+          } else if (isMorningApproved && !isAfternoonApproved) {
+            primaryStatus = 'PARTIAL';
+            occupiedSlots.push('MORNING');
+            freeSlots.push('AFTERNOON');
+          } else if (!isMorningApproved && isAfternoonApproved) {
+            primaryStatus = 'PARTIAL';
+            occupiedSlots.push('AFTERNOON');
+            freeSlots.push('MORNING');
+          } else if (approved.length > 0) {
+            primaryStatus = 'PARTIAL';
+          } else {
+            primaryStatus = 'PENDING';
+            const isMorningPending = pending.some(b => b.bookingType === 'FULL_DAY' || (b.startTime < '13:00' && b.endTime > '09:00'));
+            const isAfternoonPending = pending.some(b => b.bookingType === 'FULL_DAY' || (b.startTime < '17:00' && b.endTime > '13:00'));
+            if (!isMorningPending) freeSlots.push('MORNING');
+            if (!isAfternoonPending) freeSlots.push('AFTERNOON');
+          }
+
           const primaryBooking = approved[0] || pending[0];
 
           const eventsList = matchingBookings.map(b => ({
@@ -156,6 +222,8 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             status: primaryStatus,
             hasApproved: approved.length > 0,
             hasPending: pending.length > 0,
+            freeSlots,
+            occupiedSlots,
             bookingId: primaryBooking.bookingId,
             eventName: primaryBooking.eventName,
             bookingType: primaryBooking.bookingType,
@@ -169,12 +237,14 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           continue;
         }
 
-        // 6. Otherwise Available
+        // 5. Otherwise Available
         availabilityMap[dateStr][hall.id] = {
           hallId: hall.id,
           hallName: hall.name,
           date: dateStr,
           status: 'AVAILABLE',
+          freeSlots: ['MORNING', 'AFTERNOON', 'FULL_DAY'],
+          occupiedSlots: [],
         };
       }
 

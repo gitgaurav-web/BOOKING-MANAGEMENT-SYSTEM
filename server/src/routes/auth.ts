@@ -5,11 +5,12 @@ import { prisma } from '../prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
 import { getJwtSecret } from '../utils/jwt';
+import { authRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
 // Register
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+router.post('/register', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password, phone, departmentId } = req.body;
 
@@ -108,7 +109,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Login
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 

@@ -2,13 +2,6 @@ import React, { useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
-  Calendar as CalendarIcon,
-  Filter,
-  CheckCircle2,
-  Clock,
-  Ban,
-  Wrench,
-  Info,
 } from 'lucide-react';
 import {
   format,
@@ -21,7 +14,6 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isToday,
-  isSameDay,
   addWeeks,
   subWeeks,
 } from 'date-fns';
@@ -41,7 +33,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   currentDate,
   onDateChange,
   availabilityData,
-  halls,
+  halls: _halls,
   selectedHallId,
   onDateClick,
   viewMode: initialViewMode = 'month',
@@ -100,10 +92,14 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     if (items.some((i) => i.status === 'MAINTENANCE')) return 'MAINTENANCE';
     // If any is blocked -> show blocked
     if (items.some((i) => i.status === 'BLOCKED')) return 'BLOCKED';
+    // If any holiday -> HOLIDAY
+    if (items.some((i) => i.status === 'HOLIDAY')) return 'HOLIDAY';
     // If ALL are booked -> BOOKED
     if (items.every((i) => i.status === 'BOOKED')) return 'BOOKED';
-    // If some booked, some available -> PARTIAL_BOOKED
-    if (items.some((i) => i.status === 'BOOKED')) return 'BOOKED';
+    // If any is explicitly partial -> PARTIAL
+    if (items.some((i) => i.status === 'PARTIAL')) return 'PARTIAL';
+    // If some booked, some available -> PARTIAL
+    if (items.some((i) => i.status === 'BOOKED')) return 'PARTIAL';
     // If any pending -> PENDING
     if (items.some((i) => i.status === 'PENDING')) return 'PENDING';
     // Otherwise available
@@ -122,10 +118,12 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     switch (status) {
       case 'AVAILABLE':
         return 'bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-100';
+      case 'PARTIAL':
+        return 'bg-amber-50/80 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-700/60 text-amber-950 dark:text-amber-100';
       case 'BOOKED':
         return 'bg-rose-50/80 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border-rose-200 dark:border-rose-800/60 text-rose-950 dark:text-rose-100';
       case 'PENDING':
-        return 'bg-amber-50/80 hover:bg-amber-100/90 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-amber-200 dark:border-amber-800/60 text-amber-950 dark:text-amber-100';
+        return 'bg-sky-50/80 hover:bg-sky-100/90 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-sky-200 dark:border-sky-800/60 text-sky-950 dark:text-sky-100';
       case 'BLOCKED':
       case 'MAINTENANCE':
         return 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200';
@@ -214,11 +212,14 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" /> Available
         </span>
+        <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" /> Partial (Slot Open)
+        </span>
         <span className="inline-flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" /> Booked
         </span>
-        <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" /> Pending
+        <span className="inline-flex items-center gap-1.5 text-sky-700 dark:text-sky-400">
+          <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-xs" /> Pending
         </span>
         <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
           <span className="w-2.5 h-2.5 rounded-full bg-slate-500 shadow-xs" /> Blocked / Maintenance
@@ -344,18 +345,20 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between ${
                           it.status === 'AVAILABLE'
                             ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                            : it.status === 'PARTIAL'
+                            ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200 border border-amber-300/50'
                             : it.status === 'BOOKED'
                             ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300'
                             : it.status === 'PENDING'
-                            ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300'
+                            ? 'bg-sky-500/20 text-sky-800 dark:text-sky-300'
                             : 'bg-slate-500/20 text-slate-800 dark:text-slate-300'
                         }`}
-                        title={`${it.hallName}: ${it.status}`}
+                        title={`${it.hallName}: ${it.status}${it.freeSlots?.length ? ` (Free: ${it.freeSlots.join(', ')})` : ''}`}
                       >
                         <span className="truncate">
                           {selectedHallId === 'ALL'
-                            ? `${it.hallName.split(' ')[0]}: ${it.status}`
-                            : it.status}
+                            ? `${it.hallName.split(' ')[0]}: ${it.status === 'PARTIAL' ? (it.freeSlots?.includes('AFTERNOON') ? 'Aft Free' : 'Morn Free') : it.status}`
+                            : (it.status === 'PARTIAL' ? (it.freeSlots?.includes('AFTERNOON') ? 'Afternoon Open' : 'Morning Open') : it.status)}
                         </span>
                       </div>
                     ))}

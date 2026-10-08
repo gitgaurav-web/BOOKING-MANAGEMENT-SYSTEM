@@ -5,13 +5,14 @@ import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
 import { isValidStrictIsoDate } from '../utils/dateValidation';
+import { sendBookingNotificationEmail } from '../utils/emailService';
 
 const router = Router();
 
-type DbClient = Prisma.TransactionClient | PrismaClient;
+export type DbClient = Prisma.TransactionClient | PrismaClient;
 
 // Helper to check for conflict before creating/approving across single or multi-day range
-async function checkBookingConflict(
+export async function checkBookingConflict(
   client: DbClient,
   hallId: string,
   startDate: string,
@@ -325,6 +326,18 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       }
     }
 
+    // Trigger Outbound Email Notification
+    sendBookingNotificationEmail({
+      to: booking.email || user.email,
+      recipientName: booking.requestedBy || user.name,
+      bookingId: booking.bookingId,
+      eventName: booking.eventName,
+      hallName: booking.hall.name,
+      bookingDate: booking.bookingDate,
+      timeSlot: `${booking.startTime} - ${booking.endTime}`,
+      status: initialStatus as any,
+    }).catch(err => console.error('Outbound email error:', err));
+
     res.status(201).json({
       ...booking,
       specialRequirements: JSON.parse(booking.specialRequirements || '[]'),
@@ -332,7 +345,11 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
         ? 'Booking created and confirmed successfully.'
         : 'Booking request submitted successfully. Waiting for admin approval.',
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && error.message.startsWith('CONFLICT:')) {
+      res.status(409).json({ error: error.message.replace('CONFLICT:', '').trim() });
+      return;
+    }
     console.error('Create booking error:', error);
     res.status(500).json({ error: 'Failed to create booking request.' });
   }
@@ -534,6 +551,18 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       'SUCCESS'
     );
 
+    // Trigger Outbound Approval Email
+    sendBookingNotificationEmail({
+      to: existing.email,
+      recipientName: existing.requestedBy,
+      bookingId: existing.bookingId,
+      eventName: existing.eventName,
+      hallName: existing.hall.name,
+      bookingDate: existing.bookingDate,
+      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      status: 'APPROVED',
+    }).catch(err => console.error('Approval email error:', err));
+
     res.json({
       ...updated,
       specialRequirements: JSON.parse(updated.specialRequirements || '[]'),
@@ -585,6 +614,19 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
       `Your booking request ${existing.bookingId} for ${existing.hall.name} on ${existing.bookingDate} was not approved. Reason: ${rejectionReason || 'Facility unavailable.'}`,
       'ALERT'
     );
+
+    // Trigger Outbound Rejection Email
+    sendBookingNotificationEmail({
+      to: existing.email,
+      recipientName: existing.requestedBy,
+      bookingId: existing.bookingId,
+      eventName: existing.eventName,
+      hallName: existing.hall.name,
+      bookingDate: existing.bookingDate,
+      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      status: 'REJECTED',
+      rejectionReason: rejectionReason || 'Facility unavailable or schedule conflict.',
+    }).catch(err => console.error('Rejection email error:', err));
 
     res.json({
       ...updated,

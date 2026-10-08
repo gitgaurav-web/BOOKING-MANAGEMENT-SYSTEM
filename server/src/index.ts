@@ -17,6 +17,8 @@ import settingsRoutes from './routes/settings';
 
 import uploadRoutes from './routes/upload';
 import path from 'path';
+import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import { getJwtSecret } from './utils/jwt';
 
 dotenv.config();
@@ -34,7 +36,37 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+// Protected file access for uploads (Requires Bearer token or ?token= query param)
+app.get('/uploads/:filename', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = (authHeader && authHeader.startsWith('Bearer ')) 
+    ? authHeader.split(' ')[1] 
+    : (req.query.token as string);
+
+  if (!token) {
+    res.status(401).json({ error: 'Authentication required to access permission documents.' });
+    return;
+  }
+
+  try {
+    jwt.verify(token, getJwtSecret());
+  } catch {
+    res.status(403).json({ error: 'Invalid or expired authentication token.' });
+    return;
+  }
+
+  const safeFilename = path.basename(req.params.filename);
+  const filePath = path.join(process.cwd(), 'uploads', safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'Requested file not found.' });
+    return;
+  }
+
+  res.sendFile(filePath);
+});
+
 app.use('/api/upload', uploadRoutes);
 
 // API Routes
@@ -60,6 +92,12 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => arg.includes('test'));
+if (!isTestEnv) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export { app };
+export default app;

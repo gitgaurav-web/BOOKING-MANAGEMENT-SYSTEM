@@ -2,7 +2,9 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import { authenticate } from '../middleware/auth';
+import { getJwtSecret } from '../utils/jwt';
 
 const router = Router();
 
@@ -65,6 +67,36 @@ router.post('/', authenticate, upload.single('file'), (req: Request, res: Respon
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'File upload failed.' });
   }
+});
+
+// Authenticated document retrieval route
+router.get('/file/:filename', async (req: Request, res: Response): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  const token = (authHeader && authHeader.startsWith('Bearer ')) 
+    ? authHeader.split(' ')[1] 
+    : (req.query.token as string);
+
+  if (!token) {
+    res.status(401).json({ error: 'Authentication required to access permission documents.' });
+    return;
+  }
+
+  try {
+    jwt.verify(token, getJwtSecret());
+  } catch {
+    res.status(403).json({ error: 'Invalid or expired authentication token.' });
+    return;
+  }
+
+  const safeFilename = path.basename(req.params.filename);
+  const filePath = path.join(uploadDir, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    res.status(404).json({ error: 'Requested file not found.' });
+    return;
+  }
+
+  res.sendFile(filePath);
 });
 
 export default router;

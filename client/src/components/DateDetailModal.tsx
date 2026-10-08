@@ -99,6 +99,41 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                 </div>
               )}
 
+              {/* Free Slots Available (Partial day opening) */}
+              {item.freeSlots && item.freeSlots.length > 0 && item.status !== 'AVAILABLE' && (
+                <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider">
+                      🟢 Free Slots Open for Booking
+                    </span>
+                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                      Partial Day Available
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {item.freeSlots.map((slot) => {
+                      const slotLabel =
+                        slot === 'MORNING'
+                          ? 'Morning (09:00 - 13:00)'
+                          : slot === 'AFTERNOON'
+                          ? 'Afternoon (13:00 - 17:00)'
+                          : slot;
+                      return (
+                        <Link
+                          key={slot}
+                          to={`/book?hall=${encodeURIComponent(item.hallName)}&date=${dateStr}&slot=${slot}`}
+                          onClick={onClose}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition"
+                        >
+                          <span>Book {slotLabel}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Multi-slot day schedule */}
               {item.events && item.events.length > 1 && (
                 <div className="space-y-3">
