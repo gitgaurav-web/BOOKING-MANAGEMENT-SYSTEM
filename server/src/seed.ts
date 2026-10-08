@@ -13,14 +13,15 @@ async function main() {
     );
   }
 
-  // 1. Departments
+  // 1. Departments (Sri Sairam College of Engineering Curriculum)
   const departmentsData = [
     { name: 'Computer Science & Engineering', code: 'CSE', description: 'Department of Computer Science & Engineering' },
     { name: 'Artificial Intelligence & Machine Learning', code: 'AIML', description: 'Department of AI & Data Science' },
-    { name: 'Information Science & Engineering', code: 'ISE', description: 'Department of Information Science' },
+    { name: 'Information Science & Engineering', code: 'ISE', description: 'Department of Information Science & Engineering' },
     { name: 'Electronics & Communication Engineering', code: 'ECE', description: 'Department of Electronics & Communication' },
+    { name: 'Electrical & Electronics Engineering', code: 'EEE', description: 'Department of Electrical & Electronics' },
     { name: 'Mechanical Engineering', code: 'MECH', description: 'Department of Mechanical Engineering' },
-    { name: 'Civil Engineering', code: 'CIVIL', description: 'Department of Civil Engineering' },
+    { name: 'CSE (IoT & CyberSecurity with Blockchain)', code: 'CSE-CY', description: 'Department of Cyber Security and IoT' },
     { name: 'Department of Management Studies', code: 'MBA', description: 'MBA and Executive Education' },
   ];
 
@@ -28,7 +29,7 @@ async function main() {
   for (const dept of departmentsData) {
     const created = await prisma.department.upsert({
       where: { code: dept.code },
-      update: {},
+      update: { name: dept.name, description: dept.description },
       create: dept,
     });
     departments[dept.code] = created;
@@ -68,7 +69,7 @@ async function main() {
     where: { email: 'superadmin@college.edu' },
     update: {},
     create: {
-      name: 'Registrar & Chief Administrator',
+      name: 'Principal & Chief Administrator',
       email: 'superadmin@college.edu',
       passwordHash: superPasswordHash,
       phone: '+91 98765 00000',
@@ -105,16 +106,20 @@ async function main() {
     },
   });
 
-  // 3. Halls (Seminar Hall & AV Hall)
+  // 3. Halls (Sri Sairam College Official Facilities: Leo Muthu Seminar Auditorium & Sir M. Visvesvaraya AV Hall)
   const seminarHall = await prisma.hall.upsert({
     where: { code: 'SEMINAR-HALL-01' },
-    update: {},
+    update: {
+      name: 'Leo Muthu Central Seminar Hall',
+      location: 'Administrative & Academic Block, 2nd Floor',
+      description: 'Well-acoustic premier auditorium named in honor of Founder Chairman MJF. Ln. Leo Muthu. Outfitted for state and national conferences, convocations, project expos, and academic symposiums.',
+    },
     create: {
-      name: 'Seminar Hall',
+      name: 'Leo Muthu Central Seminar Hall',
       code: 'SEMINAR-HALL-01',
-      description: 'Grand modern auditorium hall equipped for national conferences, keynote addresses, academic symposiums, and faculty development programs. Features tiered acoustic design.',
-      location: 'Main Academic Block, 2nd Floor (Room 204)',
-      capacity: 200, // Informational only
+      description: 'Well-acoustic premier auditorium named in honor of Founder Chairman MJF. Ln. Leo Muthu. Outfitted for state and national conferences, convocations, project expos, and academic symposiums.',
+      location: 'Administrative & Academic Block, 2nd Floor',
+      capacity: 350,
       image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
       facilities: JSON.stringify([
         'Full HD Ceiling Projector',
@@ -122,7 +127,7 @@ async function main() {
         'Central High-Capacity AC',
         'Stage Lighting System',
         'Surround Sound Audio',
-        'High-Speed Wi-Fi',
+        '1Gbps Campus Fiber Wi-Fi',
         'Live Video Recording Setup',
       ]),
       status: 'ACTIVE',
@@ -131,20 +136,24 @@ async function main() {
 
   const avHall = await prisma.hall.upsert({
     where: { code: 'AV-HALL-01' },
-    update: {},
+    update: {
+      name: 'Sir M. Visvesvaraya AV Hall',
+      location: 'Science & Innovation Block, Ground Floor',
+      description: 'Dedicated ICT-enabled Audio-Visual Hall inaugurated for department technical workshops, webinars, interactive seminars, and hybrid conferencing.',
+    },
     create: {
-      name: 'AV Hall',
+      name: 'Sir M. Visvesvaraya AV Hall',
       code: 'AV-HALL-01',
-      description: 'Audio Visual Hall outfitted with interactive smart boards, surround audio, and video conference telepresence gear. Perfect for workshops, webinars, and thesis defenses.',
-      location: 'Science & Technology Block, Ground Floor (Room 012)',
-      capacity: 120, // Informational only
+      description: 'Dedicated ICT-enabled Audio-Visual Hall inaugurated for department technical workshops, webinars, interactive seminars, and hybrid conferencing.',
+      location: 'Science & Innovation Block, Ground Floor',
+      capacity: 150,
       image: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80',
       facilities: JSON.stringify([
         'Dual Interactive Touch Smartboards',
         'Video Conferencing PTZ Camera',
         'Dolby 5.1 Acoustic Setup',
         'Split Climate Control AC',
-        'High-Speed Dedicated Fiber Wi-Fi',
+        '1Gbps Dedicated Fiber Wi-Fi',
         'Microphone Array',
       ]),
       status: 'ACTIVE',

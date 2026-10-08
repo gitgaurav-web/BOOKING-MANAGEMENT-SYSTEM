@@ -9,11 +9,11 @@ export const Footer: React.FC = () => (
       <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-between gap-4 text-xs text-amber-200/90 font-medium">
         <div className="flex items-center gap-3">
           <Award className="h-4 w-4 text-amber-400" />
-          <span>Apex Institute of Technology & Sciences — Recognised Center of Academic Excellence</span>
+          <span>Sri Sairam College of Engineering, Bengaluru · Approved by AICTE &amp; Affiliated to VTU Belagavi</span>
         </div>
         <div className="flex items-center gap-4 text-slate-300">
-          <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-amber-400" /> +91 98765 43210</span>
-          <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-amber-400" /> facilities@apex.edu</span>
+          <span className="flex items-center gap-1.5"><Phone className="h-3 w-3 text-amber-400" /> 080-27830221 / 7377730030</span>
+          <span className="flex items-center gap-1.5"><Mail className="h-3 w-3 text-amber-400" /> info@sairamce.edu.in</span>
         </div>
       </div>
     </div>
@@ -26,16 +26,16 @@ export const Footer: React.FC = () => (
               <Landmark className="h-6 w-6" />
             </span>
             <div>
-              <p className="font-crest text-xl font-bold tracking-tight text-white">APEX INSTITUTE</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-amber-300/80">Campus Facility Management System</p>
+              <p className="font-crest text-xl font-bold tracking-tight text-white">SRI SAIRAM COLLEGE</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-amber-300/80">OF ENGINEERING · BENGALURU</p>
             </div>
           </div>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-300">
-            Official centralized booking platform for academic conferences, guest lectures, department symposiums, and institutional events. Fully compliant with campus event management policies.
+            Official centralized booking platform for Leo Muthu Central Seminar Hall, Sir M. Visvesvaraya AV Hall, and ICT smart auditoriums. Facilitating university events, conferences, and student symposiums.
           </p>
           <div className="mt-5 flex flex-col gap-2 text-xs text-slate-300">
-            <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-amber-400 shrink-0" /> Main Academic Campus, Knowledge Park IV, Institutional Area</span>
-            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" /> Verified Faculty &amp; Administration Access Only</span>
+            <span className="flex items-center gap-2"><MapPin className="h-4 w-4 text-amber-400 shrink-0" /> Sai Leo Nagar, Guddanahalli Village, Samandur Post, Anekal, Bengaluru - 562106</span>
+            <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" /> Verified Faculty &amp; Institutional Authority Access</span>
           </div>
         </div>
 
@@ -66,8 +66,8 @@ export const Footer: React.FC = () => (
       </div>
 
       <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-        <span>© {new Date().getFullYear()} Apex Institute of Technology & Sciences. All Rights Reserved.</span>
-        <span>Internal Facility Booking Portal — Powered by Campus ERP</span>
+        <span>© {new Date().getFullYear()} Sri Sairam College of Engineering, Bengaluru. All Rights Reserved.</span>
+        <span>Internal Campus Facility Management Portal — Built for SSCE Bangalore</span>
       </div>
     </div>
   </footer>

@@ -26,11 +26,11 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
   try {
     const list = await prisma.systemSetting.findMany();
     const settingsMap: Record<string, string> = {
-      siteName: 'College Facility Management System',
-      institutionName: 'Apex Institute of Technology & Sciences',
-      contactEmail: 'facilities@apex.edu',
-      contactPhone: '+91 98765 43210',
-      address: 'Main Academic Campus, Knowledge Park IV',
+      siteName: 'Sri Sairam College Facility Booking Portal',
+      institutionName: 'Sri Sairam College of Engineering',
+      contactEmail: 'info@sairamce.edu.in',
+      contactPhone: '080-27830221',
+      address: 'Sai Leo Nagar, Guddanahalli Village, Samandur Post, Anekal, Bengaluru, Karnataka - 562106',
       minAdvanceNoticeDays: '1',
       maxAdvanceNoticeDays: '90',
       requireAdminApproval: 'true',

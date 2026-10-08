@@ -50,16 +50,16 @@ export const HomePage: React.FC = () => {
             {/* College Accreditation Badge */}
             <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[.18em] text-amber-300 backdrop-blur-sm">
               <Landmark className="h-4 w-4 text-amber-400" />
-              <span>Apex Institute · Official Campus Facilities</span>
+              <span>Sri Sairam College of Engineering · Bengaluru</span>
             </div>
 
             <h1 className="font-serif-college text-4xl leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
               World-Class Venues for <br />
-              <span className="italic text-amber-400">Academic Excellence.</span>
+              <span className="italic text-amber-400">Academic &amp; Research Excellence.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-              Reserve premier campus venues for international symposia, distinguished lectures, department orientations, and cultural fests. Instant conflict checks and official administrative approvals.
+              Official facility reservation desk for Sri Sairam College of Engineering. Reserve Leo Muthu Central Seminar Hall, Sir M. Visvesvaraya AV Hall, and auditoriums for conferences, symposiums, and placement drives.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -116,10 +116,10 @@ export const HomePage: React.FC = () => {
                 <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
                   <p className="text-[11px] font-bold uppercase tracking-[.2em] text-amber-400">Institutional Centerpiece</p>
                   <p className="mt-1 font-serif-college text-2xl sm:text-3xl font-bold text-white leading-snug">
-                    Dr. APJ Abdul Kalam Central Seminar Hall
+                    Leo Muthu Central Seminar Hall
                   </p>
                   <div className="mt-4 flex items-center justify-between">
-                    <span className="text-xs text-slate-300">Acoustic AV &amp; High-Definition Projection</span>
+                    <span className="text-xs text-slate-300">Well-Acoustic Auditorium &amp; HD Projection</span>
                     <Link
                       to="/calendar"
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300"
@@ -134,7 +134,7 @@ export const HomePage: React.FC = () => {
               <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 bg-slate-900/90 py-3.5 px-4 text-center">
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Capacity</p>
-                  <p className="text-sm font-bold text-amber-400">250 Seats</p>
+                  <p className="text-sm font-bold text-amber-400">350 Seats</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Smart AV</p>

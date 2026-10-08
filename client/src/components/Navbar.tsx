@@ -74,13 +74,13 @@ export const Navbar: React.FC = () => {
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold tracking-wider sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">Apex Institute of Technology & Sciences</span>
+            <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">Sri Sairam College of Engineering, Bengaluru</span>
             <span className="hidden md:inline text-slate-400">|</span>
-            <span className="hidden md:inline text-slate-300 font-normal">Autonomous Institution · NAAC A++ Accredited</span>
+            <span className="hidden md:inline text-slate-300 font-normal">Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited</span>
           </div>
           <div className="flex items-center gap-4 text-slate-300">
-            <span className="hidden sm:inline">Central Facility Portal</span>
-            <span className="text-amber-400/90 font-bold">2026-27 Academic Calendar</span>
+            <span className="hidden sm:inline">Central Campus Facility Portal</span>
+            <span className="text-amber-400/90 font-bold">Academic Session 2026-27</span>
           </div>
         </div>
       </div>
@@ -98,7 +98,7 @@ export const Navbar: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="block font-crest text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
-                  CAMPUS FACILITIES
+                  SRI SAIRAM CE
                 </span>
                 <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
                   PORTAL
