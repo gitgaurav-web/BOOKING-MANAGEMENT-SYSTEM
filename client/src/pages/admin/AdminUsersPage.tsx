@@ -47,6 +47,23 @@ export const AdminUsersPage: React.FC = () => {
     }
   };
 
+  const handleStatusChange = async (userId: string, newStatus: string) => {
+    if (!isSuperAdmin) {
+      alert('Only Super Admin can change user account status.');
+      return;
+    }
+
+    try {
+      await apiRequest(`/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      loadUsers();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update status');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -54,7 +71,7 @@ export const AdminUsersPage: React.FC = () => {
           User Management & Roles
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          View registered faculty, staff, and system administrators. Super Admin can adjust role permissions.
+          View registered faculty, staff, and system administrators. Super Admin can adjust role permissions and account status.
         </p>
       </div>
 
@@ -97,7 +114,24 @@ export const AdminUsersPage: React.FC = () => {
                     )}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-emerald-600 font-semibold text-[11px]">Active</span>
+                    {isSuperAdmin ? (
+                      <select
+                        value={u.status || 'ACTIVE'}
+                        onChange={(e) => handleStatusChange(u.id, e.target.value)}
+                        className={`px-2 py-1 rounded-lg border font-semibold text-[11px] ${
+                          u.status === 'INACTIVE'
+                            ? 'border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+                            : 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                        }`}
+                      >
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                      </select>
+                    ) : (
+                      <span className={u.status === 'INACTIVE' ? 'text-rose-600 font-semibold text-[11px]' : 'text-emerald-600 font-semibold text-[11px]'}>
+                        {u.status === 'INACTIVE' ? 'Inactive' : 'Active'}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}

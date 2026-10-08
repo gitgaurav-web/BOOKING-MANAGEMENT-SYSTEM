@@ -1,19 +1,10 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { prisma } from '../prisma';
+import { optionalAuth, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-/**
- * GET /api/availability
- * Query parameters:
- *   hallId: (optional) ID of specific hall
- *   startDate: (required or defaults to start of current month) YYYY-MM-DD
- *   endDate: (required or defaults to end of current month) YYYY-MM-DD
- * 
- * Returns day-by-day availability status matrix:
- * Status values: 'AVAILABLE' | 'BOOKED' | 'PENDING' | 'BLOCKED' | 'MAINTENANCE' | 'HOLIDAY'
- */
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { hallId, startDate, endDate } = req.query as {
       hallId?: string;
@@ -76,6 +67,8 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const endIter = new Date(rangeEnd);
     const availabilityMap: Record<string, Record<string, any>> = {};
 
+    const isAuthenticated = !!req.user;
+
     while (currentIter <= endIter) {
       const dateStr = currentIter.toISOString().split('T')[0];
       availabilityMap[dateStr] = {};
@@ -92,7 +85,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
             date: dateStr,
             status: 'MAINTENANCE',
             reason: maint.reason,
-            details: { notes: maint.notes, responsiblePerson: maint.responsiblePerson },
+            details: isAuthenticated
+              ? { notes: maint.notes, responsiblePerson: maint.responsiblePerson }
+              : { description: 'Scheduled facility maintenance in progress.' },
           };
           continue;
         }
@@ -147,9 +142,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
             bookingType: approvedBooking.bookingType,
             startTime: approvedBooking.startTime,
             endTime: approvedBooking.endTime,
-            department: approvedBooking.department?.name,
-            bookedBy: approvedBooking.requestedBy,
-            purpose: approvedBooking.purpose,
+            department: approvedBooking.department?.name || 'Academic Dept',
+            bookedBy: isAuthenticated ? approvedBooking.requestedBy : undefined,
+            purpose: isAuthenticated ? approvedBooking.purpose : undefined,
           };
           continue;
         }
@@ -167,9 +162,9 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
             hallName: hall.name,
             date: dateStr,
             status: 'PENDING',
-            bookingId: pendingBooking.bookingId,
-            eventName: pendingBooking.eventName,
-            department: pendingBooking.department?.name,
+            bookingId: isAuthenticated ? pendingBooking.bookingId : 'HB-PENDING',
+            eventName: isAuthenticated ? pendingBooking.eventName : 'Facility Reservation Pending Review',
+            department: isAuthenticated ? pendingBooking.department?.name : 'Institutional Request',
             startTime: pendingBooking.startTime,
             endTime: pendingBooking.endTime,
           };

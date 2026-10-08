@@ -1,29 +1,28 @@
 import { Router, Response } from 'express';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
 
 const router = Router();
 
-// Helper to generate unique booking ID (e.g., HB-2026-0042)
-async function generateBookingId(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await prisma.booking.count();
-  const num = String(count + 1).padStart(4, '0');
-  return `HB-${year}-${num}`;
-}
+type DbClient = Prisma.TransactionClient | PrismaClient;
 
 // Helper to check for conflict before creating/approving across single or multi-day range
 async function checkBookingConflict(
+  client: DbClient,
   hallId: string,
   startDate: string,
   endDate: string,
   startTime: string,
   endTime: string,
-  excludeBookingId?: string
+  options?: {
+    excludeBookingId?: string;
+    allowHolidayBookings?: boolean;
+  }
 ): Promise<{ hasConflict: boolean; reason: string }> {
   // 1. Check Maintenance
-  const maintenance = await prisma.maintenance.findFirst({
+  const maintenance = await client.maintenance.findFirst({
     where: {
       hallId,
       startDate: { lte: endDate },
@@ -35,7 +34,7 @@ async function checkBookingConflict(
   }
 
   // 2. Check Blocked Dates
-  const blocked = await prisma.blockedDate.findFirst({
+  const blocked = await client.blockedDate.findFirst({
     where: {
       OR: [{ hallId }, { hallId: null }],
       startDate: { lte: endDate },
@@ -46,25 +45,27 @@ async function checkBookingConflict(
     return { hasConflict: true, reason: `Date is blocked: ${blocked.reason}` };
   }
 
-  // 3. Check Holidays
-  const hall = await prisma.hall.findUnique({ where: { id: hallId } });
-  const holiday = await prisma.holiday.findFirst({
-    where: {
-      date: { gte: startDate, lte: endDate },
-      OR: [{ hallScope: 'ALL' }, { hallScope: hall?.name || '' }],
-    },
-  });
-  if (holiday) {
-    return { hasConflict: true, reason: `Institutional Holiday on ${holiday.date}: ${holiday.name}` };
+  // 3. Check Holidays (honoring system allowHolidayBookings policy)
+  if (!options?.allowHolidayBookings) {
+    const hall = await client.hall.findUnique({ where: { id: hallId } });
+    const holiday = await client.holiday.findFirst({
+      where: {
+        date: { gte: startDate, lte: endDate },
+        OR: [{ hallScope: 'ALL' }, { hallScope: hall?.name || '' }],
+      },
+    });
+    if (holiday) {
+      return { hasConflict: true, reason: `Institutional Holiday on ${holiday.date}: ${holiday.name}` };
+    }
   }
 
   // 4. Check Approved Booking overlapping dates
-  const existingApproved = await prisma.booking.findMany({
+  const existingApproved = await client.booking.findMany({
     where: {
       hallId,
       status: 'APPROVED',
       bookingDate: { lte: endDate },
-      ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
+      ...(options?.excludeBookingId ? { id: { not: options.excludeBookingId } } : {}),
     },
   });
 
@@ -120,6 +121,56 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
+    // Strict Date Validation
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(bookingDate) || isNaN(new Date(bookingDate + 'T00:00:00').getTime())) {
+      res.status(400).json({ error: 'Invalid booking date format. Expected YYYY-MM-DD.' });
+      return;
+    }
+
+    if (endDate) {
+      if (!dateRegex.test(endDate) || isNaN(new Date(endDate + 'T00:00:00').getTime())) {
+        res.status(400).json({ error: 'Invalid end date format. Expected YYYY-MM-DD.' });
+        return;
+      }
+      if (endDate < bookingDate) {
+        res.status(400).json({ error: 'End date cannot be earlier than booking date.' });
+        return;
+      }
+    }
+
+    // Strict Time Validation
+    const timeRegex = /^\d{2}:\d{2}$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      res.status(400).json({ error: 'Invalid time format. Expected HH:mm.' });
+      return;
+    }
+
+    if (startTime >= endTime) {
+      res.status(400).json({ error: 'Start time must be strictly before end time.' });
+      return;
+    }
+
+    // Strict Booking Type & Participant Count Validation
+    const allowedBookingTypes = ['FULL_DAY', 'MORNING', 'AFTERNOON', 'CUSTOM'];
+    if (!allowedBookingTypes.includes(bookingType)) {
+      res.status(400).json({ error: 'Invalid booking type.' });
+      return;
+    }
+
+    const pCount = parseInt(participantCount, 10);
+    if (isNaN(pCount) || pCount <= 0 || pCount > 2000) {
+      res.status(400).json({ error: 'Participant count must be a positive integer between 1 and 2000.' });
+      return;
+    }
+
+    // Validate Facility Hall Exists and is Active
+    const hall = await prisma.hall.findUnique({ where: { id: hallId } });
+    if (!hall || hall.status !== 'ACTIVE') {
+      res.status(400).json({ error: 'Selected facility hall is inactive or does not exist.' });
+      return;
+    }
+
     const effectiveEnd = endDate && endDate >= bookingDate ? endDate : bookingDate;
 
     // Load active system settings
@@ -129,6 +180,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       maxAdvanceNoticeDays: '90',
       allowWeekendBookings: 'true',
       allowHolidayBookings: 'false',
+      requireAdminApproval: 'true',
     };
     for (const s of settingsList) {
       settingsMap[s.key] = s.value;
@@ -182,18 +234,33 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       }
     }
 
+    // Policy for admin approval
+    const allowHolidays = settingsMap.allowHolidayBookings === 'true';
+    const requireApproval = settingsMap.requireAdminApproval !== 'false';
+    const initialStatus = (isAdmin || !requireApproval) ? 'APPROVED' : 'PENDING';
+
     // Atomic transaction to avoid race conditions during concurrent bookings
     const user = req.user!;
-    const initialStatus = isAdmin ? 'APPROVED' : 'PENDING';
 
     const booking = await prisma.$transaction(async (tx) => {
-      // Re-evaluate conflict inside transaction lock
-      const conflict = await checkBookingConflict(hallId, bookingDate, effectiveEnd, startTime, endTime);
+      // Re-evaluate conflict inside transaction lock using tx client
+      const conflict = await checkBookingConflict(
+        tx,
+        hallId,
+        bookingDate,
+        effectiveEnd,
+        startTime,
+        endTime,
+        { allowHolidayBookings: allowHolidays }
+      );
       if (conflict.hasConflict) {
         throw new Error(`CONFLICT: ${conflict.reason}`);
       }
 
-      const bookingId = await generateBookingId();
+      // Generate sequential booking ID atomically inside tx
+      const year = new Date().getFullYear();
+      const count = await tx.booking.count();
+      const bookingId = `HB-${year}-${String(count + 1).padStart(4, '0')}`;
 
       return await tx.booking.create({
         data: {
@@ -209,7 +276,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
           bookingType,
           startTime,
           endTime,
-          participantCount: Number(participantCount) || 0,
+          participantCount: pCount,
           requestedBy: user.name,
           coordinatorName: coordinatorName || user.name,
           contactNumber,
@@ -218,8 +285,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
           attachmentUrl: attachmentUrl || null,
           additionalNotes,
           status: initialStatus,
-          approvedById: isAdmin ? user.id : null,
-          approvedAt: isAdmin ? new Date() : null,
+          approvedById: (isAdmin || !requireApproval) ? user.id : null,
+          approvedAt: (isAdmin || !requireApproval) ? new Date() : null,
         },
         include: { hall: true, department: true },
       });
@@ -418,13 +485,20 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
 
     // Check conflict and update inside transaction to prevent race conditions
     const updated = await prisma.$transaction(async (tx) => {
+      const holidaySetting = await tx.systemSetting.findUnique({ where: { key: 'allowHolidayBookings' } });
+      const allowHolidays = holidaySetting?.value === 'true';
+
       const conflict = await checkBookingConflict(
+        tx,
         existing.hallId,
         existing.bookingDate,
         existing.endDate || existing.bookingDate,
         existing.startTime,
         existing.endTime,
-        existing.id
+        {
+          excludeBookingId: existing.id,
+          allowHolidayBookings: allowHolidays,
+        }
       );
 
       if (conflict.hasConflict) {
@@ -463,7 +537,11 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       specialRequirements: JSON.parse(updated.specialRequirements || '[]'),
       message: 'Booking confirmed successfully.',
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && error.message.startsWith('CONFLICT:')) {
+      res.status(409).json({ error: error.message.replace('CONFLICT:', '').trim() });
+      return;
+    }
     console.error('Approve error:', error);
     res.status(500).json({ error: 'Failed to approve booking.' });
   }
@@ -573,14 +651,16 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
   try {
     const { id } = req.params;
     const {
+      hallId,
       eventName,
       description,
       purpose,
       departmentId,
       bookingDate,
-      bookingType,
-      startTime,
-      endTime,
+      endDate,
+      bookingType = 'FULL_DAY',
+      startTime = '09:00',
+      endTime = '17:00',
       participantCount,
       coordinatorName,
       contactNumber,
@@ -596,42 +676,98 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
       return;
     }
 
-    // Check conflict if changing date or times
-    if (bookingDate !== existing.bookingDate || startTime !== existing.startTime || endTime !== existing.endTime) {
-      const conflict = await checkBookingConflict(
-        existing.hallId,
-        bookingDate,
-        existing.endDate || bookingDate,
-        startTime,
-        endTime,
-        id
-      );
-      if (conflict.hasConflict) {
-        res.status(409).json({ error: conflict.reason });
+    const targetDate = bookingDate || existing.bookingDate;
+    const targetEnd = endDate !== undefined ? endDate : existing.endDate;
+    const effectiveEnd = targetEnd && targetEnd >= targetDate ? targetEnd : targetDate;
+    const targetHallId = hallId || existing.hallId;
+    const targetStatus = status || existing.status;
+
+    // Strict validation
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(targetDate) || isNaN(new Date(targetDate + 'T00:00:00').getTime())) {
+      res.status(400).json({ error: 'Invalid booking date format. Expected YYYY-MM-DD.' });
+      return;
+    }
+
+    if (targetEnd) {
+      if (!dateRegex.test(targetEnd) || isNaN(new Date(targetEnd + 'T00:00:00').getTime())) {
+        res.status(400).json({ error: 'Invalid end date format. Expected YYYY-MM-DD.' });
+        return;
+      }
+      if (targetEnd < targetDate) {
+        res.status(400).json({ error: 'End date cannot be earlier than booking date.' });
         return;
       }
     }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: {
-        eventName,
-        description,
-        purpose,
-        departmentId: departmentId || null,
-        bookingDate,
-        bookingType,
-        startTime,
-        endTime,
-        participantCount: Number(participantCount) || 0,
-        coordinatorName,
-        contactNumber,
-        email,
-        specialRequirements: typeof specialRequirements === 'string' ? specialRequirements : JSON.stringify(specialRequirements || []),
-        adminNotes,
-        status,
-      },
-      include: { hall: true, department: true },
+    const timeRegex = /^\d{2}:\d{2}$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      res.status(400).json({ error: 'Invalid time format. Expected HH:mm.' });
+      return;
+    }
+
+    if (startTime >= endTime) {
+      res.status(400).json({ error: 'Start time must be strictly before end time.' });
+      return;
+    }
+
+    const pCount = participantCount !== undefined ? parseInt(participantCount, 10) : existing.participantCount;
+    if (isNaN(pCount) || pCount <= 0 || pCount > 2000) {
+      res.status(400).json({ error: 'Participant count must be a positive integer between 1 and 2000.' });
+      return;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      // Re-evaluate conflict if status is APPROVED or changing to APPROVED
+      if (targetStatus === 'APPROVED') {
+        const holidaySetting = await tx.systemSetting.findUnique({ where: { key: 'allowHolidayBookings' } });
+        const allowHolidays = holidaySetting?.value === 'true';
+
+        const conflict = await checkBookingConflict(
+          tx,
+          targetHallId,
+          targetDate,
+          effectiveEnd,
+          startTime,
+          endTime,
+          {
+            excludeBookingId: id,
+            allowHolidayBookings: allowHolidays,
+          }
+        );
+
+        if (conflict.hasConflict) {
+          throw new Error(`CONFLICT: ${conflict.reason}`);
+        }
+      }
+
+      return await tx.booking.update({
+        where: { id },
+        data: {
+          hallId: targetHallId,
+          eventName: eventName !== undefined ? eventName : existing.eventName,
+          description: description !== undefined ? description : existing.description,
+          purpose: purpose !== undefined ? purpose : existing.purpose,
+          departmentId: departmentId !== undefined ? (departmentId || null) : existing.departmentId,
+          bookingDate: targetDate,
+          endDate: effectiveEnd !== targetDate ? effectiveEnd : null,
+          bookingType,
+          startTime,
+          endTime,
+          participantCount: pCount,
+          coordinatorName: coordinatorName !== undefined ? coordinatorName : existing.coordinatorName,
+          contactNumber: contactNumber !== undefined ? contactNumber : existing.contactNumber,
+          email: email !== undefined ? email : existing.email,
+          specialRequirements: specialRequirements !== undefined
+            ? (typeof specialRequirements === 'string' ? specialRequirements : JSON.stringify(specialRequirements || []))
+            : existing.specialRequirements,
+          adminNotes: adminNotes !== undefined ? adminNotes : existing.adminNotes,
+          status: targetStatus,
+          approvedById: (targetStatus === 'APPROVED' && !existing.approvedById) ? req.user!.id : existing.approvedById,
+          approvedAt: (targetStatus === 'APPROVED' && !existing.approvedAt) ? new Date() : existing.approvedAt,
+        },
+        include: { hall: true, department: true },
+      });
     });
 
     await logActivity(req.user!.id, 'EDIT_BOOKING', 'BOOKING', id, `Updated booking ${existing.bookingId}`);
@@ -640,7 +776,11 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
       ...updated,
       specialRequirements: JSON.parse(updated.specialRequirements || '[]'),
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message && error.message.startsWith('CONFLICT:')) {
+      res.status(409).json({ error: error.message.replace('CONFLICT:', '').trim() });
+      return;
+    }
     console.error('Edit booking error:', error);
     res.status(500).json({ error: 'Failed to update booking.' });
   }

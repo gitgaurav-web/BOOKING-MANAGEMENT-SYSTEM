@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
+import { getJwtSecret } from '../utils/jwt';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -21,7 +22,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     }
 
     const token = authHeader.split(' ')[1];
-    const secret = process.env.JWT_SECRET || 'fallback_secret';
+    const secret = getJwtSecret();
     const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string; name: string };
 
     const user = await prisma.user.findUnique({
@@ -62,7 +63,7 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      const secret = process.env.JWT_SECRET || 'fallback_secret';
+      const secret = getJwtSecret();
       const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string; name: string };
       const user = await prisma.user.findUnique({
         where: { id: decoded.id },

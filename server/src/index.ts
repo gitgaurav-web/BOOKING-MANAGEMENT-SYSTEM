@@ -17,8 +17,12 @@ import settingsRoutes from './routes/settings';
 
 import uploadRoutes from './routes/upload';
 import path from 'path';
+import { getJwtSecret } from './utils/jwt';
 
 dotenv.config();
+
+// Validate JWT configuration
+getJwtSecret();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

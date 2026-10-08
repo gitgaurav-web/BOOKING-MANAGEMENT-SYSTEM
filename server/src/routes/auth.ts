@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
+import { getJwtSecret } from '../utils/jwt';
 
 const router = Router();
 
@@ -17,21 +18,48 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      res.status(400).json({ error: 'User with this email already exists.' });
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ error: 'Please provide a valid institutional email address.' });
       return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+      return;
+    }
+
+    if (!/(?=.*[a-zA-Z])(?=.*[0-9])/.test(password)) {
+      res.status(400).json({ error: 'Password must contain at least one letter and one number.' });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) {
+      res.status(400).json({ error: 'A user with this email address is already registered.' });
+      return;
+    }
+
+    let finalDeptId: string | null = null;
+    if (departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+      if (!dept || dept.status !== 'ACTIVE') {
+        res.status(400).json({ error: 'Selected department does not exist or is inactive.' });
+        return;
+      }
+      finalDeptId = dept.id;
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: cleanEmail,
         passwordHash,
-        phone,
-        departmentId: departmentId || null,
-        role: 'USER',
+        phone: phone ? phone.trim() : null,
+        departmentId: finalDeptId,
+        role: finalDeptId ? 'FACULTY' : 'USER',
         status: 'ACTIVE',
       },
       include: { department: true },
@@ -39,7 +67,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 
@@ -71,8 +99,10 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: cleanEmail },
       include: { department: true },
     });
 
@@ -94,7 +124,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: '7d' }
     );
 

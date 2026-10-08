@@ -44,6 +44,35 @@ export const AdminDepartmentsPage: React.FC = () => {
     }
   };
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; code: string; description: string }>({
+    name: '',
+    code: '',
+    description: '',
+  });
+
+  const handleStartEdit = (d: Department) => {
+    setEditingId(d.id);
+    setEditForm({
+      name: d.name,
+      code: d.code,
+      description: d.description || '',
+    });
+  };
+
+  const handleUpdate = async (id: string) => {
+    try {
+      await apiRequest(`/users/departments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(editForm),
+      });
+      setEditingId(null);
+      loadDepartments();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update department');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -135,23 +164,79 @@ export const AdminDepartmentsPage: React.FC = () => {
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {departments.map((d) => (
-          <div
-            key={d.id}
-            className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-2"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-                {d.code}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                {d._count?.bookings || 0} reservations
-              </span>
+        {departments.map((d) => {
+          const isEditing = editingId === d.id;
+          return (
+            <div
+              key={d.id}
+              className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-3"
+            >
+              {isEditing ? (
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block font-semibold mb-1">Name</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Code</label>
+                    <input
+                      type="text"
+                      value={editForm.code}
+                      onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={editForm.description}
+                      onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="px-3 py-1 rounded-lg border text-[11px]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUpdate(d.id)}
+                      className="px-3 py-1 rounded-lg bg-blue-600 text-white font-semibold text-[11px]"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                      {d.code}
+                    </span>
+                    <button
+                      onClick={() => handleStartEdit(d)}
+                      className="text-xs text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-semibold cursor-pointer"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white">{d.name}</h3>
+                  {d.description && <p className="text-xs text-slate-500">{d.description}</p>}
+                </>
+              )}
             </div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white">{d.name}</h3>
-            {d.description && <p className="text-xs text-slate-500">{d.description}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

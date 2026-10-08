@@ -43,6 +43,29 @@ router.post('/departments', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
   }
 });
 
+// Departments: Update department
+router.put('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { name, code, description, status } = req.body;
+
+    const updated = await prisma.department.update({
+      where: { id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(code ? { code } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(status ? { status } : {}),
+      },
+    });
+
+    await logActivity(req.user!.id, 'UPDATE_DEPARTMENT', 'DEPARTMENT', id, `Updated department ${updated.name}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update department.' });
+  }
+});
+
 // Users: List all (Admin only)
 router.get('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
