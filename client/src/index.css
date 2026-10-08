@@ -3,37 +3,53 @@
 @layer base {
   :root {
     --color-surface: #ffffff;
-    --color-surface-subtle: #f7f6f1;
-    --color-border: #e4e2d9;
-    --color-text-main: #1b332c;
-    --color-text-muted: #66736b;
+    --color-surface-subtle: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-primary: #1e3a8a;       /* Deep Navy */
+    --color-primary-dark: #0f172a;  /* Midnight */
+    --color-accent: #d97706;        /* Warm Gold / Amber */
+    --color-accent-light: #fef3c7;  /* Soft Gold Tint */
+    --color-text-main: #0f172a;
+    --color-text-muted: #64748b;
   }
 
   .dark {
-    --color-surface: #111c19;
-    --color-surface-subtle: #101815;
-    --color-border: #34433d;
-    --color-text-main: #f4f3ed;
-    --color-text-muted: #a7b1ab;
+    --color-surface: #0f172a;
+    --color-surface-subtle: #020617;
+    --color-border: #1e293b;
+    --color-primary: #3b82f6;
+    --color-primary-dark: #1e3a8a;
+    --color-accent: #f59e0b;
+    --color-accent-light: #78350f;
+    --color-text-main: #f8fafc;
+    --color-text-muted: #94a3b8;
   }
 }
 
 body {
   margin: 0;
-  font-family: Inter, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   background-color: var(--color-surface-subtle);
   color: var(--color-text-main);
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.font-serif-college {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-crest {
+  font-family: 'Cinzel', Georgia, serif;
+}
+
 ::selection {
   color: #fff;
-  background: #315b48;
+  background: #1e3a8a;
 }
 
 :focus-visible {
-  outline: 2px solid #8d9b63;
+  outline: 2px solid #d97706;
   outline-offset: 2px;
 }
 

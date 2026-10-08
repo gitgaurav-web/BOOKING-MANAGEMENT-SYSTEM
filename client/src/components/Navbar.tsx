@@ -68,25 +68,44 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#dcded5] bg-[#fffefa]/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="hidden border-b border-[#e9e7dd] bg-[#f4f2e9] dark:border-slate-800 dark:bg-slate-900 sm:block">
-        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold uppercase tracking-[.16em] text-[#68766b] sm:px-6 lg:px-8 dark:text-slate-400">
-          <span>College Facilities &amp; Events</span><span>Official campus booking portal</span>
+    <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 shadow-xs">
+      {/* Top Academic Banner */}
+      <div className="border-b border-blue-950/40 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 text-white">
+        <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold tracking-wider sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">Apex Institute of Technology & Sciences</span>
+            <span className="hidden md:inline text-slate-400">|</span>
+            <span className="hidden md:inline text-slate-300 font-normal">Autonomous Institution · NAAC A++ Accredited</span>
+          </div>
+          <div className="flex items-center gap-4 text-slate-300">
+            <span className="hidden sm:inline">Central Facility Portal</span>
+            <span className="text-amber-400/90 font-bold">2026-27 Academic Calendar</span>
+          </div>
         </div>
       </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-[4.5rem]">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center border border-[#a58b51]/70 bg-[#1c493e] text-[#f2e8c9] shadow-sm">
-              <Landmark className="h-5 w-5" />
+        <div className="flex items-center justify-between h-[4.75rem]">
+          {/* Logo with Collegiate Crest */}
+          <Link to="/" className="flex items-center gap-3.5 group">
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 text-amber-400 shadow-md border border-amber-500/30 transition-transform group-hover:scale-105">
+              <Landmark className="h-6 w-6 stroke-[1.8]" />
+              <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-slate-950">
+                ★
+              </div>
             </div>
             <div>
-              <span className="block font-serif text-lg font-bold leading-tight tracking-tight text-[#18372e] dark:text-white">
-                College Facilities
-              </span>
-              <span className="mt-0.5 block text-[9px] font-semibold uppercase tracking-[.15em] text-slate-500 dark:text-slate-400">
-                Campus booking portal
+              <div className="flex items-center gap-2">
+                <span className="block font-crest text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+                  CAMPUS FACILITIES
+                </span>
+                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
+                  PORTAL
+                </span>
+              </div>
+              <span className="block text-[10px] font-semibold uppercase tracking-[.14em] text-slate-500 dark:text-slate-400">
+                Auditoriums &amp; Seminar Halls Reservation
               </span>
             </div>
           </Link>
@@ -97,10 +116,10 @@ export const Navbar: React.FC = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
                   isActive(link.path)
-                    ? 'text-[#1c493e] dark:text-emerald-300 bg-[#edf2eb] dark:bg-emerald-950/40'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'text-blue-900 dark:text-amber-300 bg-blue-50/80 dark:bg-blue-950/50 shadow-xs border border-blue-200/50 dark:border-blue-800/50'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-blue-950 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/70'
                 }`}
               >
                 {link.label}
@@ -214,15 +233,16 @@ export const Navbar: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-3.5 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
+                  className="px-3.5 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-900 dark:hover:text-white"
                 >
-                  Login
+                  Faculty Login
                 </Link>
                 <Link
                   to="/book"
-                  className="px-4 py-2 rounded-lg bg-[#1c493e] hover:bg-[#14382f] text-white text-sm font-semibold shadow-sm transition-all transform active:scale-95"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-amber-300 font-semibold text-sm shadow-md hover:shadow-lg transition-all transform active:scale-95 border border-amber-400/30"
                 >
-                  Book Hall
+                  <span>Book Hall</span>
+                  <span className="text-amber-400 font-black">→</span>
                 </Link>
               </div>
             )}
@@ -310,7 +330,7 @@ export const Navbar: React.FC = () => {
                 <Link
                   to="/book"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 rounded-xl bg-[#1c493e] text-white font-semibold text-sm shadow-md"
+                  className="w-full text-center py-2.5 rounded-xl bg-gradient-to-r from-blue-900 to-blue-800 text-amber-300 font-bold text-sm shadow-md border border-amber-400/30"
                 >
                   Request Hall Booking
                 </Link>
