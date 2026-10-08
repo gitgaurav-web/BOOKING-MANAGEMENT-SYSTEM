@@ -18,7 +18,7 @@ export const HomePage: React.FC = () => {
         const hallsData = await apiRequest<Hall[]>('/halls');
         setHalls(hallsData);
         try {
-          const bookingsData = await apiRequest<Booking[]>('/bookings?dateRange=UPCOMING');
+          const bookingsData = await apiRequest<Booking[]>('/bookings/upcoming');
           setUpcomingBookings(bookingsData.slice(0, 5));
         } catch {
           setUpcomingBookings([]);

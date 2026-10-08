@@ -74,7 +74,11 @@ npm run dev
 
 ---
 
-## 🔑 Demo Accounts
+## 🔑 Demo Accounts (Local Development Only)
+
+> [!CAUTION]
+> **Production Security Note**:
+> The demo credentials listed below are strictly meant for local development and testing. `src/seed.ts` automatically aborts execution if `NODE_ENV=production` is detected unless `ALLOW_PRODUCTION_SEED=true` is explicitly provided alongside custom `SEED_ADMIN_PASSWORD` and `SEED_SUPERADMIN_PASSWORD` environment variables. Never deploy with default passwords.
 
 The database comes pre-seeded with realistic institutional demo accounts:
 

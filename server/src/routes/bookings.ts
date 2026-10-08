@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
-import { isValidStrictIsoDate, getLocalIsoDate } from '../utils/dateValidation';
+import { isValidStrictIsoDate, getLocalIsoDate, isValidStrictTime } from '../utils/dateValidation';
 import { sendBookingNotificationEmail } from '../utils/emailService';
 import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
@@ -142,10 +142,9 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       }
     }
 
-    // Strict Time Validation
-    const timeRegex = /^\d{2}:\d{2}$/;
-    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-      res.status(400).json({ error: 'Invalid time format. Expected HH:mm.' });
+    // Strict Time Validation (HH:mm with valid 00-23 hours and 00-59 minutes)
+    if (!isValidStrictTime(startTime) || !isValidStrictTime(endTime)) {
+      res.status(400).json({ error: 'Invalid time format. Expected 24-hour time HH:mm (hours 00-23, minutes 00-59).' });
       return;
     }
 
@@ -213,12 +212,25 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
         return;
       }
 
-      // Check Weekend policy
+      // Check Weekend policy across ALL dates in range (including intervening weekend days)
       if (settingsMap.allowWeekendBookings === 'false') {
-        const startDay = requestedStart.getDay(); // 0 is Sunday, 6 is Saturday
-        const endDay = new Date(effectiveEnd + 'T00:00:00').getDay();
-        if (startDay === 0 || startDay === 6 || endDay === 0 || endDay === 6) {
-          res.status(400).json({ error: 'Institutional policy restricts weekend facility reservations.' });
+        const curDate = new Date(requestedStart.getTime());
+        const endDateObj = new Date(effectiveEnd + 'T00:00:00');
+        let containsWeekend = false;
+
+        while (curDate.getTime() <= endDateObj.getTime()) {
+          const day = curDate.getDay(); // 0 is Sunday, 6 is Saturday
+          if (day === 0 || day === 6) {
+            containsWeekend = true;
+            break;
+          }
+          curDate.setDate(curDate.getDate() + 1);
+        }
+
+        if (containsWeekend) {
+          res.status(400).json({
+            error: 'Institutional policy restricts weekend facility reservations. The selected date range includes a Saturday or Sunday.',
+          });
           return;
         }
       }
@@ -356,6 +368,43 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
   }
 });
 
+// Public: Get upcoming approved campus bookings (for public homepage, campus display boards)
+router.get('/upcoming', async (_req, res: Response): Promise<void> => {
+  try {
+    const today = getLocalIsoDate();
+    const bookings = await prisma.booking.findMany({
+      where: {
+        status: 'APPROVED',
+        bookingDate: { gte: today },
+      },
+      include: {
+        hall: true,
+        department: true,
+      },
+      orderBy: { bookingDate: 'asc' },
+      take: 10,
+    });
+
+    const sanitized = bookings.map((b) => ({
+      id: b.id,
+      bookingId: b.bookingId,
+      eventName: b.eventName,
+      bookingDate: b.bookingDate,
+      endDate: b.endDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      bookingType: b.bookingType,
+      status: b.status,
+      hall: b.hall ? { id: b.hall.id, name: b.hall.name, code: b.hall.code, location: b.hall.location } : null,
+      department: b.department ? { id: b.department.id, name: b.department.name, code: b.department.code } : null,
+    }));
+
+    res.json(sanitized);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to retrieve upcoming campus events.' });
+  }
+});
+
 // Get user's own bookings
 router.get('/my-bookings', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -365,7 +414,7 @@ router.get('/my-bookings', authenticate, async (req: AuthRequest, res: Response)
       orderBy: { createdAt: 'desc' },
     });
 
-    const parsed = bookings.map(b => ({
+    const parsed = bookings.map((b) => ({
       ...b,
       specialRequirements: JSON.parse(b.specialRequirements || '[]'),
     }));
@@ -766,9 +815,8 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
       }
     }
 
-    const timeRegex = /^\d{2}:\d{2}$/;
-    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
-      res.status(400).json({ error: 'Invalid time format. Expected HH:mm.' });
+    if (!isValidStrictTime(startTime) || !isValidStrictTime(endTime)) {
+      res.status(400).json({ error: 'Invalid time format. Expected 24-hour time HH:mm (hours 00-23, minutes 00-59).' });
       return;
     }
 

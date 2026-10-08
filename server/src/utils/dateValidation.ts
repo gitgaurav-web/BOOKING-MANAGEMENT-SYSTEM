@@ -21,6 +21,20 @@ export function isValidStrictIsoDate(dateStr: string): boolean {
 }
 
 /**
+ * Strict 24-hour time validation (HH:mm).
+ * Enforces hours 00-23 and minutes 00-59. Rejects invalid times like 29:90 or 12:65.
+ */
+export function isValidStrictTime(timeStr: string): boolean {
+  if (typeof timeStr !== 'string' || !/^\d{2}:\d{2}$/.test(timeStr)) {
+    return false;
+  }
+  const [hStr, mStr] = timeStr.split(':');
+  const hours = Number(hStr);
+  const minutes = Number(mStr);
+  return hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59;
+}
+
+/**
  * Returns the current calendar date in YYYY-MM-DD according to a specified timezone (default: Asia/Kolkata).
  */
 export function getLocalIsoDate(timeZone: string = 'Asia/Kolkata'): string {

@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { app } from '../index';
 import { checkBookingConflict } from '../routes/bookings';
-import { isValidStrictIsoDate } from '../utils/dateValidation';
+import { isValidStrictIsoDate, isValidStrictTime } from '../utils/dateValidation';
 import { escapeHtml } from '../utils/emailService';
 import { getJwtSecret } from '../utils/jwt';
 
@@ -506,7 +506,7 @@ test('Upload Authorization: Unattached files are restricted to uploader or admin
   }
 });
 
-test('JWT Security: Rejects secrets shorter than 32 characters in production', () => {
+test('JWT Security: Rejects secrets shorter than 32 characters or known placeholders in production', () => {
   const prevEnv = process.env.NODE_ENV;
   const prevSecret = process.env.JWT_SECRET;
   try {
@@ -514,10 +514,50 @@ test('JWT Security: Rejects secrets shorter than 32 characters in production', (
     process.env.JWT_SECRET = 'short_secret';
     assert.throws(() => getJwtSecret(), /FATAL: JWT_SECRET must be at least 32 characters in production/);
 
+    // Known placeholder from .env.example
+    process.env.JWT_SECRET = 'replace_with_your_generated_64_character_hex_secret_key_here';
+    assert.throws(() => getJwtSecret(), /FATAL: Insecure JWT_SECRET detected/);
+
+    // Development default
+    process.env.JWT_SECRET = 'dev_campus_halls_jwt_secret_key_2026_secured';
+    assert.throws(() => getJwtSecret(), /FATAL: Insecure JWT_SECRET detected/);
+
     process.env.JWT_SECRET = 'a_very_secure_long_secret_key_exceeding_32_characters';
     assert.strictEqual(getJwtSecret(), 'a_very_secure_long_secret_key_exceeding_32_characters');
   } finally {
     process.env.NODE_ENV = prevEnv;
     process.env.JWT_SECRET = prevSecret;
+  }
+});
+
+test('Clock Time Validation: Enforces strict 24-hour HH:mm (hours 00-23, minutes 00-59)', () => {
+  assert.strictEqual(isValidStrictTime('29:90'), false, '29:90 must be rejected');
+  assert.strictEqual(isValidStrictTime('12:65'), false, '12:65 must be rejected');
+  assert.strictEqual(isValidStrictTime('24:00'), false, '24:00 must be rejected');
+  assert.strictEqual(isValidStrictTime('09:60'), false, '09:60 must be rejected');
+  assert.strictEqual(isValidStrictTime('09:30'), true, '09:30 must be accepted');
+  assert.strictEqual(isValidStrictTime('23:59'), true, '23:59 must be accepted');
+  assert.strictEqual(isValidStrictTime('00:00'), true, '00:00 must be accepted');
+  assert.strictEqual(isValidStrictTime('invalid'), false, 'invalid string must be rejected');
+});
+
+test('Public Upcoming Events API: Accessible without login and returns only approved bookings', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    const res = await fetch(`${baseUrl}/api/bookings/upcoming`);
+    assert.strictEqual(res.status, 200, 'Public upcoming endpoint must return 200 without Authorization');
+    const data = (await res.json()) as any[];
+    assert.strictEqual(Array.isArray(data), true, 'Response must be an array');
+    for (const item of data) {
+      assert.strictEqual(item.status, 'APPROVED', 'All items from /upcoming must have status APPROVED');
+      assert.strictEqual(item.email, undefined, 'Private contact emails must be omitted');
+      assert.strictEqual(item.contactNumber, undefined, 'Private phone numbers must be omitted');
+    }
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
