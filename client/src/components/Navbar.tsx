@@ -14,12 +14,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { apiRequest } from '../services/api';
 import { NotificationItem } from '../types';
 
 export const Navbar: React.FC = () => {
   const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -74,7 +76,9 @@ export const Navbar: React.FC = () => {
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold tracking-wider sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">Sri Sairam College of Engineering, Bengaluru</span>
+            <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">
+              {settings.institutionName || 'Sri Sairam College of Engineering, Bengaluru'}
+            </span>
             <span className="hidden md:inline text-slate-400">|</span>
             <span className="hidden md:inline text-slate-300 font-normal">Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited</span>
           </div>
@@ -98,7 +102,7 @@ export const Navbar: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="block font-crest text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
-                  SRI SAIRAM CE
+                  {settings.siteName ? (settings.siteName.length > 25 ? settings.siteName.slice(0, 22) + '...' : settings.siteName) : 'CAMPUS PORTAL'}
                 </span>
                 <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
                   PORTAL

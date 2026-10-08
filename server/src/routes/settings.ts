@@ -19,6 +19,7 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'allowWeekendBookings',
   'allowHolidayBookings',
   'emailNotificationsEnabled',
+  'publicUpcomingDisplay',
 ]);
 
 // GET /api/settings - retrieve public/configured settings
@@ -38,6 +39,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       allowWeekendBookings: 'true',
       allowHolidayBookings: 'false',
       emailNotificationsEnabled: 'true',
+      publicUpcomingDisplay: 'EVENT_TITLE', // 'EVENT_TITLE' | 'DEPARTMENT_EVENT' | 'RESERVED_SLOT'
     };
 
     for (const item of list) {
@@ -86,6 +88,17 @@ router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRa
           return;
         }
         updates[bKey] = valStr;
+      }
+    }
+
+    // 2.1 Validate public upcoming display privacy mode
+    if (updates.publicUpcomingDisplay !== undefined) {
+      const allowedModes = ['EVENT_TITLE', 'DEPARTMENT_EVENT', 'RESERVED_SLOT'];
+      if (!allowedModes.includes(String(updates.publicUpcomingDisplay))) {
+        res.status(400).json({
+          error: `publicUpcomingDisplay must be one of: ${allowedModes.join(', ')}.`,
+        });
+        return;
       }
     }
 

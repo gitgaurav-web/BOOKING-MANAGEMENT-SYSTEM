@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 import { Settings, Save, CheckCircle2 } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 export const AdminSettingsPage: React.FC = () => {
+  const { refreshSettings } = useSettings();
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,6 +34,7 @@ export const AdminSettingsPage: React.FC = () => {
         method: 'PUT',
         body: JSON.stringify(settings),
       });
+      await refreshSettings();
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err: any) {
@@ -226,6 +229,25 @@ export const AdminSettingsPage: React.FC = () => {
               <label htmlFor="emailNotif" className="text-slate-700 dark:text-slate-300 font-medium">
                 Enable In-App & Email Dispatch Notifications for Approvals & Cancellations
               </label>
+            </div>
+
+            {/* Public Upcoming Events Privacy Mode */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+              <label className="block font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                Public Upcoming Events Display Privacy (Homepage &amp; Campus Board)
+              </label>
+              <select
+                value={settings.publicUpcomingDisplay || 'EVENT_TITLE'}
+                onChange={(e) => handleChange('publicUpcomingDisplay', e.target.value)}
+                className="w-full sm:w-80 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+              >
+                <option value="EVENT_TITLE">Full Event Title (e.g. "Cloud Computing FDP")</option>
+                <option value="DEPARTMENT_EVENT">Department Masked (e.g. "CSE Academic Event")</option>
+                <option value="RESERVED_SLOT">Fully Anonymous (e.g. "Reserved Academic Session")</option>
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Controls how approved events are presented to unauthenticated visitors on the public landing page.
+              </p>
             </div>
           </div>
         </div>

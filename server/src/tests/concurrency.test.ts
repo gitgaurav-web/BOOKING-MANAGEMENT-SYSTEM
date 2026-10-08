@@ -561,3 +561,46 @@ test('Public Upcoming Events API: Accessible without login and returns only appr
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
+test('Public Upcoming Events Privacy Modes: Sanitizes event titles based on setting', async () => {
+  const server = http.createServer(app);
+  await new Promise<void>((resolve) => server.listen(0, resolve));
+  const address = server.address() as { port: number };
+  const baseUrl = `http://127.0.0.1:${address.port}`;
+
+  try {
+    // 1. Set display policy to DEPARTMENT_EVENT
+    await prisma.systemSetting.upsert({
+      where: { key: 'publicUpcomingDisplay' },
+      update: { value: 'DEPARTMENT_EVENT' },
+      create: { key: 'publicUpcomingDisplay', value: 'DEPARTMENT_EVENT' },
+    });
+
+    const resDept = await fetch(`${baseUrl}/api/bookings/upcoming`);
+    const dataDept = (await resDept.json()) as any[];
+    if (dataDept.length > 0) {
+      assert.match(dataDept[0].eventName, /Academic Event/, 'Should mask event title with Academic Event suffix');
+    }
+
+    // 2. Set display policy to RESERVED_SLOT
+    await prisma.systemSetting.upsert({
+      where: { key: 'publicUpcomingDisplay' },
+      update: { value: 'RESERVED_SLOT' },
+      create: { key: 'publicUpcomingDisplay', value: 'RESERVED_SLOT' },
+    });
+
+    const resSlot = await fetch(`${baseUrl}/api/bookings/upcoming`);
+    const dataSlot = (await resSlot.json()) as any[];
+    if (dataSlot.length > 0) {
+      assert.strictEqual(dataSlot[0].eventName, 'Reserved Academic Session');
+    }
+  } finally {
+    // Restore default
+    await prisma.systemSetting.upsert({
+      where: { key: 'publicUpcomingDisplay' },
+      update: { value: 'EVENT_TITLE' },
+      create: { key: 'publicUpcomingDisplay', value: 'EVENT_TITLE' },
+    });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});

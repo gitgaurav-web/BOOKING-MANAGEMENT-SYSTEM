@@ -160,9 +160,14 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       return;
     }
 
-    const pCount = parseInt(participantCount, 10);
-    if (isNaN(pCount) || pCount <= 0 || pCount > 2000) {
-      res.status(400).json({ error: 'Participant count must be a positive integer between 1 and 2000.' });
+    const pCountStr = String(participantCount ?? '').trim();
+    if (!/^\d+$/.test(pCountStr)) {
+      res.status(400).json({ error: 'Participant count must be a positive integer.' });
+      return;
+    }
+    const pCount = parseInt(pCountStr, 10);
+    if (pCount <= 0 || pCount > 2000) {
+      res.status(400).json({ error: 'Participant count must be between 1 and 2000.' });
       return;
     }
 
@@ -372,6 +377,13 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
 router.get('/upcoming', async (_req, res: Response): Promise<void> => {
   try {
     const today = getLocalIsoDate();
+
+    // Check system setting for public upcoming display policy
+    const displaySetting = await prisma.systemSetting.findUnique({
+      where: { key: 'publicUpcomingDisplay' },
+    });
+    const displayMode = displaySetting?.value || 'EVENT_TITLE'; // 'EVENT_TITLE' | 'DEPARTMENT_EVENT' | 'RESERVED_SLOT'
+
     const bookings = await prisma.booking.findMany({
       where: {
         status: 'APPROVED',
@@ -385,19 +397,28 @@ router.get('/upcoming', async (_req, res: Response): Promise<void> => {
       take: 10,
     });
 
-    const sanitized = bookings.map((b) => ({
-      id: b.id,
-      bookingId: b.bookingId,
-      eventName: b.eventName,
-      bookingDate: b.bookingDate,
-      endDate: b.endDate,
-      startTime: b.startTime,
-      endTime: b.endTime,
-      bookingType: b.bookingType,
-      status: b.status,
-      hall: b.hall ? { id: b.hall.id, name: b.hall.name, code: b.hall.code, location: b.hall.location } : null,
-      department: b.department ? { id: b.department.id, name: b.department.name, code: b.department.code } : null,
-    }));
+    const sanitized = bookings.map((b) => {
+      let publicTitle = b.eventName;
+      if (displayMode === 'DEPARTMENT_EVENT') {
+        publicTitle = b.department?.name ? `${b.department.name} Academic Event` : 'Department Academic Event';
+      } else if (displayMode === 'RESERVED_SLOT') {
+        publicTitle = 'Reserved Academic Session';
+      }
+
+      return {
+        id: b.id,
+        bookingId: b.bookingId,
+        eventName: publicTitle,
+        bookingDate: b.bookingDate,
+        endDate: b.endDate,
+        startTime: b.startTime,
+        endTime: b.endTime,
+        bookingType: b.bookingType,
+        status: b.status,
+        hall: b.hall ? { id: b.hall.id, name: b.hall.name, code: b.hall.code, location: b.hall.location } : null,
+        department: b.department ? { id: b.department.id, name: b.department.name, code: b.department.code } : null,
+      };
+    });
 
     res.json(sanitized);
   } catch (error) {
@@ -825,10 +846,18 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
       return;
     }
 
-    const pCount = participantCount !== undefined ? parseInt(participantCount, 10) : existing.participantCount;
-    if (isNaN(pCount) || pCount <= 0 || pCount > 2000) {
-      res.status(400).json({ error: 'Participant count must be a positive integer between 1 and 2000.' });
-      return;
+    let pCount = existing.participantCount;
+    if (participantCount !== undefined) {
+      const pCountStr = String(participantCount).trim();
+      if (!/^\d+$/.test(pCountStr)) {
+        res.status(400).json({ error: 'Participant count must be a positive integer.' });
+        return;
+      }
+      pCount = parseInt(pCountStr, 10);
+      if (pCount <= 0 || pCount > 2000) {
+        res.status(400).json({ error: 'Participant count must be between 1 and 2000.' });
+        return;
+      }
     }
 
     const updated = await prisma.$transaction(async (tx) => {

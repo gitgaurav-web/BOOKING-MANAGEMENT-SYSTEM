@@ -42,8 +42,14 @@ async function main() {
   const facultyPassword = process.env.SEED_FACULTY_PASSWORD || 'faculty123';
 
   if (process.env.NODE_ENV === 'production') {
-    if (adminPassword === 'admin123' || superAdminPassword === 'superadmin123') {
-      throw new Error('FATAL: Default demo passwords cannot be used to seed users in production. Supply secure SEED_ADMIN_PASSWORD and SEED_SUPERADMIN_PASSWORD.');
+    if (
+      adminPassword === 'admin123' ||
+      superAdminPassword === 'superadmin123' ||
+      facultyPassword === 'faculty123'
+    ) {
+      throw new Error(
+        'FATAL: Default demo passwords cannot be used to seed users in production. Supply secure SEED_ADMIN_PASSWORD, SEED_SUPERADMIN_PASSWORD, and SEED_FACULTY_PASSWORD.'
+      );
     }
   }
 

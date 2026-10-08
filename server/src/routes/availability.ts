@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../prisma';
 import { optionalAuth, AuthRequest } from '../middleware/auth';
-import { isValidStrictIsoDate } from '../utils/dateValidation';
+import { isValidStrictIsoDate, getLocalIsoDate } from '../utils/dateValidation';
 
 function calculateFreeTimeWindows(
   events: Array<{ startTime: string; endTime: string }>,
@@ -74,9 +74,15 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
       return;
     }
 
-    const today = new Date();
-    const defaultStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const defaultEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0).toISOString().split('T')[0];
+    const todayStr = getLocalIsoDate();
+    const [tYear, tMonth] = todayStr.split('-').map(Number);
+    // Format YYYY-MM-DD for the 1st of current month
+    const defaultStart = `${tYear}-${String(tMonth).padStart(2, '0')}-01`;
+    // Format end of next month
+    const lastDayNextMonth = new Date(tYear, tMonth + 1, 0).getDate();
+    const nextMonthYear = tMonth === 12 ? tYear + 1 : tYear;
+    const nextMonthNum = tMonth === 12 ? 1 : tMonth + 1;
+    const defaultEnd = `${nextMonthYear}-${String(nextMonthNum).padStart(2, '0')}-${String(lastDayNextMonth).padStart(2, '0')}`;
 
     const rangeStart = startDate || defaultStart;
     const rangeEnd = endDate || defaultEnd;
