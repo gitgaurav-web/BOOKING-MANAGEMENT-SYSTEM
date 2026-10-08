@@ -13,10 +13,11 @@ async function generateBookingId(): Promise<string> {
   return `HB-${year}-${num}`;
 }
 
-// Helper to check for conflict before creating/approving
+// Helper to check for conflict before creating/approving across single or multi-day range
 async function checkBookingConflict(
   hallId: string,
-  bookingDate: string,
+  startDate: string,
+  endDate: string,
   startTime: string,
   endTime: string,
   excludeBookingId?: string
@@ -25,8 +26,8 @@ async function checkBookingConflict(
   const maintenance = await prisma.maintenance.findFirst({
     where: {
       hallId,
-      startDate: { lte: bookingDate },
-      endDate: { gte: bookingDate },
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
     },
   });
   if (maintenance) {
@@ -37,8 +38,8 @@ async function checkBookingConflict(
   const blocked = await prisma.blockedDate.findFirst({
     where: {
       OR: [{ hallId }, { hallId: null }],
-      startDate: { lte: bookingDate },
-      endDate: { gte: bookingDate },
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
     },
   });
   if (blocked) {
@@ -49,32 +50,42 @@ async function checkBookingConflict(
   const hall = await prisma.hall.findUnique({ where: { id: hallId } });
   const holiday = await prisma.holiday.findFirst({
     where: {
-      date: bookingDate,
+      date: { gte: startDate, lte: endDate },
       OR: [{ hallScope: 'ALL' }, { hallScope: hall?.name || '' }],
     },
   });
   if (holiday) {
-    return { hasConflict: true, reason: `Institutional Holiday: ${holiday.name}` };
+    return { hasConflict: true, reason: `Institutional Holiday on ${holiday.date}: ${holiday.name}` };
   }
 
-  // 4. Check Approved Booking on same date
+  // 4. Check Approved Booking overlapping dates
   const existingApproved = await prisma.booking.findMany({
     where: {
       hallId,
-      bookingDate,
       status: 'APPROVED',
+      bookingDate: { lte: endDate },
       ...(excludeBookingId ? { id: { not: excludeBookingId } } : {}),
     },
   });
 
   for (const b of existingApproved) {
-    // If either booking is full day, conflict exists
-    if (b.bookingType === 'FULL_DAY') {
-      return { hasConflict: true, reason: `Hall is already booked for Full Day on this date by ${b.requestedBy} (${b.eventName})` };
-    }
-    // Time overlap check: start1 < end2 && start2 < end1
-    if (startTime < b.endTime && b.startTime < endTime) {
-      return { hasConflict: true, reason: `Time conflict with existing booking '${b.eventName}' (${b.startTime} - ${b.endTime})` };
+    const bEnd = b.endDate || b.bookingDate;
+    // Overlapping date intervals: startDate <= bEnd && b.bookingDate <= endDate
+    if (startDate <= bEnd && b.bookingDate <= endDate) {
+      // If multi-day or full day
+      if (b.bookingType === 'FULL_DAY' || b.bookingDate !== bEnd || startDate !== endDate) {
+        return {
+          hasConflict: true,
+          reason: `Hall is already booked from ${b.bookingDate} to ${bEnd} by ${b.requestedBy} (${b.eventName})`,
+        };
+      }
+      // Same-day slot check:
+      if (startTime < b.endTime && b.startTime < endTime) {
+        return {
+          hasConflict: true,
+          reason: `Time conflict with existing booking '${b.eventName}' (${b.startTime} - ${b.endTime}) on ${b.bookingDate}`,
+        };
+      }
     }
   }
 
@@ -91,6 +102,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       purpose,
       departmentId,
       bookingDate,
+      endDate,
       bookingType = 'FULL_DAY',
       startTime = '09:00',
       endTime = '17:00',
@@ -99,6 +111,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       contactNumber,
       email,
       specialRequirements,
+      attachmentUrl,
       additionalNotes,
     } = req.body;
 
@@ -107,8 +120,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
+    const effectiveEnd = endDate && endDate >= bookingDate ? endDate : bookingDate;
+
     // Check conflict
-    const conflict = await checkBookingConflict(hallId, bookingDate, startTime, endTime);
+    const conflict = await checkBookingConflict(hallId, bookingDate, effectiveEnd, startTime, endTime);
     if (conflict.hasConflict) {
       res.status(409).json({ error: conflict.reason });
       return;
@@ -131,6 +146,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
         purpose,
         departmentId: departmentId || null,
         bookingDate,
+        endDate: effectiveEnd !== bookingDate ? effectiveEnd : null,
         bookingType,
         startTime,
         endTime,
@@ -140,6 +156,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
         contactNumber,
         email,
         specialRequirements: typeof specialRequirements === 'string' ? specialRequirements : JSON.stringify(specialRequirements || []),
+        attachmentUrl: attachmentUrl || null,
         additionalNotes,
         status: initialStatus,
         approvedById: isAdmin ? user.id : null,
@@ -335,6 +352,7 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
     const conflict = await checkBookingConflict(
       existing.hallId,
       existing.bookingDate,
+      existing.endDate || existing.bookingDate,
       existing.startTime,
       existing.endTime,
       existing.id
@@ -514,6 +532,7 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
       const conflict = await checkBookingConflict(
         existing.hallId,
         bookingDate,
+        existing.endDate || bookingDate,
         startTime,
         endTime,
         id

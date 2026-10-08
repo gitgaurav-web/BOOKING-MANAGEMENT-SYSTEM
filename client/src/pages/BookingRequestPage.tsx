@@ -31,6 +31,8 @@ export const BookingRequestPage: React.FC = () => {
   // Form State
   const [hallId, setHallId] = useState<string>('');
   const [bookingDate, setBookingDate] = useState<string>(searchParams.get('date') || '');
+  const [isMultiDay, setIsMultiDay] = useState<boolean>(false);
+  const [endDate, setEndDate] = useState<string>('');
   const [bookingType, setBookingType] = useState<string>('FULL_DAY');
   const [startTime, setStartTime] = useState<string>('09:00');
   const [endTime, setEndTime] = useState<string>('17:00');
@@ -48,6 +50,9 @@ export const BookingRequestPage: React.FC = () => {
     'Microphone',
     'AC',
   ]);
+  const [attachmentUrl, setAttachmentUrl] = useState<string>('');
+  const [uploadingFile, setUploadingFile] = useState<boolean>(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
 
   useEffect(() => {
@@ -109,6 +114,37 @@ export const BookingRequestPage: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingFile(true);
+      setError(null);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload document');
+      }
+
+      setAttachmentUrl(data.url);
+      setUploadedFileName(data.originalName || file.name);
+    } catch (err: any) {
+      setError(err.message || 'File upload failed');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -123,11 +159,17 @@ export const BookingRequestPage: React.FC = () => {
       return;
     }
 
+    if (isMultiDay && endDate && endDate < bookingDate) {
+      setError('End Date cannot be before Start Date.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = {
         hallId,
         bookingDate,
+        endDate: isMultiDay && endDate ? endDate : null,
         bookingType,
         startTime,
         endTime,
@@ -140,6 +182,7 @@ export const BookingRequestPage: React.FC = () => {
         contactNumber,
         email,
         specialRequirements,
+        attachmentUrl: attachmentUrl || null,
         additionalNotes,
       };
 
@@ -286,16 +329,48 @@ export const BookingRequestPage: React.FC = () => {
 
             {/* Date Selection */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Reservation Date <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="date"
-                value={bookingDate}
-                onChange={(e) => setBookingDate(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-              />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {isMultiDay ? 'Start Date' : 'Reservation Date'} <span className="text-rose-500">*</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 font-semibold cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isMultiDay}
+                    onChange={(e) => {
+                      setIsMultiDay(e.target.checked);
+                      if (!e.target.checked) setEndDate('');
+                    }}
+                    className="rounded text-blue-600 h-3.5 w-3.5"
+                  />
+                  <span>Multi-Day Event?</span>
+                </label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={bookingDate}
+                  onChange={(e) => setBookingDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                />
+                {isMultiDay && (
+                  <input
+                    type="date"
+                    min={bookingDate}
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                    placeholder="End Date"
+                    className="w-full px-4 py-2.5 rounded-xl border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  />
+                )}
+              </div>
+              {isMultiDay && (
+                <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1">
+                  Full hall will be booked consecutively across all dates in this range.
+                </p>
+              )}
             </div>
           </div>
 
@@ -534,6 +609,33 @@ export const BookingRequestPage: React.FC = () => {
               onChange={(e) => setAdditionalNotes(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             />
+          </div>
+
+          {/* Attachment / Permission Letter */}
+          <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+              Attach Official Proposal / Permission Letter (Optional)
+            </label>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
+              Upload signed approval letter from HOD, Dean, or Principal (PDF, JPG, PNG). Max 10MB.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                onChange={handleFileUpload}
+                disabled={uploadingFile}
+                className="text-xs text-slate-600 dark:text-slate-300 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+              />
+              {uploadingFile && (
+                <span className="text-xs text-blue-600 animate-pulse">Uploading file...</span>
+              )}
+              {uploadedFileName && !uploadingFile && (
+                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                  ✓ Attached: {uploadedFileName}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

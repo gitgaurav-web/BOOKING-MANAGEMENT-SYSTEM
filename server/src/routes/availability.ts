@@ -131,7 +131,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
         // 4. Check Approved Booking (BOOKED)
         const approvedBooking = bookings.find(
-          b => b.hallId === hall.id && b.bookingDate === dateStr && b.status === 'APPROVED'
+          b => {
+            const bEnd = b.endDate || b.bookingDate;
+            return b.hallId === hall.id && b.status === 'APPROVED' && b.bookingDate <= dateStr && bEnd >= dateStr;
+          }
         );
         if (approvedBooking) {
           availabilityMap[dateStr][hall.id] = {
@@ -153,7 +156,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 
         // 5. Check Pending Booking
         const pendingBooking = bookings.find(
-          b => b.hallId === hall.id && b.bookingDate === dateStr && b.status === 'PENDING'
+          b => {
+            const bEnd = b.endDate || b.bookingDate;
+            return b.hallId === hall.id && b.status === 'PENDING' && b.bookingDate <= dateStr && bEnd >= dateStr;
+          }
         );
         if (pendingBooking) {
           availabilityMap[dateStr][hall.id] = {

@@ -177,10 +177,25 @@ export const AdminBookingsPage: React.FC = () => {
                   <td className="py-3 px-4">
                     <span className="font-medium text-slate-800 dark:text-slate-200 block">
                       {b.bookingDate}
+                      {b.endDate && b.endDate !== b.bookingDate && (
+                        <span className="block text-[11px] text-blue-600 dark:text-blue-400 font-bold">
+                          to {b.endDate} (Multi-Day)
+                        </span>
+                      )}
                     </span>
                     <span className="text-[11px] text-slate-500">
                       {b.startTime} - {b.endTime}
                     </span>
+                    {b.attachmentUrl && (
+                      <a
+                        href={b.attachmentUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold mt-0.5"
+                      >
+                        📎 Letter / Proposal ↗
+                      </a>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-slate-700 dark:text-slate-300 block">

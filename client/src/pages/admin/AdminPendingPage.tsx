@@ -127,9 +127,14 @@ export const AdminPendingPage: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Requested Date</span>
+                    <span className="text-slate-400 block text-[11px]">Requested Date(s)</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">
                       {b.bookingDate}
+                      {b.endDate && b.endDate !== b.bookingDate && (
+                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                          to {b.endDate} (Multi-Day)
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div>
@@ -156,6 +161,22 @@ export const AdminPendingPage: React.FC = () => {
                   <p className="text-xs text-slate-600 dark:text-slate-400">
                     <strong className="text-slate-800 dark:text-slate-200">Purpose:</strong> {b.purpose}
                   </p>
+                )}
+
+                {b.attachmentUrl && (
+                  <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 text-xs flex items-center justify-between">
+                    <span className="font-medium text-blue-900 dark:text-blue-200 text-[11px]">
+                      📄 Attached Permission / Proposal Letter
+                    </span>
+                    <a
+                      href={b.attachmentUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-[11px]"
+                    >
+                      Open Document ↗
+                    </a>
+                  </div>
                 )}
               </div>
 

@@ -72,12 +72,14 @@ model Booking {
   coordinatorName     String?
   contactNumber       String
   email               String
-  bookingDate         String      // YYYY-MM-DD
+  bookingDate         String      // YYYY-MM-DD (Start Date)
+  endDate             String?     // YYYY-MM-DD (Optional End Date for multi-day bookings)
   bookingType         String      @default("FULL_DAY") // FULL_DAY, MORNING, AFTERNOON, CUSTOM
   startTime           String      @default("09:00")
   endTime             String      @default("17:00")
   participantCount    Int         @default(0) // Informational only
   specialRequirements String?     // JSON string of requirements
+  attachmentUrl       String?     // PDF or permission document link
   additionalNotes     String?
   status              String      @default("PENDING") // PENDING, APPROVED (BOOKED), REJECTED, CANCELLED
   adminNotes          String?

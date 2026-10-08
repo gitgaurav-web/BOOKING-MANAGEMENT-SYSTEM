@@ -61,11 +61,13 @@ export interface Booking {
   contactNumber: string;
   email: string;
   bookingDate: string;
+  endDate?: string;
   bookingType: 'FULL_DAY' | 'MORNING' | 'AFTERNOON' | 'CUSTOM';
   startTime: string;
   endTime: string;
   participantCount: number;
   specialRequirements: string[];
+  attachmentUrl?: string;
   additionalNotes?: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
   adminNotes?: string;
