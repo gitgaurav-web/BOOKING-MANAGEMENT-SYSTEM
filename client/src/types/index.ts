@@ -129,6 +129,18 @@ export interface ActivityLogItem {
   createdAt: string;
 }
 
+export interface AvailabilitySlotEvent {
+  bookingId: string;
+  eventName: string;
+  status: 'APPROVED' | 'PENDING';
+  bookingType: string;
+  startTime: string;
+  endTime: string;
+  department?: string;
+  bookedBy?: string;
+  purpose?: string;
+}
+
 export interface AvailabilityDayInfo {
   hallId: string;
   hallName: string;
@@ -144,4 +156,7 @@ export interface AvailabilityDayInfo {
   bookedBy?: string;
   purpose?: string;
   details?: Record<string, any>;
+  events?: AvailabilitySlotEvent[];
+  hasPending?: boolean;
+  hasApproved?: boolean;
 }

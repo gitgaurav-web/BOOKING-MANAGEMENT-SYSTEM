@@ -1,8 +1,10 @@
 import { Router, Response } from 'express';
 import { Prisma, PrismaClient } from '@prisma/client';
+import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
+import { isValidStrictIsoDate } from '../utils/dateValidation';
 
 const router = Router();
 
@@ -121,16 +123,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
       return;
     }
 
-    // Strict Date Validation
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(bookingDate) || isNaN(new Date(bookingDate + 'T00:00:00').getTime())) {
-      res.status(400).json({ error: 'Invalid booking date format. Expected YYYY-MM-DD.' });
+    // Strict Date Validation (Rejects impossible rollover dates like 2026-02-31)
+    if (!isValidStrictIsoDate(bookingDate)) {
+      res.status(400).json({ error: 'Invalid booking date. Please specify a real calendar date in YYYY-MM-DD format.' });
       return;
     }
 
     if (endDate) {
-      if (!dateRegex.test(endDate) || isNaN(new Date(endDate + 'T00:00:00').getTime())) {
-        res.status(400).json({ error: 'Invalid end date format. Expected YYYY-MM-DD.' });
+      if (!isValidStrictIsoDate(endDate)) {
+        res.status(400).json({ error: 'Invalid end date. Please specify a real calendar date in YYYY-MM-DD format.' });
         return;
       }
       if (endDate < bookingDate) {
@@ -257,10 +258,11 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response): Promise<
         throw new Error(`CONFLICT: ${conflict.reason}`);
       }
 
-      // Generate sequential booking ID atomically inside tx
+      // Generate sequential collision-proof booking ID atomically inside tx
       const year = new Date().getFullYear();
       const count = await tx.booking.count();
-      const bookingId = `HB-${year}-${String(count + 1).padStart(4, '0')}`;
+      const entropy = crypto.randomBytes(2).toString('hex').toUpperCase();
+      const bookingId = `HB-${year}-${String(count + 1).padStart(4, '0')}-${entropy}`;
 
       return await tx.booking.create({
         data: {
@@ -683,15 +685,14 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (req
     const targetStatus = status || existing.status;
 
     // Strict validation
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(targetDate) || isNaN(new Date(targetDate + 'T00:00:00').getTime())) {
-      res.status(400).json({ error: 'Invalid booking date format. Expected YYYY-MM-DD.' });
+    if (!isValidStrictIsoDate(targetDate)) {
+      res.status(400).json({ error: 'Invalid booking date. Please provide a real calendar date in YYYY-MM-DD format.' });
       return;
     }
 
     if (targetEnd) {
-      if (!dateRegex.test(targetEnd) || isNaN(new Date(targetEnd + 'T00:00:00').getTime())) {
-        res.status(400).json({ error: 'Invalid end date format. Expected YYYY-MM-DD.' });
+      if (!isValidStrictIsoDate(targetEnd)) {
+        res.status(400).json({ error: 'Invalid end date. Please provide a real calendar date in YYYY-MM-DD format.' });
         return;
       }
       if (targetEnd < targetDate) {

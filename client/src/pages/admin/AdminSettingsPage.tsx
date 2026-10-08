@@ -179,13 +179,52 @@ export const AdminSettingsPage: React.FC = () => {
             <div className="flex items-center gap-2 pt-2">
               <input
                 type="checkbox"
+                id="holidayPolicy"
+                checked={settings.allowHolidayBookings === 'true'}
+                onChange={(e) => handleChange('allowHolidayBookings', String(e.target.checked))}
+                className="rounded text-blue-600 h-4 w-4"
+              />
+              <label htmlFor="holidayPolicy" className="text-slate-700 dark:text-slate-300 font-medium">
+                Allow Bookings on Institutional Holidays
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="approvalPolicy"
+                checked={settings.requireAdminApproval !== 'false'}
+                onChange={(e) => handleChange('requireAdminApproval', String(e.target.checked))}
+                className="rounded text-blue-600 h-4 w-4"
+              />
+              <label htmlFor="approvalPolicy" className="text-slate-700 dark:text-slate-300 font-medium">
+                Require Admin Approval for All Requests (Disable for instant auto-approval)
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="userApprovalPolicy"
+                checked={settings.requireUserApproval === 'true'}
+                onChange={(e) => handleChange('requireUserApproval', String(e.target.checked))}
+                className="rounded text-blue-600 h-4 w-4"
+              />
+              <label htmlFor="userApprovalPolicy" className="text-slate-700 dark:text-slate-300 font-medium">
+                Require Admin Approval for New User Accounts (Accounts start as Inactive until verified)
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
                 id="emailNotif"
                 checked={settings.emailNotificationsEnabled === 'true'}
                 onChange={(e) => handleChange('emailNotificationsEnabled', String(e.target.checked))}
                 className="rounded text-blue-600 h-4 w-4"
               />
               <label htmlFor="emailNotif" className="text-slate-700 dark:text-slate-300 font-medium">
-                Simulate Email Notifications for Approval & Cancellation
+                Enable In-App & Email Dispatch Notifications for Approvals & Cancellations
               </label>
             </div>
           </div>

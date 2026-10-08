@@ -99,7 +99,50 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                 </div>
               )}
 
-              {item.status === 'BOOKED' && (
+              {/* Multi-slot day schedule */}
+              {item.events && item.events.length > 1 && (
+                <div className="space-y-3">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                    <span>Daily Schedule ({item.events.length} Slots)</span>
+                    <span className="text-[10px] lowercase text-slate-400">Multiple sessions</span>
+                  </div>
+                  <div className="space-y-2">
+                    {item.events.map((evt, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-xl border text-xs space-y-1 ${
+                          evt.status === 'APPROVED'
+                            ? 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-900 dark:text-rose-200'
+                            : 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-bold">
+                          <span>{evt.eventName}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
+                              evt.status === 'APPROVED' ? 'bg-rose-600 text-white' : 'bg-amber-500 text-white'
+                            }`}
+                          >
+                            {evt.status}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 text-[11px] text-slate-600 dark:text-slate-300">
+                          <span>⏱ {evt.startTime} - {evt.endTime}</span>
+                          <span>🏛 {evt.department}</span>
+                          <span className="font-mono">{evt.bookingId}</span>
+                        </div>
+                        {evt.purpose && (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                            Purpose: {evt.purpose}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(!item.events || item.events.length <= 1) && item.status === 'BOOKED' && (
                 <div className="space-y-3 text-xs">
                   <div className="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30">
                     <div>
@@ -136,7 +179,7 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                 </div>
               )}
 
-              {item.status === 'PENDING' && (
+              {(!item.events || item.events.length <= 1) && item.status === 'PENDING' && (
                 <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-xs text-amber-800 dark:text-amber-300 space-y-1">
                   <p className="font-semibold">Booking Request Under Review</p>
                   <p>

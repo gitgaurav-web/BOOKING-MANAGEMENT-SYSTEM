@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { authenticate, optionalAuth, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
 
 const router = Router();
@@ -24,8 +24,8 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Public: Get hall by ID with upcoming bookings and next available date
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+// Hall by ID with upcoming bookings and next available date (with standardized privacy)
+router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const hall = await prisma.hall.findUnique({
@@ -38,6 +38,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
     }
 
     const today = new Date().toISOString().split('T')[0];
+    const isAuthenticated = !!req.user;
 
     // Upcoming approved bookings
     const upcomingBookings = await prisma.booking.findMany({
@@ -58,6 +59,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
         bookingDate: today,
         status: 'APPROVED',
       },
+      include: { department: true },
     });
 
     const todayBlocked = await prisma.blockedDate.findFirst({
@@ -86,19 +88,19 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       facilities: JSON.parse(hall.facilities || '[]'),
       todayStatus,
       todayBooking: todayBooking ? {
-        eventName: todayBooking.eventName,
+        eventName: isAuthenticated ? todayBooking.eventName : 'Reserved Event',
         startTime: todayBooking.startTime,
         endTime: todayBooking.endTime,
-        department: todayBooking.departmentId,
+        department: isAuthenticated ? (todayBooking.department?.name || 'Department') : 'Academic Department',
       } : null,
       upcomingBookings: upcomingBookings.map(b => ({
         id: b.id,
         bookingId: b.bookingId,
-        eventName: b.eventName,
+        eventName: isAuthenticated ? b.eventName : 'Reserved Facility Event',
         bookingDate: b.bookingDate,
         startTime: b.startTime,
         endTime: b.endTime,
-        department: b.department?.name,
+        department: isAuthenticated ? (b.department?.name || 'Department') : 'Academic Department',
       })),
     });
   } catch (error) {

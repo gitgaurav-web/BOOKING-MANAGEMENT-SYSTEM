@@ -124,49 +124,47 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
           continue;
         }
 
-        // 4. Check Approved Booking (BOOKED)
-        const approvedBooking = bookings.find(
-          b => {
-            const bEnd = b.endDate || b.bookingDate;
-            return b.hallId === hall.id && b.status === 'APPROVED' && b.bookingDate <= dateStr && bEnd >= dateStr;
-          }
-        );
-        if (approvedBooking) {
-          availabilityMap[dateStr][hall.id] = {
-            hallId: hall.id,
-            hallName: hall.name,
-            date: dateStr,
-            status: 'BOOKED',
-            bookingId: approvedBooking.bookingId,
-            eventName: approvedBooking.eventName,
-            bookingType: approvedBooking.bookingType,
-            startTime: approvedBooking.startTime,
-            endTime: approvedBooking.endTime,
-            department: approvedBooking.department?.name || 'Academic Dept',
-            bookedBy: isAuthenticated ? approvedBooking.requestedBy : undefined,
-            purpose: isAuthenticated ? approvedBooking.purpose : undefined,
-          };
-          continue;
-        }
+        // 4. Check All Bookings (Approved & Pending) for this date & hall
+        const matchingBookings = bookings.filter(b => {
+          const bEnd = b.endDate || b.bookingDate;
+          return b.hallId === hall.id && b.bookingDate <= dateStr && bEnd >= dateStr;
+        });
 
-        // 5. Check Pending Booking
-        const pendingBooking = bookings.find(
-          b => {
-            const bEnd = b.endDate || b.bookingDate;
-            return b.hallId === hall.id && b.status === 'PENDING' && b.bookingDate <= dateStr && bEnd >= dateStr;
-          }
-        );
-        if (pendingBooking) {
+        if (matchingBookings.length > 0) {
+          const approved = matchingBookings.filter(b => b.status === 'APPROVED');
+          const pending = matchingBookings.filter(b => b.status === 'PENDING');
+
+          const primaryStatus = approved.length > 0 ? 'BOOKED' : 'PENDING';
+          const primaryBooking = approved[0] || pending[0];
+
+          const eventsList = matchingBookings.map(b => ({
+            bookingId: isAuthenticated ? b.bookingId : (b.status === 'APPROVED' ? b.bookingId : 'HB-PENDING'),
+            eventName: isAuthenticated ? b.eventName : (b.status === 'APPROVED' ? b.eventName : 'Pending Reservation'),
+            status: b.status,
+            bookingType: b.bookingType,
+            startTime: b.startTime,
+            endTime: b.endTime,
+            department: isAuthenticated ? (b.department?.name || 'Department') : 'Academic Department',
+            bookedBy: isAuthenticated ? b.requestedBy : undefined,
+            purpose: isAuthenticated ? b.purpose : undefined,
+          }));
+
           availabilityMap[dateStr][hall.id] = {
             hallId: hall.id,
             hallName: hall.name,
             date: dateStr,
-            status: 'PENDING',
-            bookingId: isAuthenticated ? pendingBooking.bookingId : 'HB-PENDING',
-            eventName: isAuthenticated ? pendingBooking.eventName : 'Facility Reservation Pending Review',
-            department: isAuthenticated ? pendingBooking.department?.name : 'Institutional Request',
-            startTime: pendingBooking.startTime,
-            endTime: pendingBooking.endTime,
+            status: primaryStatus,
+            hasApproved: approved.length > 0,
+            hasPending: pending.length > 0,
+            bookingId: primaryBooking.bookingId,
+            eventName: primaryBooking.eventName,
+            bookingType: primaryBooking.bookingType,
+            startTime: primaryBooking.startTime,
+            endTime: primaryBooking.endTime,
+            department: primaryBooking.department?.name || 'Academic Dept',
+            bookedBy: isAuthenticated ? primaryBooking.requestedBy : undefined,
+            purpose: isAuthenticated ? primaryBooking.purpose : undefined,
+            events: eventsList,
           };
           continue;
         }

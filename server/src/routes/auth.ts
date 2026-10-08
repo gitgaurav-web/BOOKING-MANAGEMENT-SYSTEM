@@ -51,6 +51,10 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       finalDeptId = dept.id;
     }
 
+    const approvalSetting = await prisma.systemSetting.findUnique({ where: { key: 'requireUserApproval' } });
+    const requireApproval = approvalSetting?.value === 'true';
+    const initialStatus = requireApproval ? 'INACTIVE' : 'ACTIVE';
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
@@ -60,18 +64,32 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         phone: phone ? phone.trim() : null,
         departmentId: finalDeptId,
         role: finalDeptId ? 'FACULTY' : 'USER',
-        status: 'ACTIVE',
+        status: initialStatus,
       },
       include: { department: true },
     });
+
+    await logActivity(user.id, 'REGISTER', 'USER', user.id, `User ${user.name} registered (${initialStatus}).`);
+
+    if (initialStatus === 'INACTIVE') {
+      res.status(201).json({
+        message: 'Account registered successfully! An administrator must activate your account before you can log in.',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+        },
+      });
+      return;
+    }
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       getJwtSecret(),
       { expiresIn: '7d' }
     );
-
-    await logActivity(user.id, 'REGISTER', 'USER', user.id, `User ${user.name} registered.`);
 
     res.status(201).json({
       token,
