@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { AddToCalendarButton } from './AddToCalendarButton';
 
 interface DateDetailModalProps {
   isOpen: boolean;
@@ -233,6 +234,24 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                             Purpose: {evt.purpose}
                           </p>
                         )}
+                        {evt.status === 'APPROVED' && (
+                          <div className="flex justify-end pt-1">
+                            <AddToCalendarButton
+                              eventPayload={{
+                                eventName: evt.eventName,
+                                hallName: item.hallName,
+                                bookingDate: dateStr,
+                                startTime: evt.startTime,
+                                endTime: evt.endTime,
+                                bookingId: evt.bookingId,
+                                departmentName: evt.department,
+                                purpose: evt.purpose,
+                              }}
+                              size="xs"
+                              variant="compact"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -273,6 +292,22 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                       {item.purpose}
                     </div>
                   )}
+                  <div className="flex justify-end pt-1">
+                    <AddToCalendarButton
+                      eventPayload={{
+                        eventName: item.eventName || 'Approved Event',
+                        hallName: item.hallName,
+                        bookingDate: dateStr,
+                        startTime: item.startTime || '09:00',
+                        endTime: item.endTime || '17:00',
+                        bookingId: item.bookingId,
+                        departmentName: item.department,
+                        purpose: item.purpose,
+                      }}
+                      size="xs"
+                      variant="compact"
+                    />
+                  </div>
                 </div>
               )}
 

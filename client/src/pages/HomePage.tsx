@@ -7,6 +7,7 @@ import {
 import { apiRequest } from '../services/api';
 import { Hall, Booking } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
+import { AddToCalendarButton } from '../components/AddToCalendarButton';
 
 export const HomePage: React.FC = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
@@ -497,12 +498,13 @@ export const HomePage: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 sm:justify-end">
+                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400">
                     <Clock3 className="h-3.5 w-3.5 text-blue-900 dark:text-amber-400" />
                     {booking.startTime} – {booking.endTime}
                   </span>
                   <StatusBadge status={booking.status} size="sm" />
+                  <AddToCalendarButton booking={booking} size="xs" variant="outline" />
                 </div>
               </article>
             ))}

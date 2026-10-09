@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { AddToCalendarButton } from '../components/AddToCalendarButton';
 
 export const MyBookingsPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -175,6 +176,9 @@ export const MyBookingsPage: React.FC = () => {
                         <StatusBadge status={b.status} size="sm" />
                       </td>
                       <td className="py-3.5 px-4 text-right space-x-2">
+                        {b.status === 'APPROVED' && (
+                          <AddToCalendarButton booking={b} size="xs" variant="compact" />
+                        )}
                         <button
                           onClick={() => setSelectedBooking(b)}
                           className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-[11px] transition"
@@ -318,7 +322,7 @@ export const MyBookingsPage: React.FC = () => {
 
             {/* Modal Action Buttons */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={downloadPdf}
                   disabled={downloadingPdf}
@@ -334,6 +338,9 @@ export const MyBookingsPage: React.FC = () => {
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Slip</span>
                 </button>
+                {selectedBooking.status === 'APPROVED' && (
+                  <AddToCalendarButton booking={selectedBooking} size="sm" variant="outline" />
+                )}
               </div>
               <button
                 onClick={() => setSelectedBooking(null)}
