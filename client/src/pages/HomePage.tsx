@@ -11,6 +11,7 @@ import { StatusBadge } from '../components/StatusBadge';
 export const HomePage: React.FC = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
+  const [heroImage, setHeroImage] = useState<string>('/images/seminar-hall-stage.jpg');
 
   useEffect(() => {
     const loadHomeData = async () => {
@@ -102,8 +103,8 @@ export const HomePage: React.FC = () => {
               <div className="relative aspect-[4/3] overflow-hidden bg-slate-950">
                 <img
                   className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
-                  src={seminarHall?.image || 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1400&q=85'}
-                  alt="College Grand Auditorium"
+                  src={heroImage}
+                  alt="Sri Sairam Leo Muthu Seminar Hall"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
                 
@@ -111,6 +112,32 @@ export const HomePage: React.FC = () => {
                 <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-slate-950/80 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-400 border border-amber-400/40 backdrop-blur-md">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
                   <span>Main Campus Venue</span>
+                </div>
+
+                {/* Multiple Views Toggle for Seminar Hall */}
+                <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-xl bg-slate-950/85 p-1 border border-amber-400/30 backdrop-blur-md z-10 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => setHeroImage('/images/seminar-hall-stage.jpg')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                      heroImage.includes('stage')
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Stage View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHeroImage('/images/seminar-hall-seating.jpg')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                      heroImage.includes('seating')
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Seating View
+                  </button>
                 </div>
 
                 <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
@@ -215,7 +242,11 @@ export const HomePage: React.FC = () => {
               >
                 <div className="relative h-60 overflow-hidden bg-slate-100 dark:bg-slate-800 sm:h-64">
                   <img
-                    src={hall.image || (hall === seminarHall ? 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80' : 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80')}
+                    src={
+                      (hall.code === 'SEMINAR-HALL-01' || hall === seminarHall)
+                        ? '/images/seminar-hall-stage.jpg'
+                        : (hall.image || 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80')
+                    }
                     alt={hall.name}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />

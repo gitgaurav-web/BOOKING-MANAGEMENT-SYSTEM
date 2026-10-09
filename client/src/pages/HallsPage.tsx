@@ -16,6 +16,12 @@ import {
 export const HallsPage: React.FC = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeSeminarImage, setActiveSeminarImage] = useState<string>('/images/seminar-hall-stage.jpg');
+
+  const seminarViews = [
+    { id: 'stage', label: 'Stage View', src: '/images/seminar-hall-stage.jpg' },
+    { id: 'seating', label: 'Seating View', src: '/images/seminar-hall-seating.jpg' },
+  ];
 
   useEffect(() => {
     loadHalls();
@@ -49,28 +55,49 @@ export const HallsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {halls.map((hall) => (
-          <div
-            key={hall.id}
-            className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between"
-          >
-            <div>
-              <div className="relative h-64 bg-slate-100 dark:bg-slate-800">
-                <img
-                  src={
-                    hall.image ||
-                    'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80'
-                  }
-                  alt={hall.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 right-4">
-                  <StatusBadge status={hall.todayStatus || 'AVAILABLE'} size="md" />
+        {halls.map((hall) => {
+          const isSeminar = hall.code === 'SEMINAR-HALL-01' || hall.name.toLowerCase().includes('seminar');
+          const currentImage = isSeminar ? activeSeminarImage : (hall.image || 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&w=1200&q=80');
+
+          return (
+            <div
+              key={hall.id}
+              className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between"
+            >
+              <div>
+                <div className="relative h-64 sm:h-72 bg-slate-100 dark:bg-slate-800">
+                  <img
+                    src={currentImage}
+                    alt={hall.name}
+                    className="w-full h-full object-cover transition duration-500"
+                  />
+                  <div className="absolute top-4 right-4">
+                    <StatusBadge status={hall.todayStatus || 'AVAILABLE'} size="md" />
+                  </div>
+                  <div className="absolute bottom-4 left-4 bg-slate-900/85 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl font-medium">
+                    {hall.code}
+                  </div>
+
+                  {/* Multi-Angle Photo Switcher for Seminar Hall */}
+                  {isSeminar && (
+                    <div className="absolute bottom-4 right-4 flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1 rounded-xl border border-white/10 shadow-lg">
+                      {seminarViews.map((view) => (
+                        <button
+                          type="button"
+                          key={view.id}
+                          onClick={() => setActiveSeminarImage(view.src)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                            activeSeminarImage === view.src
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-300 hover:text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {view.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-xl font-medium">
-                  {hall.code}
-                </div>
-              </div>
 
               <div className="p-6 sm:p-8 space-y-5">
                 <div>
@@ -127,8 +154,9 @@ export const HallsPage: React.FC = () => {
               </Link>
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
+    </div>
     </div>
   );
 };

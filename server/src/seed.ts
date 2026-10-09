@@ -120,6 +120,7 @@ async function main() {
       name: 'Leo Muthu Central Seminar Hall',
       location: 'Administrative & Academic Block, 2nd Floor',
       description: 'Well-acoustic premier auditorium named in honor of Founder Chairman MJF. Ln. Leo Muthu. Outfitted for state and national conferences, convocations, project expos, and academic symposiums.',
+      image: '/images/seminar-hall-stage.jpg',
     },
     create: {
       name: 'Leo Muthu Central Seminar Hall',
@@ -127,7 +128,7 @@ async function main() {
       description: 'Well-acoustic premier auditorium named in honor of Founder Chairman MJF. Ln. Leo Muthu. Outfitted for state and national conferences, convocations, project expos, and academic symposiums.',
       location: 'Administrative & Academic Block, 2nd Floor',
       capacity: 350,
-      image: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1200&q=80',
+      image: '/images/seminar-hall-stage.jpg',
       facilities: JSON.stringify([
         'Full HD Ceiling Projector',
         'Podium & Wireless Lapel Mics',
