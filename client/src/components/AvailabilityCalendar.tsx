@@ -106,7 +106,12 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
     return 'AVAILABLE';
   };
 
-  const getStatusColorClasses = (status: string, isCurrentMonth: boolean, isSelected: boolean) => {
+  const getStatusColorClasses = (
+    status: string,
+    isCurrentMonth: boolean,
+    isSelected: boolean,
+    isPast: boolean = false
+  ) => {
     if (isSelected) {
       return 'ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-950/60 border-blue-500 shadow-md';
     }
@@ -115,20 +120,22 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       return 'opacity-35 bg-slate-50/50 dark:bg-slate-900/30 border-dashed';
     }
 
+    const pastMuted = isPast ? 'opacity-80 hover:opacity-100 transition-opacity ' : '';
+
     switch (status) {
       case 'AVAILABLE':
-        return 'bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-100';
+        return pastMuted + 'bg-emerald-50/70 hover:bg-emerald-100/80 dark:bg-emerald-950/30 dark:hover:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800/60 text-emerald-950 dark:text-emerald-100';
       case 'PARTIAL':
-        return 'bg-amber-50/80 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-700/60 text-amber-950 dark:text-amber-100';
+        return pastMuted + 'bg-amber-50/80 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-700/60 text-amber-950 dark:text-amber-100';
       case 'BOOKED':
-        return 'bg-rose-50/80 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border-rose-200 dark:border-rose-800/60 text-rose-950 dark:text-rose-100';
+        return pastMuted + 'bg-rose-50/80 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border-rose-200 dark:border-rose-800/60 text-rose-950 dark:text-rose-100';
       case 'PENDING':
-        return 'bg-sky-50/80 hover:bg-sky-100/90 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-sky-200 dark:border-sky-800/60 text-sky-950 dark:text-sky-100';
+        return pastMuted + 'bg-sky-50/80 hover:bg-sky-100/90 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-sky-200 dark:border-sky-800/60 text-sky-950 dark:text-sky-100';
       case 'BLOCKED':
       case 'MAINTENANCE':
-        return 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200';
+        return pastMuted + 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200';
       case 'HOLIDAY':
-        return 'bg-indigo-50/80 hover:bg-indigo-100/90 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-100';
+        return pastMuted + 'bg-indigo-50/80 hover:bg-indigo-100/90 dark:bg-indigo-950/30 dark:hover:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800/60 text-indigo-950 dark:text-indigo-100';
       default:
         return 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700';
     }
@@ -266,7 +273,12 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {dateStr < format(new Date(), 'yyyy-MM-dd') && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                      Closed
+                    </span>
+                  )}
                   <span
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                       status === 'AVAILABLE'
@@ -307,6 +319,8 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               const isCurrMonth = isSameMonth(day, currentDate);
               const isSelected = selectedDateStr === dateStr;
               const isCurrent = isToday(day);
+              const todayStr = format(new Date(), 'yyyy-MM-dd');
+              const isPast = dateStr < todayStr;
 
               return (
                 <div
@@ -318,7 +332,8 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                   className={`min-h-[75px] sm:min-h-[96px] p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${getStatusColorClasses(
                     aggregateStatus,
                     isCurrMonth,
-                    isSelected
+                    isSelected,
+                    isPast
                   )}`}
                 >
                   {/* Top row: day number & today dot */}
@@ -327,11 +342,19 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       className={`text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center ${
                         isCurrent
                           ? 'bg-blue-600 text-white shadow-xs'
+                          : isPast
+                          ? 'text-slate-400 dark:text-slate-500 font-medium'
                           : 'text-slate-800 dark:text-slate-200'
                       }`}
                     >
                       {format(day, 'd')}
                     </span>
+
+                    {isPast && (
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-tight hidden sm:inline">
+                        Past
+                      </span>
+                    )}
 
                     {/* Quick status pill for mobile / compact */}
                     <span className="sm:hidden w-2 h-2 rounded-full shrink-0" />

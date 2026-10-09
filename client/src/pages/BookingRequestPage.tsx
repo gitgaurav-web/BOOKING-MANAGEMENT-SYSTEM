@@ -31,8 +31,18 @@ export const BookingRequestPage: React.FC = () => {
   const [successBookingId, setSuccessBookingId] = useState<string | null>(null);
 
   // Form State
+  const todayIso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  const initialDateParam = searchParams.get('date');
+  const safeInitialDate = initialDateParam && initialDateParam >= todayIso ? initialDateParam : '';
+
   const [hallId, setHallId] = useState<string>('');
-  const [bookingDate, setBookingDate] = useState<string>(searchParams.get('date') || '');
+  const [bookingDate, setBookingDate] = useState<string>(safeInitialDate);
   const [isMultiDay, setIsMultiDay] = useState<boolean>(false);
   const [endDate, setEndDate] = useState<string>('');
   const initialSlot = searchParams.get('slot') || 'FULL_DAY';
@@ -183,6 +193,8 @@ export const BookingRequestPage: React.FC = () => {
 
     if (!bookingDate) {
       errors.bookingDate = 'Reservation date is required.';
+    } else if (bookingDate < todayIso) {
+      errors.bookingDate = 'Cannot book dates in the past. Please select today or an upcoming future date.';
     }
 
     if (isMultiDay) {
@@ -519,6 +531,7 @@ export const BookingRequestPage: React.FC = () => {
                   <input
                     id="field-bookingDate"
                     type="date"
+                    min={todayIso}
                     value={bookingDate}
                     onChange={(e) => {
                       setBookingDate(e.target.value);
@@ -543,7 +556,7 @@ export const BookingRequestPage: React.FC = () => {
                     <input
                       id="field-endDate"
                       type="date"
-                      min={bookingDate}
+                      min={bookingDate || todayIso}
                       value={endDate}
                       onChange={(e) => {
                         setEndDate(e.target.value);

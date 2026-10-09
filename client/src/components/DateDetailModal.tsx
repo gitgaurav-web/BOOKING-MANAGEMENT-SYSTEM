@@ -33,6 +33,15 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const todayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+
+  const isPastDate = dateStr < todayStr;
+
   const formattedDate = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -49,6 +58,11 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
               <Calendar className="w-3.5 h-3.5" />
               <span>Facility Date Schedule</span>
+              {isPastDate && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  Past Date
+                </span>
+              )}
             </div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
               {formattedDate}
@@ -61,6 +75,19 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Past Date Notice */}
+        {isPastDate && (
+          <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
+            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Past Date (Reservation Closed):</span>
+              <p className="mt-0.5 text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
+                Yeh beeta hua din hai. Yahan facility ka historical record dikhaya ja raha hai — beeti hui date par naya booking request nahi kiya ja sakta.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto space-y-6">
@@ -83,61 +110,90 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
 
               {/* Status details */}
               {item.status === 'AVAILABLE' && (
-                <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="text-xs text-emerald-800 dark:text-emerald-300">
-                    <p className="font-semibold text-sm">Hall is Completely Free</p>
-                    <p className="mt-0.5">Ready for reservations on this date.</p>
+                !isPastDate ? (
+                  <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="text-xs text-emerald-800 dark:text-emerald-300">
+                      <p className="font-semibold text-sm">Hall is Completely Free</p>
+                      <p className="mt-0.5">Ready for reservations on this date.</p>
+                    </div>
+                    <Link
+                      to={`/book?hall=${encodeURIComponent(item.hallName)}&date=${dateStr}`}
+                      onClick={onClose}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition shrink-0"
+                    >
+                      <span>Request Booking</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
-                  <Link
-                    to={`/book?hall=${encodeURIComponent(item.hallName)}&date=${dateStr}`}
-                    onClick={onClose}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition shrink-0"
-                  >
-                    <span>Request Booking</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">Hall Was Free / Unreserved</p>
+                      <p className="mt-0.5 text-[11px]">Historical record only — Past dates cannot be booked.</p>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold shrink-0">
+                      <Ban className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Booking Closed</span>
+                    </span>
+                  </div>
+                )
               )}
 
               {/* Free Slots Available (Partial day opening) */}
               {item.freeSlots && item.freeSlots.length > 0 && item.status !== 'AVAILABLE' && (
-                <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider">
-                      🟢 Free Slots Open for Booking
-                    </span>
-                    <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                      Partial Day Available
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    {item.freeSlots.map((slot) => {
-                      const slotLabel =
-                        slot === 'MORNING'
-                          ? 'Morning (09:00 - 13:00)'
-                          : slot === 'AFTERNOON'
-                          ? 'Afternoon (13:00 - 17:00)'
-                          : slot;
-                      return (
-                        <Link
-                          key={slot}
-                          to={`/book?hall=${encodeURIComponent(item.hallName)}&date=${dateStr}&slot=${slot}`}
-                          onClick={onClose}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition"
-                        >
-                          <span>Book {slotLabel}</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                  {item.freeWindows && item.freeWindows.length > 0 && (
-                    <div className="pt-1 text-[11px] text-emerald-800 dark:text-emerald-300">
-                      <span className="font-semibold">Remaining Free Windows: </span>
-                      {item.freeWindows.map((w) => `${w.start} - ${w.end}`).join(', ')}
+                !isPastDate ? (
+                  <div className="p-4 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 uppercase tracking-wider">
+                        🟢 Free Slots Open for Booking
+                      </span>
+                      <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
+                        Partial Day Available
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      {item.freeSlots.map((slot) => {
+                        const slotLabel =
+                          slot === 'MORNING'
+                            ? 'Morning (09:00 - 13:00)'
+                            : slot === 'AFTERNOON'
+                            ? 'Afternoon (13:00 - 17:00)'
+                            : slot;
+                        return (
+                          <Link
+                            key={slot}
+                            to={`/book?hall=${encodeURIComponent(item.hallName)}&date=${dateStr}&slot=${slot}`}
+                            onClick={onClose}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition"
+                          >
+                            <span>Book {slotLabel}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    {item.freeWindows && item.freeWindows.length > 0 && (
+                      <div className="pt-1 text-[11px] text-emerald-800 dark:text-emerald-300">
+                        <span className="font-semibold">Remaining Free Windows: </span>
+                        {item.freeWindows.map((w) => `${w.start} - ${w.end}`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Unreserved Slots on this Day
+                      </span>
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        Past Date (Closed)
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Unreserved slots: {item.freeSlots.map((s) => s.replace('_', ' ')).join(', ')}
+                    </p>
+                  </div>
+                )
               )}
 
               {/* Multi-slot day schedule */}

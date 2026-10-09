@@ -203,6 +203,13 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
     }
 
     const todayStr = getLocalIsoDate();
+    if (bookingDate < todayStr) {
+      res.status(400).json({
+        error: 'Cannot create reservation for dates in the past. Please select today or an upcoming future date.',
+      });
+      return;
+    }
+
     const requestedStart = new Date(bookingDate + 'T00:00:00');
     const todayDate = new Date(todayStr + 'T00:00:00');
     const diffDays = Math.round((requestedStart.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));

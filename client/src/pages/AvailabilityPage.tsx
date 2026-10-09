@@ -138,7 +138,7 @@ export const AvailabilityPage: React.FC = () => {
           <strong className="font-semibold">Whole Hall Reservation:</strong> When a hall is marked{' '}
           <span className="font-bold text-rose-600">BOOKED</span> or{' '}
           <span className="font-bold text-slate-700 dark:text-slate-300">BLOCKED</span>, the entire hall is reserved for that date. Dates marked{' '}
-          <span className="font-bold text-emerald-600">AVAILABLE</span> can be reserved by clicking on the date card.
+          <span className="font-bold text-emerald-600">AVAILABLE</span> (today or future) can be reserved by clicking on the date card. Past dates are displayed for historical records only.
         </p>
       </div>
 

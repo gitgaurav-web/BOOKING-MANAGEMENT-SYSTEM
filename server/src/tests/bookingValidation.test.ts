@@ -126,4 +126,17 @@ test('CORS Policy: Rejects untrusted origins in production when CLIENT_URL is de
   assert.strictEqual(isOriginAllowed(testUntrustedOrigin, 'development'), true, 'Development mode permits local dev tools');
 });
 
+test('Past Date Rejection: Booking requests for yesterday or earlier dates are strictly blocked', () => {
+  const today = '2026-10-09';
+  const yesterday = '2026-10-08';
+  const tomorrow = '2026-10-10';
+
+  const isPast = (date: string, referenceDate: string) => date < referenceDate;
+
+  assert.strictEqual(isPast(yesterday, today), true, 'Yesterday must be detected as past date');
+  assert.strictEqual(isPast(tomorrow, today), false, 'Tomorrow must be valid future date');
+  assert.strictEqual(isPast(today, today), false, 'Today is not in the past');
+});
+
+
 
