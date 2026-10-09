@@ -1,13 +1,14 @@
 import { Router, Response } from 'express';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { getLocalIsoDate } from '../utils/dateValidation';
 
 const router = Router();
 
 // GET /api/reports/summary
 router.get('/summary', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalIsoDate();
 
     // Counts
     const totalHalls = await prisma.hall.count();

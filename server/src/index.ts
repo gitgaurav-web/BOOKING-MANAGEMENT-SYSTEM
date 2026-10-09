@@ -1,6 +1,6 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import authRoutes from './routes/auth';
 import hallsRoutes from './routes/halls';
@@ -18,19 +18,38 @@ import settingsRoutes from './routes/settings';
 import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
 import { getJwtSecret } from './utils/jwt';
 
-dotenv.config();
-
 // Validate JWT configuration
 getJwtSecret();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: '*',
+// Production CORS origin restriction based on CLIENT_URL
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/$/, ''))
+  : [];
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server, mobile or curl requests without origin
+    if (!origin) return callback(null, true);
+    // In development or test, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    // In production, restrict to allowed CLIENT_URL origins
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 

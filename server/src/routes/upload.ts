@@ -17,11 +17,9 @@ export const getUploadDirectory = (): string => {
   return dir;
 };
 
-const uploadDir = getUploadDirectory();
-
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, uploadDir);
+    cb(null, getUploadDirectory());
   },
   filename: (req: any, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -110,7 +108,7 @@ export async function handleAuthorizedFileDownload(req: Request, res: Response):
   }
 
   const safeFilename = path.basename(req.params.filename);
-  const filePath = path.join(uploadDir, safeFilename);
+  const filePath = path.join(getUploadDirectory(), safeFilename);
 
   if (!fs.existsSync(filePath)) {
     res.status(404).json({ error: 'Requested file not found.' });

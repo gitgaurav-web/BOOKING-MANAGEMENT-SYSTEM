@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { authenticate, optionalAuth, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity } from '../utils/helpers';
 import { apiMutationRateLimiter } from '../middleware/rateLimiter';
+import { getLocalIsoDate } from '../utils/dateValidation';
 
 const router = Router();
 
@@ -38,14 +39,17 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalIsoDate();
     const isAuthenticated = !!req.user;
 
     // Upcoming approved bookings
     const upcomingBookings = await prisma.booking.findMany({
       where: {
         hallId: id,
-        bookingDate: { gte: today },
+        OR: [
+          { bookingDate: { gte: today } },
+          { endDate: { gte: today } },
+        ],
         status: 'APPROVED',
       },
       include: { department: true },
@@ -53,11 +57,15 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res: Response): Promis
       take: 5,
     });
 
-    // Today's status
+    // Today's status (including multi-day bookings covering today)
     const todayBooking = await prisma.booking.findFirst({
       where: {
         hallId: id,
-        bookingDate: today,
+        bookingDate: { lte: today },
+        OR: [
+          { endDate: { gte: today } },
+          { endDate: null, bookingDate: today },
+        ],
         status: 'APPROVED',
       },
       include: { department: true },

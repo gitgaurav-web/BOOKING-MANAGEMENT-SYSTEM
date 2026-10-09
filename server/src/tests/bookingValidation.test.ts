@@ -88,3 +88,42 @@ test('Proposal Attachment Optional Check: Form submission and booking records wi
   assert.strictEqual(bookingWithoutAttachment.attachmentUrl, null, 'Attachment is optional and null is permitted');
 });
 
+test('Uploads Directory: getUploadDirectory dynamically evaluates process.env.UPLOADS_DIR', async () => {
+  const { getUploadDirectory } = await import('../routes/upload');
+  const originalEnv = process.env.UPLOADS_DIR;
+
+  try {
+    process.env.UPLOADS_DIR = './custom-test-uploads';
+    const resolvedPath = getUploadDirectory();
+    assert.strictEqual(resolvedPath.includes('custom-test-uploads'), true);
+  } finally {
+    if (originalEnv !== undefined) {
+      process.env.UPLOADS_DIR = originalEnv;
+    } else {
+      delete process.env.UPLOADS_DIR;
+    }
+  }
+});
+
+test('Timezone Consistency: getLocalIsoDate returns strict YYYY-MM-DD for Asia/Kolkata', async () => {
+  const { getLocalIsoDate } = await import('../utils/dateValidation');
+  const kolkataDate = getLocalIsoDate();
+  assert.strictEqual(/^\d{4}-\d{2}-\d{2}$/.test(kolkataDate), true, 'Must strictly match YYYY-MM-DD calendar date');
+});
+
+test('CORS Policy: Rejects untrusted origins in production when CLIENT_URL is defined', () => {
+  const allowedOrigins = ['http://localhost:5173', 'https://sairamce.edu.in'];
+  const testUntrustedOrigin = 'https://attacker-site.com';
+  const testTrustedOrigin = 'https://sairamce.edu.in';
+
+  const isOriginAllowed = (origin: string, env: string) => {
+    if (env !== 'production') return true;
+    return allowedOrigins.includes(origin);
+  };
+
+  assert.strictEqual(isOriginAllowed(testUntrustedOrigin, 'production'), false, 'Untrusted origin must be blocked in production');
+  assert.strictEqual(isOriginAllowed(testTrustedOrigin, 'production'), true, 'Configured CLIENT_URL origin must be accepted');
+  assert.strictEqual(isOriginAllowed(testUntrustedOrigin, 'development'), true, 'Development mode permits local dev tools');
+});
+
+

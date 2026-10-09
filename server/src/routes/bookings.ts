@@ -513,15 +513,26 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response): Promise<v
       });
     }
 
-    if (andConditions.length > 0) {
-      whereClause.AND = andConditions;
+    const today = getLocalIsoDate();
+    if (dateRange === 'TODAY') {
+      andConditions.push({
+        bookingDate: { lte: today },
+        OR: [
+          { endDate: { gte: today } },
+          { endDate: null, bookingDate: today },
+        ],
+      });
+    } else if (dateRange === 'UPCOMING') {
+      andConditions.push({
+        OR: [
+          { bookingDate: { gte: today } },
+          { endDate: { gte: today } },
+        ],
+      });
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    if (dateRange === 'TODAY') {
-      whereClause.bookingDate = today;
-    } else if (dateRange === 'UPCOMING') {
-      whereClause.bookingDate = { gte: today };
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
     }
 
     const bookings = await prisma.booking.findMany({

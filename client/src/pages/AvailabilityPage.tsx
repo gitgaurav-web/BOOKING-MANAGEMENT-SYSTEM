@@ -43,14 +43,22 @@ export const AvailabilityPage: React.FC = () => {
     }
   };
 
+  const formatLocalDate = (year: number, month: number, day: number): string => {
+    const d = new Date(year, month, day);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  };
+
   const loadAvailability = async () => {
     try {
       setLoading(true);
-      // Fetch 2 months window around currentDate
+      // Fetch 2 months window around currentDate in local calendar dates
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
-      const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-      const endDate = new Date(year, month + 2, 0).toISOString().split('T')[0];
+      const startDate = formatLocalDate(year, month - 1, 1);
+      const endDate = formatLocalDate(year, month + 2, 0);
 
       const queryHall = selectedHallId === 'ALL' ? '' : `&hallId=${selectedHallId}`;
       const res = await apiRequest(`/availability?startDate=${startDate}&endDate=${endDate}${queryHall}`);
