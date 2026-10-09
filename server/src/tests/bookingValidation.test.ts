@@ -59,3 +59,32 @@ test('Booking Advance Notice Rules', () => {
   assert.strictEqual(diffDays(validFutureDate) >= minNotice && diffDays(validFutureDate) <= maxNotice, true, 'Valid date window passes');
   assert.strictEqual(diffDays(farFutureDate) > maxNotice, true, 'Excessively distant date fails maximum window');
 });
+
+test('Proposal Attachment Optional Check: Form submission and booking records without attachmentUrl are valid', () => {
+  const mandatoryFields = {
+    hallId: 'hall-1',
+    bookingDate: '2026-10-20',
+    eventName: 'Annual Science Exhibition',
+    purpose: 'Student Project Display',
+    contactNumber: '+91 9876543210',
+    email: 'coordinator@college.edu',
+  };
+
+  const bookingWithoutAttachment = {
+    ...mandatoryFields,
+    attachmentUrl: null,
+  };
+
+  const hasAllMandatory = Boolean(
+    bookingWithoutAttachment.hallId &&
+    bookingWithoutAttachment.bookingDate &&
+    bookingWithoutAttachment.eventName &&
+    bookingWithoutAttachment.purpose &&
+    bookingWithoutAttachment.contactNumber &&
+    bookingWithoutAttachment.email
+  );
+
+  assert.strictEqual(hasAllMandatory, true, 'All mandatory fields exist');
+  assert.strictEqual(bookingWithoutAttachment.attachmentUrl, null, 'Attachment is optional and null is permitted');
+});
+

@@ -8,6 +8,9 @@ import {
   Sparkles,
   Send,
   ArrowLeft,
+  FileCheck,
+  FileText,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../services/api';
@@ -293,7 +296,7 @@ export const BookingRequestPage: React.FC = () => {
         description: description.trim(),
         purpose: purpose.trim(),
         departmentId: departmentId || null,
-        participantCount: Number(participantCount) || 0,
+        participantCount: Number(participantCount) > 0 ? Number(participantCount) : 50,
         coordinatorName: coordinatorName.trim(),
         contactNumber: contactNumber.trim(),
         email: email.trim(),
@@ -916,15 +919,18 @@ export const BookingRequestPage: React.FC = () => {
             />
           </div>
 
-          {/* Attachment / Permission Letter */}
+          {/* Attachment / Permission Letter (Optional) */}
           <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-              Attach Official Proposal / Permission Letter (Optional)
-            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Attach Official Proposal / Permission Letter</span>
+              </label>
+              </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
-              Upload signed approval letter from HOD, Dean, or Principal (PDF, JPG, PNG). Max 10MB.
+              Upload signed approval letter from HOD, Dean, or Principal if available (PDF, JPG, PNG, DOC up to 10MB). <span className="font-medium text-slate-700 dark:text-slate-300">Aap bina letter upload kiye bhi form submit kar sakte hain.</span>
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <input
                 type="file"
                 accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
@@ -936,9 +942,23 @@ export const BookingRequestPage: React.FC = () => {
                 <span className="text-xs text-blue-600 animate-pulse">Uploading file...</span>
               )}
               {uploadedFileName && !uploadingFile && (
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-                  ✓ Attached: {uploadedFileName}
-                </span>
+                <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl">
+                  <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold flex items-center gap-1.5">
+                    <FileCheck className="w-3.5 h-3.5" />
+                    <span>✓ {uploadedFileName}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachmentUrl('');
+                      setUploadedFileName('');
+                    }}
+                    title="Remove attached document"
+                    className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
