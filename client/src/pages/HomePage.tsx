@@ -50,7 +50,7 @@ export const HomePage: React.FC = () => {
           <div className="max-w-2xl">
             {/* College Accreditation Badge */}
             <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[.18em] text-amber-300 backdrop-blur-sm">
-              <Landmark className="h-4 w-4 text-amber-400" />
+              <img src="/images/sairam-seal.png" alt="Sairam Seal" className="h-4 w-4 rounded-full bg-white object-contain p-[0.5px] shadow-xs" />
               <span>Sri Sairam College of Engineering · Bengaluru</span>
             </div>
 
@@ -320,6 +320,81 @@ export const HomePage: React.FC = () => {
             Facility listings will appear here once they are configured in the administrative catalog.
           </div>
         )}
+      </section>
+
+      {/* Sri Sairam Engineering Campus Showcase */}
+      <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative min-h-[320px] lg:min-h-[420px] overflow-hidden bg-slate-950">
+              <img
+                src="/images/campus-building.png"
+                alt="Sri Sairam College of Engineering Campus Academic Complex"
+                className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-white">
+                <div>
+                  <span className="inline-block rounded-md bg-amber-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-950">
+                    Main Academic Block
+                  </span>
+                  <p className="mt-1 font-serif-college text-xl font-bold">
+                    Sri Sairam College of Engineering
+                  </p>
+                  <p className="text-xs text-slate-300">
+                    Sai Leo Nagar, Anekal, Bengaluru - 562106
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-center p-8 sm:p-12">
+              <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-blue-900 dark:text-amber-400">
+                <Landmark className="h-4 w-4" /> Academic Infrastructure &amp; Environment
+              </div>
+              <h2 className="mt-3 font-serif-college text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
+                A Sprawling, Modern Campus Built for Academic Excellence
+              </h2>
+              <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                Located amidst lush, serene greenery in Anekal, Bengaluru, Sri Sairam College of Engineering provides an ideal academic ambience. Equipped with state-of-the-art auditoriums, smart ICT-enabled seminar halls, advanced computing laboratories, and comprehensive central facilities supporting university convocations, national conferences, technical symposiums, and placement drives.
+              </p>
+
+              <div className="mt-8 grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 dark:border-slate-800">
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/60">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">Wi-Fi Smart Campus</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">High-speed connectivity across venues</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/60">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">Leo Muthu Seminar Hall</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Central stage &amp; 300+ cushioned seating</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/60">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">Sir M.V. AV Hall</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Digital projection &amp; acoustic audio</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-800/60">
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">Central Coordination</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Zero-conflict institutional booking</p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Link
+                  to="/halls"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-3 text-xs font-bold text-amber-300 shadow-md transition hover:from-blue-950 hover:to-blue-900 border border-amber-400/30"
+                >
+                  <Building2 className="h-4 w-4" /> Explore Campus Venues
+                </Link>
+                <Link
+                  to="/how-it-works"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-6 py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                >
+                  How Reservation Works
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Campus Daily Schedule & Upcoming Approved Events */}

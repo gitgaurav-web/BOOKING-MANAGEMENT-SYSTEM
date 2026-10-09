@@ -29,12 +29,14 @@ export const Footer: React.FC = () => {
         <div className="grid gap-10 md:grid-cols-[1.4fr_.8fr_.8fr]">
           <div>
             <div className="flex items-center gap-3.5">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-400/40 bg-blue-900/60 text-amber-400 shadow-md">
-                <Landmark className="h-6 w-6" />
-              </span>
+              <img
+                src="/images/sairam-seal.png"
+                alt="Sri Sairam College Emblem"
+                className="h-14 w-14 shrink-0 rounded-full border-2 border-amber-400/60 bg-white p-0.5 shadow-md object-contain"
+              />
               <div>
-                <p className="font-crest text-xl font-bold tracking-tight text-white">
-                  {settings.institutionName ? settings.institutionName.toUpperCase() : 'SRI SAIRAM COLLEGE'}
+                <p className="font-crest text-xl font-bold tracking-tight text-white leading-tight">
+                  {settings.institutionName || 'Sri Sairam College of Engineering'}
                 </p>
                 <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-amber-300/80">
                   {settings.siteName || 'Campus Facility Management System'}

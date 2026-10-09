@@ -44,11 +44,12 @@ export const LoginPage: React.FC = () => {
     <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       {/* College Identity Header */}
       <div className="text-center space-y-3">
-        <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 flex items-center justify-center text-amber-400 mx-auto shadow-md border border-amber-500/30">
-          <Landmark className="w-7 h-7 stroke-[1.8]" />
-          <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-slate-950">
-            ★
-          </div>
+        <div className="flex justify-center">
+          <img
+            src="/images/sairam-seal.png"
+            alt="Sri Sairam College Emblem"
+            className="w-16 h-16 rounded-full border-2 border-amber-400/60 bg-white p-0.5 shadow-lg object-contain transition-transform hover:scale-105"
+          />
         </div>
 
         <div>

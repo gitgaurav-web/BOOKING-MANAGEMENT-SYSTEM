@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
       <div className="border-b border-blue-950/40 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 text-white">
         <div className="mx-auto flex h-8 max-w-7xl items-center justify-between px-4 text-[10px] font-semibold tracking-wider sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+            <img src="/images/sairam-seal.png" alt="Sairam Seal" className="h-4 w-4 rounded-full bg-white object-contain p-[0.5px] shadow-xs" />
             <span className="uppercase tracking-[.18em] text-amber-300/90 font-medium">
               {settings.institutionName || 'Sri Sairam College of Engineering, Bengaluru'}
             </span>
@@ -99,25 +99,26 @@ export const Navbar: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.75rem]">
-          {/* Logo with Collegiate Crest */}
+          {/* Logo with Authentic Sairam Branding */}
           <Link to="/" className="flex items-center gap-3.5 group">
-            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-900 via-blue-950 to-slate-950 text-amber-400 shadow-md border border-amber-500/30 transition-transform group-hover:scale-105">
-              <Landmark className="h-6 w-6 stroke-[1.8]" />
-              <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[8px] font-black text-slate-950">
-                ★
-              </div>
+            <div className="flex items-center">
+              <img
+                src="/images/sairam-logo.png"
+                alt="Sri Sairam College of Engineering"
+                className="h-11 sm:h-12 w-auto max-w-[210px] sm:max-w-[270px] object-contain rounded-lg bg-white p-1 border border-slate-200 shadow-xs dark:border-slate-700 transition-transform group-hover:scale-[1.02]"
+              />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="block font-crest text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
-                  {settings.siteName ? (settings.siteName.length > 25 ? settings.siteName.slice(0, 22) + '...' : settings.siteName) : 'CAMPUS PORTAL'}
+            <div className="hidden lg:block border-l border-slate-200 dark:border-slate-800 pl-3">
+              <div className="flex items-center gap-1.5">
+                <span className="block font-crest text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+                  {settings.siteName || 'FACILITY PORTAL'}
                 </span>
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
+                <span className="rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
                   PORTAL
                 </span>
               </div>
-              <span className="block text-[10px] font-semibold uppercase tracking-[.14em] text-slate-500 dark:text-slate-400">
-                Auditoriums &amp; Seminar Halls Reservation
+              <span className="block text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Auditoriums &amp; Seminar Halls
               </span>
             </div>
           </Link>
