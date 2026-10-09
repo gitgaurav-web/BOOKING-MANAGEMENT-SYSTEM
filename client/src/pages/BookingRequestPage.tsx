@@ -24,6 +24,7 @@ export const BookingRequestPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successBookingId, setSuccessBookingId] = useState<string | null>(null);
 
   // Form State
@@ -57,6 +58,19 @@ export const BookingRequestPage: React.FC = () => {
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
 
+  const clearFieldError = (fieldKey: string) => {
+    if (fieldErrors[fieldKey]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldKey];
+        return next;
+      });
+    }
+    if (error) {
+      setError(null);
+    }
+  };
+
   const loadFormData = async () => {
     try {
       setLoading(true);
@@ -68,6 +82,7 @@ export const BookingRequestPage: React.FC = () => {
       setDepartments(deptsData);
 
       const targetHallParam = searchParams.get('hall');
+      let chosenHallId = '';
       if (targetHallParam && hallsData.length > 0) {
         const found = hallsData.find(
           (h) =>
@@ -75,13 +90,20 @@ export const BookingRequestPage: React.FC = () => {
             h.id === targetHallParam
         );
         if (found) {
-          setHallId(found.id);
+          chosenHallId = found.id;
         }
       }
-
-      if (user?.departmentId && !departmentId) {
-        setDepartmentId(user.departmentId);
+      if (!chosenHallId && hallsData.length > 0) {
+        chosenHallId = hallsData[0].id;
       }
+      setHallId(chosenHallId);
+
+      const defaultDept = user?.departmentId || (deptsData.length > 0 ? deptsData[0].id : '');
+      setDepartmentId(defaultDept);
+
+      if (user?.name && !coordinatorName) setCoordinatorName(user.name);
+      if (user?.phone && !contactNumber) setContactNumber(user.phone);
+      if (user?.email && !email) setEmail(user.email);
     } catch (err: any) {
       setError(err.message || 'Failed to load form dependencies');
     } finally {
@@ -95,6 +117,9 @@ export const BookingRequestPage: React.FC = () => {
 
   const handleBookingTypeChange = (type: string) => {
     setBookingType(type);
+    clearFieldError('bookingType');
+    clearFieldError('startTime');
+    clearFieldError('endTime');
     if (type === 'FULL_DAY') {
       setStartTime('09:00');
       setEndTime('17:00');
@@ -146,6 +171,102 @@ export const BookingRequestPage: React.FC = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!hallId) {
+      errors.hallId = 'Please select a facility hall.';
+    }
+
+    if (!bookingDate) {
+      errors.bookingDate = 'Reservation date is required.';
+    }
+
+    if (isMultiDay) {
+      if (!endDate) {
+        errors.endDate = 'End date is required for multi-day events.';
+      } else if (endDate < bookingDate) {
+        errors.endDate = 'End date cannot be earlier than start date.';
+      }
+    }
+
+    if (bookingType === 'CUSTOM') {
+      if (!startTime) {
+        errors.startTime = 'Start time is required for custom times.';
+      }
+      if (!endTime) {
+        errors.endTime = 'End time is required for custom times.';
+      }
+      if (startTime && endTime && startTime >= endTime) {
+        errors.endTime = 'End time must be after start time.';
+      }
+    }
+
+    if (!eventName.trim()) {
+      errors.eventName = 'Event Name / Title is required.';
+    }
+
+    if (!departmentId) {
+      errors.departmentId = 'Host department is required.';
+    }
+
+    if (!purpose.trim()) {
+      errors.purpose = 'Purpose of reservation is required.';
+    }
+
+    if (!coordinatorName.trim()) {
+      errors.coordinatorName = 'Coordinator name is required.';
+    }
+
+    if (!contactNumber.trim()) {
+      errors.contactNumber = 'Contact phone number is required.';
+    } else if (!/^[0-9+\s-]{8,15}$/.test(contactNumber.trim())) {
+      errors.contactNumber = 'Please provide a valid contact number (8 to 15 digits).';
+    }
+
+    if (!email.trim()) {
+      errors.email = 'Official email address is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errors.email = 'Please provide a valid institutional email address.';
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      const fieldLabels: Record<string, string> = {
+        hallId: 'Facility Hall',
+        bookingDate: 'Reservation Date',
+        endDate: 'Multi-Day End Date',
+        startTime: 'Start Time',
+        endTime: 'End Time',
+        eventName: 'Event Name / Title',
+        departmentId: 'Host Department',
+        purpose: 'Purpose of Reservation',
+        coordinatorName: 'Coordinator Name',
+        contactNumber: 'Contact Phone Number',
+        email: 'Official Email Address',
+      };
+
+      const missingList = Object.keys(errors)
+        .map((k) => fieldLabels[k] || k)
+        .join(', ');
+
+      setError(`Please complete the following required fields: ${missingList}.`);
+
+      // Automatically scroll to the first invalid field
+      const firstFieldKey = Object.keys(errors)[0];
+      const element = document.getElementById(`field-${firstFieldKey}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.focus();
+      }
+
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -155,13 +276,7 @@ export const BookingRequestPage: React.FC = () => {
       return;
     }
 
-    if (!hallId || !bookingDate || !eventName || !purpose || !contactNumber || !email) {
-      setError('Please fill in all mandatory fields.');
-      return;
-    }
-
-    if (isMultiDay && endDate && endDate < bookingDate) {
-      setError('End Date cannot be before Start Date.');
+    if (!validateForm()) {
       return;
     }
 
@@ -174,17 +289,17 @@ export const BookingRequestPage: React.FC = () => {
         bookingType,
         startTime,
         endTime,
-        eventName,
-        description,
-        purpose,
+        eventName: eventName.trim(),
+        description: description.trim(),
+        purpose: purpose.trim(),
         departmentId: departmentId || null,
         participantCount: Number(participantCount) || 0,
-        coordinatorName,
-        contactNumber,
-        email,
+        coordinatorName: coordinatorName.trim(),
+        contactNumber: contactNumber.trim(),
+        email: email.trim(),
         specialRequirements,
         attachmentUrl: attachmentUrl || null,
-        additionalNotes,
+        additionalNotes: additionalNotes.trim(),
       };
 
       const res = await apiRequest('/bookings', {
@@ -285,15 +400,48 @@ export const BookingRequestPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-          <span>{error}</span>
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs shadow-sm space-y-2">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-extrabold text-sm text-rose-900 dark:text-rose-100">
+                Action Required: Incomplete Booking Details
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">{error}</p>
+            </div>
+          </div>
+          {Object.keys(fieldErrors).length > 0 && (
+            <div className="pt-2 border-t border-rose-200 dark:border-rose-900/60 pl-8">
+              <span className="font-semibold text-rose-900 dark:text-rose-200 block mb-1">
+                Click below to jump directly to the missing fields:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(fieldErrors).map(([key, msg]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(`field-${key}`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.focus();
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/60 hover:bg-rose-200 dark:hover:bg-rose-800 text-rose-900 dark:text-rose-100 font-semibold text-[11px] border border-rose-300 dark:border-rose-700 transition cursor-pointer"
+                  >
+                    <span>👉 {msg}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* Form */}
       <form
         onSubmit={handleSubmit}
+        noValidate
         className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-8"
       >
         {/* Step 1: Hall & Date Selection */}
@@ -310,10 +458,17 @@ export const BookingRequestPage: React.FC = () => {
                 Select Facility <span className="text-rose-500">*</span>
               </label>
               <select
+                id="field-hallId"
                 value={hallId}
-                onChange={(e) => setHallId(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setHallId(e.target.value);
+                  clearFieldError('hallId');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.hallId
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               >
                 {halls.map((h) => (
                   <option key={h.id} value={h.id}>
@@ -321,7 +476,13 @@ export const BookingRequestPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              {selectedHallObj && (
+              {fieldErrors.hallId && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.hallId}</span>
+                </p>
+              )}
+              {selectedHallObj && !fieldErrors.hallId && (
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Location: {selectedHallObj.location}
                 </p>
@@ -340,7 +501,10 @@ export const BookingRequestPage: React.FC = () => {
                     checked={isMultiDay}
                     onChange={(e) => {
                       setIsMultiDay(e.target.checked);
-                      if (!e.target.checked) setEndDate('');
+                      if (!e.target.checked) {
+                        setEndDate('');
+                        clearFieldError('endDate');
+                      }
                     }}
                     className="rounded text-blue-600 h-3.5 w-3.5"
                   />
@@ -348,26 +512,57 @@ export const BookingRequestPage: React.FC = () => {
                 </label>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="date"
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                />
-                {isMultiDay && (
+                <div>
                   <input
+                    id="field-bookingDate"
                     type="date"
-                    min={bookingDate}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    required
-                    placeholder="End Date"
-                    className="w-full px-4 py-2.5 rounded-xl border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                    value={bookingDate}
+                    onChange={(e) => {
+                      setBookingDate(e.target.value);
+                      clearFieldError('bookingDate');
+                    }}
+                    className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                      fieldErrors.bookingDate
+                        ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                        : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                    }`}
                   />
+                  {fieldErrors.bookingDate && (
+                    <p className="text-xs text-rose-500 font-semibold mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{fieldErrors.bookingDate}</span>
+                    </p>
+                  )}
+                </div>
+
+                {isMultiDay && (
+                  <div>
+                    <input
+                      id="field-endDate"
+                      type="date"
+                      min={bookingDate}
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        clearFieldError('endDate');
+                      }}
+                      placeholder="End Date"
+                      className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                        fieldErrors.endDate
+                          ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                          : 'border-blue-400 dark:border-blue-600 focus:ring-blue-500'
+                      }`}
+                    />
+                    {fieldErrors.endDate && (
+                      <p className="text-xs text-rose-500 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>{fieldErrors.endDate}</span>
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-              {isMultiDay && (
+              {isMultiDay && !fieldErrors.endDate && (
                 <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1">
                   Full hall will be booked consecutively across all dates in this range.
                 </p>
@@ -408,22 +603,52 @@ export const BookingRequestPage: React.FC = () => {
             {bookingType === 'CUSTOM' && (
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">Start Time</label>
+                  <label className="block text-xs text-slate-500 mb-1">
+                    Start Time <span className="text-rose-500">*</span>
+                  </label>
                   <input
+                    id="field-startTime"
                     type="time"
                     value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                    onChange={(e) => {
+                      setStartTime(e.target.value);
+                      clearFieldError('startTime');
+                    }}
+                    className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm ${
+                      fieldErrors.startTime
+                        ? 'border-rose-500 ring-2 ring-rose-500/20'
+                        : 'border-slate-300 dark:border-slate-700'
+                    }`}
                   />
+                  {fieldErrors.startTime && (
+                    <p className="text-xs text-rose-500 font-semibold mt-1">
+                      {fieldErrors.startTime}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1">End Time</label>
+                  <label className="block text-xs text-slate-500 mb-1">
+                    End Time <span className="text-rose-500">*</span>
+                  </label>
                   <input
+                    id="field-endTime"
                     type="time"
                     value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+                    onChange={(e) => {
+                      setEndTime(e.target.value);
+                      clearFieldError('endTime');
+                    }}
+                    className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm ${
+                      fieldErrors.endTime
+                        ? 'border-rose-500 ring-2 ring-rose-500/20'
+                        : 'border-slate-300 dark:border-slate-700'
+                    }`}
                   />
+                  {fieldErrors.endTime && (
+                    <p className="text-xs text-rose-500 font-semibold mt-1">
+                      {fieldErrors.endTime}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -443,13 +668,26 @@ export const BookingRequestPage: React.FC = () => {
                 Event Name / Title <span className="text-rose-500">*</span>
               </label>
               <input
+                id="field-eventName"
                 type="text"
                 placeholder="e.g. National Symposium on Deep Learning"
                 value={eventName}
-                onChange={(e) => setEventName(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setEventName(e.target.value);
+                  clearFieldError('eventName');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.eventName
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               />
+              {fieldErrors.eventName && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.eventName}</span>
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -458,9 +696,17 @@ export const BookingRequestPage: React.FC = () => {
                   Host Department / Organization <span className="text-rose-500">*</span>
                 </label>
                 <select
+                  id="field-departmentId"
                   value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  onChange={(e) => {
+                    setDepartmentId(e.target.value);
+                    clearFieldError('departmentId');
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                    fieldErrors.departmentId
+                      ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                      : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                  }`}
                 >
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -468,6 +714,12 @@ export const BookingRequestPage: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                {fieldErrors.departmentId && (
+                  <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.departmentId}</span>
+                  </p>
+                )}
               </div>
 
               <div>
@@ -493,13 +745,26 @@ export const BookingRequestPage: React.FC = () => {
                 Purpose of Reservation <span className="text-rose-500">*</span>
               </label>
               <input
+                id="field-purpose"
                 type="text"
                 placeholder="e.g. Faculty Enrichment / Technical Workshop / Placement Drive"
                 value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setPurpose(e.target.value);
+                  clearFieldError('purpose');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.purpose
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               />
+              {fieldErrors.purpose && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.purpose}</span>
+                </p>
+              )}
             </div>
 
             <div>
@@ -527,15 +792,28 @@ export const BookingRequestPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Faculty / Coordinator Name
+                Faculty / Coordinator Name <span className="text-rose-500">*</span>
               </label>
               <input
+                id="field-coordinatorName"
                 type="text"
                 value={coordinatorName}
-                onChange={(e) => setCoordinatorName(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setCoordinatorName(e.target.value);
+                  clearFieldError('coordinatorName');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.coordinatorName
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               />
+              {fieldErrors.coordinatorName && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.coordinatorName}</span>
+                </p>
+              )}
             </div>
 
             <div>
@@ -543,13 +821,26 @@ export const BookingRequestPage: React.FC = () => {
                 Contact Phone Number <span className="text-rose-500">*</span>
               </label>
               <input
+                id="field-contactNumber"
                 type="tel"
                 placeholder="+91 98765 00000"
                 value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setContactNumber(e.target.value);
+                  clearFieldError('contactNumber');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.contactNumber
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               />
+              {fieldErrors.contactNumber && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.contactNumber}</span>
+                </p>
+              )}
             </div>
 
             <div className="sm:col-span-2">
@@ -557,13 +848,26 @@ export const BookingRequestPage: React.FC = () => {
                 Official Email Address <span className="text-rose-500">*</span>
               </label>
               <input
+                id="field-email"
                 type="email"
                 placeholder="faculty@college.edu"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearFieldError('email');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.email
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
               />
+              {fieldErrors.email && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.email}</span>
+                </p>
+              )}
             </div>
           </div>
         </div>
