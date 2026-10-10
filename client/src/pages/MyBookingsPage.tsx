@@ -58,33 +58,254 @@ export const MyBookingsPage: React.FC = () => {
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
+  const getBookingQrData = (b: Booking): string => {
+    const dateStr = b.endDate && b.endDate !== b.bookingDate ? `${b.bookingDate} to ${b.endDate}` : b.bookingDate;
+    const statusStr = b.status === 'APPROVED' ? 'CONFIRMED / BOOKED' : b.status;
+    return `SRI SAIRAM COLLEGE OF ENGINEERING
+OFFICIAL FACILITY BOOKING PASS
+--------------------------------
+Booking ID : ${b.bookingId}
+Facility   : ${b.hall?.name || 'Seminar / AV Hall'}
+Date       : ${dateStr}
+Time Slot  : ${b.startTime} - ${b.endTime} (${b.bookingType.replace('_', ' ')})
+Event      : ${b.eventName}
+Department : ${b.department?.name || 'Academic Dept'}
+Coordinator: ${b.coordinatorName} (${b.contactNumber})
+Status     : ${statusStr}
+--------------------------------
+Authority: Facilities Committee & Dean Academics`;
+  };
+
   const downloadPdf = async () => {
-    const voucherElement = document.getElementById('printable-voucher');
-    if (!voucherElement) return;
+    if (!selectedBooking) return;
 
     try {
       setDownloadingPdf(true);
-      const [html2canvasModule, jsPdfModule] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ]);
-      const html2canvas = html2canvasModule.default || html2canvasModule;
-      const jsPDF = jsPdfModule.default || jsPdfModule;
+      const { jsPDF } = await import('jspdf');
+      const QRCode = (await import('qrcode')).default;
 
-      const canvas = await html2canvas(voucherElement, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
+      const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
-      const imgWidth = 190;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 10, 15, imgWidth, imgHeight);
-      pdf.save(`Booking-Voucher-${selectedBooking?.bookingId || 'Slip'}.pdf`);
+
+      const qrDataText = getBookingQrData(selectedBooking);
+      const qrDataUrl = await QRCode.toDataURL(qrDataText, {
+        width: 300,
+        margin: 1,
+        color: { dark: '#0f172a', light: '#ffffff' },
+      });
+
+      let y = 16;
+
+      // Outer Card Box
+      doc.setDrawColor(203, 213, 225); // slate-300
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(15, y, 180, 248, 4, 4, 'FD');
+
+      // Top Header Accent Bar
+      doc.setFillColor(30, 58, 138); // Deep Navy #1E3A8A
+      doc.roundedRect(15, y, 180, 24, 4, 4, 'F');
+      doc.rect(15, y + 18, 180, 6, 'F'); // square bottom of header bar
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('SRI SAIRAM COLLEGE OF ENGINEERING', 105, y + 10, { align: 'center' });
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text('CENTRAL FACILITIES OFFICE • OFFICIAL CONFIRMATION PASS', 105, y + 18, { align: 'center' });
+
+      y += 32;
+
+      // Status Badge
+      const isApproved = selectedBooking.status === 'APPROVED';
+      const statusText = isApproved ? 'CONFIRMED / BOOKED' : selectedBooking.status;
+      if (isApproved) {
+        doc.setFillColor(220, 252, 231); // emerald-100
+        doc.setTextColor(22, 101, 52); // emerald-800
+        doc.setDrawColor(134, 239, 172);
+      } else {
+        doc.setFillColor(254, 226, 226); // rose-100
+        doc.setTextColor(153, 27, 27); // rose-800
+        doc.setDrawColor(252, 165, 165);
+      }
+      doc.roundedRect(138, y - 4, 47, 8, 2, 2, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.text(statusText, 161.5, y + 1.5, { align: 'center' });
+
+      // Booking ID Reference Box
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(20, y + 7, 170, 36, 3, 3, 'FD');
+
+      doc.setTextColor(100, 116, 139); // slate-500
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('BOOKING ID REFERENCE', 26, y + 16);
+
+      doc.setTextColor(37, 99, 235); // blue-600
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(14);
+      doc.text(selectedBooking.bookingId, 26, y + 24);
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Scan QR code at the hall entrance to verify reservation details.', 26, y + 31);
+
+      // Embed QR Code
+      doc.addImage(qrDataUrl, 'PNG', 150, y + 9, 32, 32);
+
+      y += 48;
+
+      // Details Grid (2 Columns)
+      const renderDetailBox = (
+        bx: number,
+        by: number,
+        bw: number,
+        bh: number,
+        label: string,
+        val: string,
+        sub: string = ''
+      ) => {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(bx, by, bw, bh, 2, 2, 'FD');
+
+        doc.setTextColor(148, 163, 184); // slate-400
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.text(label.toUpperCase(), bx + 4, by + 6);
+
+        doc.setTextColor(15, 23, 42); // slate-900
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        const safeVal = val.length > 34 ? val.substring(0, 32) + '...' : val;
+        doc.text(safeVal, bx + 4, by + 12);
+
+        if (sub) {
+          doc.setTextColor(100, 116, 139);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.text(sub.length > 38 ? sub.substring(0, 36) + '...' : sub, bx + 4, by + 17);
+        }
+      };
+
+      // Row 1: Facility & Date
+      renderDetailBox(
+        20,
+        y,
+        82,
+        21,
+        'Reserved Facility',
+        selectedBooking.hall?.name || 'Facility Hall',
+        selectedBooking.hall?.location || 'Central Campus'
+      );
+      const dateText = `${selectedBooking.bookingDate}${selectedBooking.endDate && selectedBooking.endDate !== selectedBooking.bookingDate ? ` to ${selectedBooking.endDate}` : ''}`;
+      renderDetailBox(
+        108,
+        y,
+        82,
+        21,
+        'Event Date & Time',
+        dateText,
+        `${selectedBooking.startTime} - ${selectedBooking.endTime} (${selectedBooking.bookingType.replace('_', ' ')})`
+      );
+
+      y += 25;
+
+      // Row 2: Event Title & Department
+      renderDetailBox(
+        20,
+        y,
+        82,
+        21,
+        'Event Title',
+        selectedBooking.eventName,
+        selectedBooking.purpose ? `Purpose: ${selectedBooking.purpose}` : ''
+      );
+      renderDetailBox(
+        108,
+        y,
+        82,
+        21,
+        'Department / Host',
+        selectedBooking.department?.name || 'Academic Dept',
+        'Sri Sairam College of Engineering'
+      );
+
+      y += 25;
+
+      // Row 3: Coordinator / Applicant Full Box
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(20, y, 170, 18, 2, 2, 'FD');
+
+      doc.setTextColor(148, 163, 184);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('COORDINATOR / APPLICANT', 24, y + 6);
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text(
+        `${selectedBooking.coordinatorName} (${selectedBooking.contactNumber}) • ${selectedBooking.email}`,
+        24,
+        y + 12.5
+      );
+
+      y += 22;
+
+      // Admin Notes (if any)
+      if (selectedBooking.adminNotes) {
+        doc.setFillColor(254, 243, 199); // amber-100
+        doc.setDrawColor(251, 191, 36);
+        doc.roundedRect(20, y, 170, 16, 2, 2, 'FD');
+
+        doc.setTextColor(180, 83, 9); // amber-700
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.text('OFFICIAL ADMIN NOTICE / INSTRUCTION:', 24, y + 6);
+
+        doc.setTextColor(146, 64, 14);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text(selectedBooking.adminNotes.substring(0, 90), 24, y + 11.5);
+        y += 20;
+      }
+
+      // Footer divider
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineDashPattern([2, 2], 0);
+      doc.line(20, y + 10, 190, y + 10);
+      doc.setLineDashPattern([], 0);
+
+      y += 18;
+
+      // Footer Text & Authority Stamp Box
+      doc.setTextColor(148, 163, 184);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(`System Generated on: ${new Date().toLocaleDateString()}`, 20, y + 2);
+      doc.text('Authority: Facilities Committee & Dean Academics', 20, y + 6);
+
+      doc.setDrawColor(148, 163, 184);
+      doc.line(135, y + 4, 185, y + 4);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text('[ Official Stamp / Signature ]', 160, y + 8, { align: 'center' });
+
+      // Save PDF
+      doc.save(`Booking-Pass-${selectedBooking.bookingId}.pdf`);
     } catch (err) {
-      console.error(err);
-      alert('Failed to generate PDF');
+      console.error('PDF export error:', err);
+      alert('Failed to generate PDF. Please try using "Print Slip".');
     } finally {
       setDownloadingPdf(false);
     }
@@ -255,8 +476,8 @@ export const MyBookingsPage: React.FC = () => {
                 </div>
                 <div className="p-2 bg-white rounded-xl shadow-xs shrink-0">
                   <QRCodeSVG
-                    value={`https://campushalls.college.edu/verify/${selectedBooking.bookingId}?hall=${encodeURIComponent(selectedBooking.hall?.name || '')}&date=${selectedBooking.bookingDate}&status=${selectedBooking.status}`}
-                    size={80}
+                    value={getBookingQrData(selectedBooking)}
+                    size={90}
                     level="M"
                   />
                 </div>

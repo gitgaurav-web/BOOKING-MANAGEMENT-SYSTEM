@@ -71,3 +71,47 @@ body {
 .dark ::-webkit-scrollbar-thumb {
   background: #475569;
 }
+
+/* Print optimization: only print the active voucher slip cleanly on paper */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #printable-voucher,
+  #printable-voucher * {
+    visibility: visible;
+  }
+  #printable-voucher {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 2px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  #printable-voucher * {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+  #printable-voucher .bg-slate-50,
+  #printable-voucher .dark\:bg-slate-800\/40,
+  #printable-voucher .dark\:bg-slate-800\/60,
+  #printable-voucher .dark\:bg-slate-900 {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+  #printable-voucher .text-blue-600,
+  #printable-voucher .dark\:text-blue-400 {
+    color: #1d4ed8 !important;
+  }
+}
