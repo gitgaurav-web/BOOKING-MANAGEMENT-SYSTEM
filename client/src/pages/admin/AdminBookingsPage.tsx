@@ -244,36 +244,45 @@ export const AdminBookingsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="w-full overflow-x-auto min-h-[300px]">
+      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-visible">
+        <div className="w-full overflow-visible">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3 whitespace-nowrap w-36">Booking ID</th>
+                <th className="py-3 px-3.5 whitespace-nowrap w-36 rounded-tl-2xl">Booking ID</th>
                 <th className="py-3 px-3 whitespace-nowrap w-28">Hall</th>
                 <th className="py-3 px-3 min-w-[200px]">Event Details & Notice</th>
                 <th className="py-3 px-3 whitespace-nowrap w-32">Date & Slot</th>
                 <th className="py-3 px-3 w-48">Department / Coordinator</th>
                 <th className="py-3 px-2.5 text-center whitespace-nowrap w-24">Status</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap w-24">Actions</th>
+                <th className="py-3 px-3.5 text-right whitespace-nowrap w-24 rounded-tr-2xl">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.map((b) => (
-                <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                    {b.bookingId}
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                    No facility bookings found.
                   </td>
-                  <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                    {b.hall?.name}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate" title={b.eventName}>
-                      {b.eventName}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block truncate mt-0.5" title={b.purpose}>
-                      {b.purpose}
-                    </span>
+                </tr>
+              ) : (
+                filtered.map((b, idx) => {
+                  const isLast = idx === filtered.length - 1;
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
+                      <td className={`py-3 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap ${isLast ? 'rounded-bl-2xl' : ''}`}>
+                        {b.bookingId}
+                      </td>
+                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                        {b.hall?.name}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate" title={b.eventName}>
+                          {b.eventName}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block truncate mt-0.5" title={b.purpose}>
+                          {b.purpose}
+                        </span>
                     {/* Admin Notice Pill if present */}
                     {b.adminNotes && (
                       <div className="mt-1.5 flex items-start gap-1 text-[11px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md px-2 py-0.5 max-w-full shadow-2xs">
@@ -328,7 +337,7 @@ export const AdminBookingsPage: React.FC = () => {
                   <td className="py-3 px-2.5 text-center whitespace-nowrap">
                     <StatusBadge status={b.status} size="sm" />
                   </td>
-                  <td className="py-3 px-3 text-right whitespace-nowrap">
+                  <td className={`py-3 px-3.5 text-right whitespace-nowrap ${isLast ? 'rounded-br-2xl' : ''}`}>
                     <div className="relative inline-block text-left action-dropdown-container">
                       <button
                         type="button"
@@ -403,7 +412,9 @@ export const AdminBookingsPage: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
