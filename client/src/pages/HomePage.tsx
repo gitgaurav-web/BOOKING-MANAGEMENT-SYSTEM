@@ -56,8 +56,8 @@ export const HomePage: React.FC = () => {
             </div>
 
             <h1 className="font-serif-college text-4xl leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              World-Class Venues for <br />
-              <span className="italic text-amber-400">Academic &amp; Research Excellence.</span>
+              Premier Campus Venues for <br />
+              <span className="italic text-amber-400">Events, Innovation &amp; Excellence.</span>
             </h1>
 
             <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
