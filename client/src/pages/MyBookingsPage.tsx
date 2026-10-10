@@ -76,6 +76,22 @@ Status     : ${statusStr}
 Authority: Facilities Committee & Dean Academics`;
   };
 
+  const loadLogoAsDataUrl = async (src: string): Promise<string | null> => {
+    try {
+      const res = await fetch(src);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+
   const downloadPdf = async () => {
     if (!selectedBooking) return;
 
@@ -91,34 +107,54 @@ Authority: Facilities Committee & Dean Academics`;
       });
 
       const qrDataText = getBookingQrData(selectedBooking);
-      const qrDataUrl = await QRCode.toDataURL(qrDataText, {
-        width: 300,
-        margin: 1,
-        color: { dark: '#0f172a', light: '#ffffff' },
-      });
+      const [qrDataUrl, logoDataUrl, sealDataUrl] = await Promise.all([
+        QRCode.toDataURL(qrDataText, {
+          width: 300,
+          margin: 1,
+          color: { dark: '#0f172a', light: '#ffffff' },
+        }),
+        loadLogoAsDataUrl('/images/sairam-logo.png'),
+        loadLogoAsDataUrl('/images/sairam-seal.png'),
+      ]);
 
       let y = 16;
 
       // Outer Card Box
       doc.setDrawColor(203, 213, 225); // slate-300
       doc.setFillColor(255, 255, 255);
-      doc.roundedRect(15, y, 180, 248, 4, 4, 'FD');
+      doc.roundedRect(15, y, 180, 250, 4, 4, 'FD');
 
       // Top Header Accent Bar
       doc.setFillColor(30, 58, 138); // Deep Navy #1E3A8A
-      doc.roundedRect(15, y, 180, 24, 4, 4, 'F');
-      doc.rect(15, y + 18, 180, 6, 'F'); // square bottom of header bar
+      doc.roundedRect(15, y, 180, 26, 4, 4, 'F');
+      doc.rect(15, y + 20, 180, 6, 'F'); // square bottom of header bar
 
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.text('SRI SAIRAM COLLEGE OF ENGINEERING', 105, y + 10, { align: 'center' });
+      if (logoDataUrl) {
+        // White rounded container for the official logo
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(19, y + 3.5, 38, 19, 2, 2, 'F');
+        doc.addImage(logoDataUrl, 'PNG', 20.5, y + 4.5, 35, 17);
 
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.text('CENTRAL FACILITIES OFFICE • OFFICIAL CONFIRMATION PASS', 105, y + 18, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11.5);
+        doc.text('SRI SAIRAM COLLEGE OF ENGINEERING', 61, y + 11);
 
-      y += 32;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text('CENTRAL FACILITIES OFFICE • OFFICIAL CONFIRMATION PASS', 61, y + 18);
+      } else {
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.text('SRI SAIRAM COLLEGE OF ENGINEERING', 105, y + 11, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.text('CENTRAL FACILITIES OFFICE • OFFICIAL CONFIRMATION PASS', 105, y + 19, { align: 'center' });
+      }
+
+      y += 34;
 
       // Status Badge
       const isApproved = selectedBooking.status === 'APPROVED';
@@ -294,12 +330,16 @@ Authority: Facilities Committee & Dean Academics`;
       doc.text(`System Generated on: ${new Date().toLocaleDateString()}`, 20, y + 2);
       doc.text('Authority: Facilities Committee & Dean Academics', 20, y + 6);
 
+      if (sealDataUrl) {
+        doc.addImage(sealDataUrl, 'PNG', 152, y - 10, 16, 16);
+      }
+
       doc.setDrawColor(148, 163, 184);
-      doc.line(135, y + 4, 185, y + 4);
+      doc.line(135, y + 7, 185, y + 7);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
       doc.setTextColor(71, 85, 105);
-      doc.text('[ Official Stamp / Signature ]', 160, y + 8, { align: 'center' });
+      doc.text('[ Official Stamp / Signature ]', 160, y + 11, { align: 'center' });
 
       // Save PDF
       doc.save(`Booking-Pass-${selectedBooking.bookingId}.pdf`);
