@@ -244,30 +244,30 @@ export const AdminBookingsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <div className="w-full overflow-visible">
+      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div className="w-full overflow-x-auto min-h-[300px]">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="py-3.5 px-4 whitespace-nowrap w-[15%]">Booking ID</th>
-                <th className="py-3.5 px-4 whitespace-nowrap w-[14%]">Hall</th>
-                <th className="py-3.5 px-4 w-[24%]">Event Details & Notice</th>
-                <th className="py-3.5 px-4 whitespace-nowrap w-[14%]">Date & Slot</th>
-                <th className="py-3.5 px-4 w-[17%]">Department / Coordinator</th>
-                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[8%]">Status</th>
-                <th className="py-3.5 px-4 text-right whitespace-nowrap w-[8%]">Actions</th>
+                <th className="py-3 px-3 whitespace-nowrap w-36">Booking ID</th>
+                <th className="py-3 px-3 whitespace-nowrap w-28">Hall</th>
+                <th className="py-3 px-3 min-w-[200px]">Event Details & Notice</th>
+                <th className="py-3 px-3 whitespace-nowrap w-32">Date & Slot</th>
+                <th className="py-3 px-3 w-48">Department / Coordinator</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap w-24">Status</th>
+                <th className="py-3 px-3 text-right whitespace-nowrap w-24">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((b) => (
                 <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-4 px-4 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                  <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {b.bookingId}
                   </td>
-                  <td className="py-4 px-4 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                  <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                     {b.hall?.name}
                   </td>
-                  <td className="py-4 px-4">
+                  <td className="py-3 px-3">
                     <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate" title={b.eventName}>
                       {b.eventName}
                     </span>
@@ -292,7 +292,7 @@ export const AdminBookingsPage: React.FC = () => {
                       </div>
                     )}
                   </td>
-                  <td className="py-4 px-4 whitespace-nowrap">
+                  <td className="py-3 px-3 whitespace-nowrap">
                     <div className="font-semibold text-slate-800 dark:text-slate-200">
                       {b.bookingDate}
                       {b.endDate && b.endDate !== b.bookingDate && (
@@ -315,7 +315,7 @@ export const AdminBookingsPage: React.FC = () => {
                       </a>
                     )}
                   </td>
-                  <td className="py-4 px-4">
+                  <td className="py-3 px-3">
                     <div className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={b.department?.name || 'Academic Dept'}>
                       {b.department?.name || 'Academic Dept'}
                     </div>
@@ -325,10 +325,10 @@ export const AdminBookingsPage: React.FC = () => {
                       <span>{b.contactNumber}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-3 text-center whitespace-nowrap">
+                  <td className="py-3 px-2.5 text-center whitespace-nowrap">
                     <StatusBadge status={b.status} size="sm" />
                   </td>
-                  <td className="py-4 px-4 text-right whitespace-nowrap">
+                  <td className="py-3 px-3 text-right whitespace-nowrap">
                     <div className="relative inline-block text-left action-dropdown-container">
                       <button
                         type="button"
