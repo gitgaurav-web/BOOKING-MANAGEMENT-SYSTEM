@@ -776,7 +776,8 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
 router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, adminNotes } = req.body;
+    const effectiveReason = reason || adminNotes || 'Booking reservation cancelled upon request.';
 
     const existing = await prisma.booking.findUnique({ where: { id }, include: { hall: true } });
     if (!existing) {
@@ -794,7 +795,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
       where: { id },
       data: {
         status: 'CANCELLED',
-        adminNotes: reason ? `Cancelled with note: ${reason}` : existing.adminNotes,
+        adminNotes: adminNotes !== undefined ? adminNotes : (reason ? `Cancelled: ${reason}` : existing.adminNotes),
       },
       include: { hall: true },
     });
@@ -811,7 +812,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
       await createNotification(
         existing.userId,
         'Booking Cancelled',
-        `Your booking ${existing.bookingId} on ${existing.bookingDate} has been cancelled by administration. Reason: ${reason || 'Administrative re-allocation'}`,
+        `Your booking ${existing.bookingId} on ${existing.bookingDate} has been cancelled by administration. Reason: ${effectiveReason}`,
         'ALERT'
       );
     }
@@ -826,7 +827,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
       bookingDate: existing.bookingDate,
       timeSlot: `${existing.startTime} - ${existing.endTime}`,
       status: 'CANCELLED',
-      rejectionReason: reason || 'Booking reservation cancelled upon request.',
+      rejectionReason: effectiveReason,
     }).catch(err => console.error('Cancellation email error:', err));
 
     res.json({
@@ -835,6 +836,53 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to cancel booking.' });
+  }
+});
+
+// Admin: Update Admin Notice / Notes for Faculty
+router.patch('/:id/notes', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+
+    const existing = await prisma.booking.findUnique({ where: { id }, include: { hall: true } });
+    if (!existing) {
+      res.status(404).json({ error: 'Booking not found.' });
+      return;
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: {
+        adminNotes: adminNotes !== undefined ? adminNotes : existing.adminNotes,
+      },
+      include: { hall: true, department: true },
+    });
+
+    await logActivity(
+      req.user!.id,
+      'UPDATE_BOOKING_NOTES',
+      'BOOKING',
+      id,
+      `Updated admin notice on booking ${existing.bookingId}`
+    );
+
+    if (adminNotes && existing.userId !== req.user!.id) {
+      await createNotification(
+        existing.userId,
+        'Admin Notice on your Booking',
+        `Admin notice for booking ${existing.bookingId} (${existing.hall.name}): "${adminNotes}"`,
+        'INFO'
+      );
+    }
+
+    res.json({
+      ...updated,
+      specialRequirements: JSON.parse(updated.specialRequirements || '[]'),
+      message: 'Admin notice updated successfully.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update admin notes.' });
   }
 });
 

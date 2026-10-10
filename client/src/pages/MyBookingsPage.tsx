@@ -12,6 +12,8 @@ import {
   Plus,
   Download,
   FileCheck2,
+  MessageSquare,
+  AlertTriangle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -161,6 +163,18 @@ export const MyBookingsPage: React.FC = () => {
                         <div className="text-[11px] text-slate-400">
                           {b.department?.name || 'Academic Dept'}
                         </div>
+                        {b.adminNotes && (
+                          <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60 shadow-2xs">
+                            <MessageSquare className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>Admin Notice: {b.adminNotes}</span>
+                          </div>
+                        )}
+                        {b.rejectionReason && b.status === 'REJECTED' && (
+                          <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60 shadow-2xs">
+                            <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" />
+                            <span>Reason: {b.rejectionReason}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
                         {b.endDate && b.endDate !== b.bookingDate ? (
@@ -305,6 +319,32 @@ export const MyBookingsPage: React.FC = () => {
                   >
                     View Document ↗
                   </a>
+                </div>
+              )}
+
+              {/* Official Admin Notice / Instructions */}
+              {selectedBooking.adminNotes && (
+                <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200 uppercase text-[10px] tracking-wider">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Official Admin Notice / Instructions for Faculty</span>
+                  </div>
+                  <p className="text-amber-800 dark:text-amber-300 font-medium whitespace-pre-wrap">
+                    {selectedBooking.adminNotes}
+                  </p>
+                </div>
+              )}
+
+              {/* Official Rejection Reason if any */}
+              {selectedBooking.rejectionReason && selectedBooking.status === 'REJECTED' && (
+                <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-rose-900 dark:text-rose-200 uppercase text-[10px] tracking-wider">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Administration Rejection Reason</span>
+                  </div>
+                  <p className="text-rose-800 dark:text-rose-300 font-medium whitespace-pre-wrap">
+                    {selectedBooking.rejectionReason}
+                  </p>
                 </div>
               )}
 
