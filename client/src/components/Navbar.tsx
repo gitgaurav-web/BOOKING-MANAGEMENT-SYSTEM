@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   Landmark,
@@ -30,17 +30,68 @@ export const Navbar: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
+  const notificationRef = useRef<HTMLDivElement>(null);
+  const mobileNotificationRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (user) {
       loadNotifications();
     }
   }, [user]);
 
+  // Close notifications when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(target) &&
+        (!mobileNotificationRef.current || !mobileNotificationRef.current.contains(target))
+      ) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNotificationsOpen(false);
+      }
+    };
+
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [notificationsOpen]);
+
+  // Close notifications and mobile menu on route change
+  useEffect(() => {
+    setNotificationsOpen(false);
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const loadNotifications = async () => {
     try {
       const data = await apiRequest<NotificationItem[]>('/notifications');
       setNotifications(data);
       setUnreadCount(data.filter((n) => !n.isRead).length);
+    } catch {
+      // Ignored
+    }
+  };
+
+  const markSingleRead = async (id: string) => {
+    try {
+      await apiRequest(`/notifications/${id}/read`, { method: 'PATCH' });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch {
       // Ignored
     }
@@ -155,10 +206,11 @@ export const Navbar: React.FC = () => {
 
             {/* Notifications Dropdown (If Logged In) */}
             {user && (
-              <div className="relative">
+              <div ref={notificationRef} className="relative">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Notifications"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
@@ -167,19 +219,28 @@ export const Navbar: React.FC = () => {
                 </button>
 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50">
+                  <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-3 z-50 animate-fade-in">
                     <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
                       <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
-                        Notifications ({unreadCount})
+                        Notifications {unreadCount > 0 && `(${unreadCount})`}
                       </span>
-                      {unreadCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllRead}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
+                          >
+                            Mark all read
+                          </button>
+                        )}
                         <button
-                          onClick={markAllRead}
-                          className="text-xs text-[#315b48] dark:text-emerald-300 hover:underline"
+                          onClick={() => setNotificationsOpen(false)}
+                          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                          title="Close notifications"
                         >
-                          Mark all read
+                          <X className="w-3.5 h-3.5" />
                         </button>
-                      )}
+                      </div>
                     </div>
                     <div className="max-h-64 overflow-y-auto space-y-2">
                       {notifications.length === 0 ? (
@@ -188,13 +249,19 @@ export const Navbar: React.FC = () => {
                         notifications.map((n) => (
                           <div
                             key={n.id}
-                            className={`p-2.5 rounded-xl text-xs transition-colors ${
+                            onClick={() => markSingleRead(n.id)}
+                            className={`p-2.5 rounded-xl text-xs transition-colors cursor-pointer ${
                               n.isRead
-                                ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400'
-                                : 'bg-blue-50/70 dark:bg-blue-950/40 text-slate-800 dark:text-slate-200 font-medium'
+                                ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                                : 'bg-blue-50/70 dark:bg-blue-950/40 text-slate-800 dark:text-slate-200 font-medium hover:bg-blue-100/70 dark:hover:bg-blue-900/40'
                             }`}
                           >
-                            <p className="font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                              {!n.isRead && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                              )}
+                            </div>
                             <p className="mt-0.5 leading-relaxed">{n.message}</p>
                           </div>
                         ))
@@ -263,8 +330,21 @@ export const Navbar: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile Action Buttons */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            {user && (
+              <button
+                ref={mobileNotificationRef}
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                )}
+              </button>
+            )}
             <button
               onClick={toggleTheme}
               className="p-2 text-slate-500 dark:text-slate-400 rounded-lg"
