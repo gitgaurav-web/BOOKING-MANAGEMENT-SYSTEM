@@ -29,6 +29,13 @@ interface AvailabilityCalendarProps {
   viewMode?: 'month' | 'week' | 'list';
 }
 
+const getShortHallName = (name: string): string => {
+  const lower = name.toLowerCase();
+  if (lower.includes('seminar')) return 'Seminar';
+  if (lower.includes('av') || lower.includes('visvesvaraya') || lower.includes('sir')) return 'AV';
+  return name.split(' ')[0] || name;
+};
+
 export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   currentDate,
   onDateChange,
@@ -264,11 +271,27 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       {format(day, 'MMMM d, yyyy')}
                     </span>
                     <div className="flex items-center gap-2 mt-0.5">
-                      {items.map((it) => (
-                        <span key={it.hallId} className="text-xs text-slate-500">
-                          {it.hallName}: <span className="font-medium">{it.status}</span>
-                        </span>
-                      ))}
+                      {items.map((it) => {
+                        const isBooked = it.status === 'BOOKED' || it.status === 'PARTIAL';
+                        const displayStatus = isBooked ? 'BOOKED' : it.status;
+                        const shortName = getShortHallName(it.hallName);
+                        return (
+                          <span key={it.hallId} className="text-xs text-slate-500">
+                            {shortName}:{' '}
+                            <span
+                              className={`font-semibold ${
+                                isBooked
+                                  ? 'text-rose-600 dark:text-rose-400'
+                                  : displayStatus === 'AVAILABLE'
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              {displayStatus}
+                            </span>
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -362,29 +385,33 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 
                   {/* Desktop detailed chips */}
                   <div className="mt-1 space-y-1 overflow-hidden hidden sm:block">
-                    {items.map((it) => (
-                      <div
-                        key={it.hallId}
-                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between ${
-                          it.status === 'AVAILABLE'
-                            ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
-                            : it.status === 'PARTIAL'
-                            ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200 border border-amber-300/50'
-                            : it.status === 'BOOKED'
-                            ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300'
-                            : it.status === 'PENDING'
-                            ? 'bg-sky-500/20 text-sky-800 dark:text-sky-300'
-                            : 'bg-slate-500/20 text-slate-800 dark:text-slate-300'
-                        }`}
-                        title={`${it.hallName}: ${it.status}${it.freeSlots?.length ? ` (Free: ${it.freeSlots.join(', ')})` : ''}`}
-                      >
-                        <span className="truncate">
-                          {selectedHallId === 'ALL'
-                            ? `${it.hallName.split(' ')[0]}: ${it.status === 'PARTIAL' ? (it.freeSlots?.includes('AFTERNOON') ? 'Aft Free' : 'Morn Free') : it.status}`
-                            : (it.status === 'PARTIAL' ? (it.freeSlots?.includes('AFTERNOON') ? 'Afternoon Open' : 'Morning Open') : it.status)}
-                        </span>
-                      </div>
-                    ))}
+                    {items.map((it) => {
+                      const isBooked = it.status === 'BOOKED' || it.status === 'PARTIAL';
+                      const displayStatus = isBooked ? 'BOOKED' : it.status;
+                      const shortName = getShortHallName(it.hallName);
+
+                      return (
+                        <div
+                          key={it.hallId}
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between ${
+                            displayStatus === 'AVAILABLE'
+                              ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                              : displayStatus === 'BOOKED'
+                              ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300'
+                              : displayStatus === 'PENDING'
+                              ? 'bg-sky-500/20 text-sky-800 dark:text-sky-300'
+                              : 'bg-slate-500/20 text-slate-800 dark:text-slate-300'
+                          }`}
+                          title={`${it.hallName}: ${displayStatus}`}
+                        >
+                          <span className="truncate">
+                            {selectedHallId === 'ALL'
+                              ? `${shortName}: ${displayStatus}`
+                              : displayStatus}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Mobile indicator text */}
