@@ -77,19 +77,6 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
           </button>
         </div>
 
-        {/* Past Date Notice */}
-        {isPastDate && (
-          <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
-            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Past Date (Reservation Closed):</span>
-              <p className="mt-0.5 text-amber-800 dark:text-amber-300 text-[11px] leading-relaxed">
-                Yeh beeta hua din hai. Yahan facility ka historical record dikhaya ja raha hai — beeti hui date par naya booking request nahi kiya ja sakta.
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto space-y-6">
           {items.map((item) => (
@@ -129,8 +116,8 @@ export const DateDetailModal: React.FC<DateDetailModalProps> = ({
                 ) : (
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="text-xs text-slate-600 dark:text-slate-400">
-                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">Hall Was Free / Unreserved</p>
-                      <p className="mt-0.5 text-[11px]">Historical record only — Past dates cannot be booked.</p>
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">Hall Was Available</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">No event was scheduled on this date.</p>
                     </div>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold shrink-0">
                       <Ban className="w-3.5 h-3.5 text-slate-500" />
