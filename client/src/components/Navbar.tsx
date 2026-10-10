@@ -100,24 +100,21 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.75rem]">
           {/* Logo with Authentic Sairam Branding */}
-          <Link to="/" className="flex items-center gap-3.5 group">
+          <Link to="/" className="flex items-center gap-3.5 group shrink-0">
             <div className="flex items-center">
               <img
                 src="/images/sairam-logo.png"
                 alt="Sri Sairam College of Engineering"
-                className="h-11 sm:h-12 w-auto max-w-[210px] sm:max-w-[270px] object-contain rounded-lg bg-white p-1 border border-slate-200 shadow-xs dark:border-slate-700 transition-transform group-hover:scale-[1.02]"
+                className="h-11 sm:h-13 lg:h-14 w-auto object-contain dark:bg-white dark:px-2.5 dark:py-1 dark:rounded-xl dark:shadow-sm transition-transform duration-200 group-hover:scale-[1.02]"
               />
             </div>
-            <div className="hidden lg:block border-l border-slate-200 dark:border-slate-800 pl-3">
+            <div className="hidden xl:flex flex-col justify-center border-l border-slate-200/80 dark:border-slate-800 pl-3.5">
               <div className="flex items-center gap-1.5">
-                <span className="block font-crest text-sm font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
-                  {settings.siteName || 'FACILITY PORTAL'}
-                </span>
-                <span className="rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
-                  PORTAL
+                <span className="font-crest text-xs font-bold tracking-tight text-slate-900 dark:text-white uppercase leading-none">
+                  Facility Portal
                 </span>
               </div>
-              <span className="block text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5">
                 Auditoriums &amp; Seminar Halls
               </span>
             </div>

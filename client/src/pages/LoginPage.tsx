@@ -43,20 +43,22 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       {/* College Identity Header */}
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-4">
         <div className="flex justify-center">
-          <img
-            src="/images/sairam-seal.png"
-            alt="Sri Sairam College Emblem"
-            className="w-16 h-16 rounded-full border-2 border-amber-400/60 bg-white p-0.5 shadow-lg object-contain transition-transform hover:scale-105"
-          />
+          <Link to="/" className="inline-block transition-transform hover:scale-[1.02]">
+            <img
+              src="/images/sairam-logo.png"
+              alt="Sri Sairam College of Engineering"
+              className="h-16 sm:h-20 w-auto object-contain bg-white dark:bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 mx-auto"
+            />
+          </Link>
         </div>
 
         <div>
-          <span className="text-[10px] uppercase font-bold tracking-[.18em] text-amber-600 dark:text-amber-400 block mb-1">
-            {settings.institutionName || 'Sri Sairam College of Engineering'}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-950/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 border border-amber-300/40">
+            ★ Central Facility Portal
           </span>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Sign In to Facility Portal
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">

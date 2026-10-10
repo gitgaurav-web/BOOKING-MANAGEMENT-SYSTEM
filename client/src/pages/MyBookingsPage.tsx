@@ -209,16 +209,18 @@ export const MyBookingsPage: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl w-full p-6 space-y-6 my-8">
             <div id="printable-voucher" className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
               {/* College Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold">
-                    <Building2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-base text-slate-900 dark:text-white leading-tight">
-                      Campus Facilities Office
+                  <img
+                    src="/images/sairam-logo.png"
+                    alt="Sri Sairam College of Engineering"
+                    className="h-12 sm:h-14 w-auto object-contain bg-white rounded-xl p-1 shadow-xs border border-slate-100"
+                  />
+                  <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
+                    <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-900 dark:text-white leading-tight">
+                      Central Facilities Office
                     </h4>
-                    <p className="text-[11px] text-slate-500">Official Facility Reservation Slip</p>
+                    <p className="text-[10px] text-slate-500">Official Confirmation Pass</p>
                   </div>
                 </div>
                 <StatusBadge status={selectedBooking.status} size="md" />
