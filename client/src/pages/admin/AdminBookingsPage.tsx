@@ -244,59 +244,59 @@ export const AdminBookingsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-        <div className="w-full">
-          <table className="w-full text-left text-xs table-auto">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider">
+      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="w-full overflow-visible">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider">
               <tr>
-                <th className="py-3 px-3 whitespace-nowrap">Booking ID</th>
-                <th className="py-3 px-3 whitespace-nowrap">Hall</th>
-                <th className="py-3 px-3">Event Details & Notice</th>
-                <th className="py-3 px-3 whitespace-nowrap">Date & Slot</th>
-                <th className="py-3 px-3">Department / Coordinator</th>
-                <th className="py-3 px-2 text-center whitespace-nowrap">Status</th>
-                <th className="py-3 px-3 text-right whitespace-nowrap">Actions</th>
+                <th className="py-3.5 px-4 whitespace-nowrap w-[15%]">Booking ID</th>
+                <th className="py-3.5 px-4 whitespace-nowrap w-[14%]">Hall</th>
+                <th className="py-3.5 px-4 w-[24%]">Event Details & Notice</th>
+                <th className="py-3.5 px-4 whitespace-nowrap w-[14%]">Date & Slot</th>
+                <th className="py-3.5 px-4 w-[17%]">Department / Coordinator</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[8%]">Status</th>
+                <th className="py-3.5 px-4 text-right whitespace-nowrap w-[8%]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {filtered.map((b) => (
                 <tr key={b.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-3 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                  <td className="py-4 px-4 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {b.bookingId}
                   </td>
-                  <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                  <td className="py-4 px-4 font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                     {b.hall?.name}
                   </td>
-                  <td className="py-3 px-3">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate max-w-[200px]" title={b.eventName}>
+                  <td className="py-4 px-4">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate" title={b.eventName}>
                       {b.eventName}
                     </span>
-                    <span className="text-[11px] text-slate-400 block truncate max-w-[200px]" title={b.purpose}>
+                    <span className="text-[11px] text-slate-400 block truncate mt-0.5" title={b.purpose}>
                       {b.purpose}
                     </span>
                     {/* Admin Notice Pill if present */}
                     {b.adminNotes && (
-                      <div className="mt-1 flex items-start gap-1 text-[10.5px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded px-1.5 py-0.5 max-w-[220px] shadow-2xs">
-                        <MessageSquare className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div className="mt-1.5 flex items-start gap-1 text-[11px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md px-2 py-0.5 max-w-full shadow-2xs">
+                        <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <span className="truncate" title={b.adminNotes}>
                           <strong className="font-semibold">Notice:</strong> {b.adminNotes}
                         </span>
                       </div>
                     )}
                     {b.rejectionReason && b.status === 'REJECTED' && (
-                      <div className="mt-1 flex items-start gap-1 text-[10.5px] bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded px-1.5 py-0.5 max-w-[220px]">
-                        <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="mt-1 flex items-start gap-1 text-[11px] bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-md px-2 py-0.5 max-w-full">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
                         <span className="truncate" title={b.rejectionReason}>
                           <strong className="font-semibold">Reason:</strong> {b.rejectionReason}
                         </span>
                       </div>
                     )}
                   </td>
-                  <td className="py-3 px-3 whitespace-nowrap">
+                  <td className="py-4 px-4 whitespace-nowrap">
                     <div className="font-semibold text-slate-800 dark:text-slate-200">
                       {b.bookingDate}
                       {b.endDate && b.endDate !== b.bookingDate && (
-                        <span className="ml-1 text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1 py-0.2 rounded">
+                        <span className="ml-1.5 text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
                           to {b.endDate}
                         </span>
                       )}
@@ -309,38 +309,38 @@ export const AdminBookingsPage: React.FC = () => {
                         href={b.attachmentUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-block text-[10.5px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold mt-0.5"
+                        className="inline-block text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold mt-0.5"
                       >
                         📎 Proposal ↗
                       </a>
                     )}
                   </td>
-                  <td className="py-3 px-3">
-                    <div className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-[160px]" title={b.department?.name || 'Academic Dept'}>
+                  <td className="py-4 px-4">
+                    <div className="font-semibold text-slate-800 dark:text-slate-200 truncate" title={b.department?.name || 'Academic Dept'}>
                       {b.department?.name || 'Academic Dept'}
                     </div>
-                    <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5 whitespace-nowrap">
+                    <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
                       <span>{b.requestedBy}</span>
                       <span>•</span>
                       <span>{b.contactNumber}</span>
                     </div>
                   </td>
-                  <td className="py-3 px-2 text-center whitespace-nowrap">
+                  <td className="py-4 px-3 text-center whitespace-nowrap">
                     <StatusBadge status={b.status} size="sm" />
                   </td>
-                  <td className="py-3 px-3 text-right whitespace-nowrap">
+                  <td className="py-4 px-4 text-right whitespace-nowrap">
                     <div className="relative inline-block text-left action-dropdown-container">
                       <button
                         type="button"
                         onClick={() => setOpenDropdownId(openDropdownId === b.id ? null : b.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition border border-slate-200/80 dark:border-slate-700/80 shadow-2xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 font-semibold text-xs transition border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer"
                       >
                         <span>Actions</span>
-                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${openDropdownId === b.id ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${openDropdownId === b.id ? 'rotate-180' : ''}`} />
                       </button>
 
                       {openDropdownId === b.id && (
-                        <div className="absolute right-0 mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-40 animate-fade-in text-xs font-medium">
+                        <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl py-2 z-50 animate-fade-in text-xs font-medium">
                           {/* Option 1: Notice / Remarks */}
                           <button
                             type="button"
@@ -348,7 +348,7 @@ export const AdminBookingsPage: React.FC = () => {
                               setOpenDropdownId(null);
                               openActionModal(b);
                             }}
-                            className="w-full text-left px-3.5 py-2 flex items-center gap-2 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 transition cursor-pointer"
+                            className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer"
                           >
                             <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
                             <span>{b.adminNotes ? 'Notice / Remarks' : 'Add Notice / Remarks'}</span>
@@ -362,7 +362,7 @@ export const AdminBookingsPage: React.FC = () => {
                                 setOpenDropdownId(null);
                                 handleApproveWithNotice(b.id, b.adminNotes || '');
                               }}
-                              className="w-full text-left px-3.5 py-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition cursor-pointer"
+                              className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                               <span>{b.status === 'PENDING' ? 'Approve Booking' : 'Re-Approve'}</span>
@@ -377,14 +377,14 @@ export const AdminBookingsPage: React.FC = () => {
                                 setOpenDropdownId(null);
                                 handleCancelWithNotice(b.id, b.adminNotes || 'Admin cancelled reservation');
                               }}
-                              className="w-full text-left px-3.5 py-2 flex items-center gap-2 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                              className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
                             >
                               <XCircle className="w-3.5 h-3.5 text-rose-500" />
                               <span>Cancel Booking</span>
                             </button>
                           )}
 
-                          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                          <div className="my-1.5 border-t border-slate-100 dark:border-slate-800" />
 
                           {/* Option 4: Delete */}
                           <button
@@ -393,7 +393,7 @@ export const AdminBookingsPage: React.FC = () => {
                               setOpenDropdownId(null);
                               handleDelete(b.id, b.bookingId);
                             }}
-                            className="w-full text-left px-3.5 py-2 flex items-center gap-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                            className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5 text-slate-400" />
                             <span>Delete Permanently</span>
