@@ -217,6 +217,23 @@ export const BookingRequestPage: React.FC = () => {
       }
     }
 
+    // For today's date: verify that start time has not already passed
+    if (bookingDate === todayIso) {
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+      const effectiveStart = bookingType === 'CUSTOM' ? startTime : (bookingType === 'AFTERNOON' ? '13:00' : '09:00');
+      if (effectiveStart && effectiveStart <= currentTimeStr) {
+        if (bookingType === 'CUSTOM') {
+          errors.startTime = `Start time must be after the current time (${currentTimeStr}).`;
+        } else {
+          errors.bookingType = `The selected slot starts at ${effectiveStart}, which has already passed today (current time: ${currentTimeStr}). Please select an upcoming slot or Custom Times.`;
+        }
+      }
+    }
+
     if (!eventName.trim()) {
       errors.eventName = 'Event Name / Title is required.';
     }

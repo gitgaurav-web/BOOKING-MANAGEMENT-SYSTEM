@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { logActivity, createNotification } from '../utils/helpers';
-import { isValidStrictIsoDate, getLocalIsoDate, isValidStrictTime } from '../utils/dateValidation';
+import { isValidStrictIsoDate, getLocalIsoDate, getLocalTime, isValidStrictTime } from '../utils/dateValidation';
 import { sendBookingNotificationEmail } from '../utils/emailService';
 import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
@@ -210,22 +210,26 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       return;
     }
 
+    // For today's date: start time must be in the future (e.g. if current time is 12:00, allow 13:00 onwards)
+    if (bookingDate === todayStr) {
+      const currentLocalTime = getLocalTime();
+      if (effectiveStart <= currentLocalTime) {
+        res.status(400).json({
+          error: `Cannot book a past time slot for today. Selected start time (${effectiveStart}) has already passed (current time: ${currentLocalTime}). Please select an upcoming time slot.`,
+        });
+        return;
+      }
+    }
+
     const requestedStart = new Date(bookingDate + 'T00:00:00');
     const todayDate = new Date(todayStr + 'T00:00:00');
     const diffDays = Math.round((requestedStart.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    const minNotice = parseInt(settingsMap.minAdvanceNoticeDays || '1', 10);
-    const maxNotice = parseInt(settingsMap.maxAdvanceNoticeDays || '90', 10);
+    const maxNotice = parseInt(settingsMap.maxAdvanceNoticeDays || '365', 10);
 
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(req.user!.role);
 
     if (!isAdmin) {
-      if (diffDays < minNotice) {
-        res.status(400).json({
-          error: `Minimum advance booking notice required is ${minNotice} day(s). Cannot book dates in the past or on short notice.`,
-        });
-        return;
-      }
       if (diffDays > maxNotice) {
         res.status(400).json({
           error: `Booking exceeds maximum advance reservation window of ${maxNotice} days.`,

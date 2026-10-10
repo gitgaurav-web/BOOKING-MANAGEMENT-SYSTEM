@@ -185,7 +185,7 @@ export const AdminSettingsPage: React.FC = () => {
                 type="number"
                 min="0"
                 max="30"
-                value={settings.minAdvanceNoticeDays || '1'}
+                value={settings.minAdvanceNoticeDays ?? '0'}
                 onChange={(e) => handleChange('minAdvanceNoticeDays', e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800"
               />

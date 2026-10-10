@@ -38,7 +38,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       academicSession: 'Academic Session 2026-27',
       accreditationText: 'Approved by AICTE · Affiliated to VTU Belagavi · NAAC Accredited',
       allowedEmailDomain: '',
-      minAdvanceNoticeDays: '1',
+      minAdvanceNoticeDays: '0',
       maxAdvanceNoticeDays: '90',
       requireAdminApproval: 'true',
       requireUserApproval: 'true',

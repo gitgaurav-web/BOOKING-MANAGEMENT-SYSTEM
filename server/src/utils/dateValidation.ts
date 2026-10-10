@@ -46,3 +46,16 @@ export function getLocalIsoDate(timeZone: string = 'Asia/Kolkata'): string {
   });
   return formatter.format(new Date());
 }
+
+/**
+ * Returns current clock time in 24-hour HH:mm according to a specified timezone (default: Asia/Kolkata).
+ */
+export function getLocalTime(timeZone: string = 'Asia/Kolkata'): string {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(new Date());
+}

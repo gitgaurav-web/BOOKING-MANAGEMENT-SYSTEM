@@ -376,7 +376,7 @@ test('Live Express API: Settings Endpoint Allowlisting and Relational Validation
         'Content-Type': 'application/json',
         Authorization: `Bearer ${adminToken}`,
       },
-      body: JSON.stringify({ minAdvanceNoticeDays: '2', maxAdvanceNoticeDays: '60' }),
+      body: JSON.stringify({ minAdvanceNoticeDays: '0', maxAdvanceNoticeDays: '60' }),
     });
     assert.strictEqual(resValid.status, 200, 'Valid settings update must return 200 OK');
 
