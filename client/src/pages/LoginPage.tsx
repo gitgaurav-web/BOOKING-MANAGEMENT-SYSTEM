@@ -47,9 +47,14 @@ export const LoginPage: React.FC = () => {
         <div className="flex justify-center">
           <Link to="/" className="inline-block transition-transform hover:scale-[1.02]">
             <img
-              src="/images/sairam-logo.png"
+              src="/images/sairam-logo-light.png"
               alt="Sri Sairam College of Engineering"
-              className="h-16 sm:h-20 w-auto object-contain bg-white dark:bg-white p-2.5 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-700 mx-auto"
+              className="block dark:hidden h-16 sm:h-20 w-auto object-contain mx-auto"
+            />
+            <img
+              src="/images/sairam-logo-dark.png"
+              alt="Sri Sairam College of Engineering"
+              className="hidden dark:block h-16 sm:h-20 w-auto object-contain mx-auto"
             />
           </Link>
         </div>

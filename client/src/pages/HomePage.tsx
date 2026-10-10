@@ -352,9 +352,14 @@ export const HomePage: React.FC = () => {
             <div className="flex flex-col justify-center p-8 sm:p-12">
               <div className="mb-4">
                 <img
-                  src="/images/sairam-logo.png"
+                  src="/images/sairam-logo-light.png"
                   alt="Sri Sairam College of Engineering"
-                  className="h-11 sm:h-13 w-auto object-contain dark:bg-white dark:px-3 dark:py-1 dark:rounded-xl dark:shadow-xs"
+                  className="block dark:hidden h-11 sm:h-13 w-auto object-contain"
+                />
+                <img
+                  src="/images/sairam-logo-dark.png"
+                  alt="Sri Sairam College of Engineering"
+                  className="hidden dark:block h-11 sm:h-13 w-auto object-contain"
                 />
               </div>
               <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.2em] text-blue-900 dark:text-amber-400">

@@ -28,13 +28,11 @@ export const Footer: React.FC = () => {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-[1.4fr_.8fr_.8fr]">
             <div>
-              <div className="inline-block bg-white p-2.5 rounded-2xl shadow-md border border-amber-400/40">
-                <img
-                  src="/images/sairam-logo.png"
-                  alt="Sri Sairam College of Engineering"
-                  className="h-12 sm:h-14 w-auto object-contain"
-                />
-              </div>
+              <img
+                src="/images/sairam-logo-dark.png"
+                alt="Sri Sairam College of Engineering"
+                className="h-12 sm:h-14 w-auto object-contain"
+              />
             <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-300">
               Official centralized booking platform for campus auditoriums, seminar halls, and ICT smart facilities. Facilitating university events, conferences, and student symposiums.
             </p>
