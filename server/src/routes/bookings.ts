@@ -187,12 +187,21 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       return;
     }
 
+    const effectiveStart =
+      bookingType === 'FULL_DAY'
+        ? (startTime || '09:00')
+        : bookingType === 'MORNING'
+        ? (startTime || '09:00')
+        : bookingType === 'AFTERNOON'
+        ? (startTime || '13:00')
+        : startTime;
+
     const effectiveEnd = endDate && endDate >= bookingDate ? endDate : bookingDate;
 
     // Load active system settings
     const settingsList = await prisma.systemSetting.findMany();
     const settingsMap: Record<string, string> = {
-      minAdvanceNoticeDays: '1',
+      minAdvanceNoticeDays: '0',
       maxAdvanceNoticeDays: '90',
       allowWeekendBookings: 'true',
       allowHolidayBookings: 'false',
@@ -225,11 +234,18 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
     const todayDate = new Date(todayStr + 'T00:00:00');
     const diffDays = Math.round((requestedStart.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24));
 
+    const minNotice = parseInt(settingsMap.minAdvanceNoticeDays || '0', 10);
     const maxNotice = parseInt(settingsMap.maxAdvanceNoticeDays || '365', 10);
 
     const isAdmin = ['ADMIN', 'SUPER_ADMIN'].includes(req.user!.role);
 
     if (!isAdmin) {
+      if (minNotice > 0 && diffDays < minNotice) {
+        res.status(400).json({
+          error: `Minimum advance booking notice required is ${minNotice} day(s). Cannot book dates in the past or on short notice.`,
+        });
+        return;
+      }
       if (diffDays > maxNotice) {
         res.status(400).json({
           error: `Booking exceeds maximum advance reservation window of ${maxNotice} days.`,

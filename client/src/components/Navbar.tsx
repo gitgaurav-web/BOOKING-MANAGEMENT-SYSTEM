@@ -118,10 +118,7 @@ export const Navbar: React.FC = () => {
                 <span className="font-crest text-xs font-bold tracking-tight text-slate-900 dark:text-white uppercase leading-none">
                   Facility Portal
                 </span>
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[8px] font-bold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/50">
-                  PORTAL
-                </span>
-              </div>
+                </div>
               <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5">
                 Auditoriums &amp; Seminar Halls
               </span>
