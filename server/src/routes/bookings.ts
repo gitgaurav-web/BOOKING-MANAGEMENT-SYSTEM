@@ -290,10 +290,13 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       }
     }
 
-    // Policy for admin approval
+    // Policy for admin approval:
+    // User requested that when faculty (or anyone) books, it MUST show as PENDING everywhere
+    // until Super Admin accepts/approves it. Only then does it change to BOOKED/APPROVED.
     const allowHolidays = settingsMap.allowHolidayBookings === 'true';
     const requireApproval = settingsMap.requireAdminApproval !== 'false';
-    const initialStatus = (isAdmin || !requireApproval) ? 'APPROVED' : 'PENDING';
+    const isExplicitAutoApprove = req.body.autoApprove === true && isAdmin;
+    const initialStatus = (isExplicitAutoApprove || !requireApproval) ? 'APPROVED' : 'PENDING';
 
     // Atomic transaction to avoid race conditions during concurrent bookings
     const user = req.user!;
@@ -342,8 +345,8 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
           attachmentUrl: attachmentUrl || null,
           additionalNotes,
           status: initialStatus,
-          approvedById: (isAdmin || !requireApproval) ? user.id : null,
-          approvedAt: (isAdmin || !requireApproval) ? new Date() : null,
+          approvedById: initialStatus === 'APPROVED' ? user.id : null,
+          approvedAt: initialStatus === 'APPROVED' ? new Date() : null,
         },
         include: { hall: true, department: true },
       });
@@ -360,21 +363,21 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
     // Notify user
     await createNotification(
       user.id,
-      isAdmin ? 'Booking Confirmed' : 'Booking Request Submitted',
-      isAdmin
+      initialStatus === 'APPROVED' ? 'Booking Confirmed' : 'Booking Request Submitted',
+      initialStatus === 'APPROVED'
         ? `Your booking ${booking.bookingId} for ${booking.hall.name} on ${bookingDate} is confirmed.`
-        : `Your booking request ${booking.bookingId} for ${booking.hall.name} on ${bookingDate} is submitted and awaiting admin approval.`,
-      isAdmin ? 'SUCCESS' : 'INFO'
+        : `Your booking request ${booking.bookingId} for ${booking.hall.name} on ${bookingDate} is submitted and awaiting administrator approval.`,
+      initialStatus === 'APPROVED' ? 'SUCCESS' : 'INFO'
     );
 
-    // Notify admins if created by normal user
-    if (!isAdmin) {
+    // Notify admins if created in PENDING status
+    if (initialStatus === 'PENDING') {
       const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } } });
       for (const adm of admins) {
         await createNotification(
           adm.id,
           'New Booking Request',
-          `New request ${booking.bookingId} by ${user.name} for ${booking.hall.name} on ${bookingDate}.`,
+          `New request ${booking.bookingId} by ${user.name} for ${booking.hall.name} on ${bookingDate} awaiting approval.`,
           'ALERT'
         );
       }

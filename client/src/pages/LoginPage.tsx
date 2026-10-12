@@ -60,11 +60,8 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-950/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 border border-amber-300/40">
-            ★ Central Facility Portal
-          </span>
           <h1 className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Sign In to Facility Portal
+            Sign In 
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
             Authorized access for departmental faculty, seminar coordinators, and facility administrators.

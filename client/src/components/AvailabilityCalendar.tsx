@@ -137,7 +137,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       case 'BOOKED':
         return pastMuted + 'bg-rose-50/80 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border-rose-200 dark:border-rose-800/60 text-rose-950 dark:text-rose-100';
       case 'PENDING':
-        return pastMuted + 'bg-sky-50/80 hover:bg-sky-100/90 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-sky-200 dark:border-sky-800/60 text-sky-950 dark:text-sky-100';
+        return pastMuted + 'bg-amber-50/80 hover:bg-amber-100/90 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 border-amber-300 dark:border-amber-700/60 text-amber-950 dark:text-amber-100';
       case 'BLOCKED':
       case 'MAINTENANCE':
         return pastMuted + 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200';
@@ -226,14 +226,11 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" /> Available
         </span>
-        <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" /> Partial (Slot Open)
+        <span className="inline-flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-bold">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" /> Booked (Approved)
         </span>
-        <span className="inline-flex items-center gap-1.5 text-rose-700 dark:text-rose-400">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" /> Booked
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-sky-700 dark:text-sky-400">
-          <span className="w-2.5 h-2.5 rounded-full bg-sky-500 shadow-xs" /> Pending
+        <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-bold">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" /> Pending Approval
         </span>
         <span className="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
           <span className="w-2.5 h-2.5 rounded-full bg-slate-500 shadow-xs" /> Blocked / Maintenance
@@ -281,7 +278,9 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                             <span
                               className={`font-semibold ${
                                 isBooked
-                                  ? 'text-rose-600 dark:text-rose-400'
+                                  ? 'text-rose-600 dark:text-rose-400 font-bold'
+                                  : displayStatus === 'PENDING'
+                                  ? 'text-amber-600 dark:text-amber-400 font-bold'
                                   : displayStatus === 'AVAILABLE'
                                   ? 'text-emerald-600 dark:text-emerald-400'
                                   : 'text-slate-600 dark:text-slate-300'
@@ -393,14 +392,14 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       return (
                         <div
                           key={it.hallId}
-                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between ${
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between border ${
                             displayStatus === 'AVAILABLE'
-                              ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300'
+                              ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-300/40'
                               : displayStatus === 'BOOKED'
-                              ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300'
+                              ? 'bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-300/40'
                               : displayStatus === 'PENDING'
-                              ? 'bg-sky-500/20 text-sky-800 dark:text-sky-300'
-                              : 'bg-slate-500/20 text-slate-800 dark:text-slate-300'
+                              ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-400/60 font-bold'
+                              : 'bg-slate-500/20 text-slate-800 dark:text-slate-300 border-slate-300/40'
                           }`}
                           title={`${it.hallName}: ${displayStatus}`}
                         >
