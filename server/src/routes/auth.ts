@@ -156,19 +156,17 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response): Prom
       include: { department: true },
     });
 
-    if (!user) {
+    // Constant-time mitigation against user enumeration timing attacks (Layer 04)
+    const dummyHash = '$2a$10$e8W/J2tE6aD8bF4sH0iTbe5iU2tL5lU3dO8fI1kM4vO0eP6sQ2v1m';
+    const isMatch = await bcrypt.compare(password, user ? user.passwordHash : dummyHash);
+
+    if (!user || !isMatch) {
       res.status(401).json({ error: 'Invalid institutional email or password.' });
       return;
     }
 
     if (user.status !== 'ACTIVE') {
       res.status(403).json({ error: 'Your institutional account is pending administrator activation.' });
-      return;
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      res.status(401).json({ error: 'Invalid email or password.' });
       return;
     }
 

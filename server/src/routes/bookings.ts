@@ -134,6 +134,34 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       return;
     }
 
+    // Server-Side Input Boundaries (Layer 01 & Sheet 2: Input Handling)
+    if (typeof eventName !== 'string' || eventName.trim().length < 3 || eventName.trim().length > 120) {
+      res.status(400).json({ error: 'Event name must be between 3 and 120 characters.' });
+      return;
+    }
+
+    if (typeof purpose !== 'string' || purpose.trim().length < 5 || purpose.trim().length > 400) {
+      res.status(400).json({ error: 'Purpose must be between 5 and 400 characters.' });
+      return;
+    }
+
+    if (description && (typeof description !== 'string' || description.length > 1000)) {
+      res.status(400).json({ error: 'Description cannot exceed 1000 characters.' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(String(email).trim())) {
+      res.status(400).json({ error: 'Invalid contact email format.' });
+      return;
+    }
+
+    const phoneDigits = String(contactNumber).replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 15) {
+      res.status(400).json({ error: 'Contact phone number must contain 10 to 15 digits.' });
+      return;
+    }
+
     // Strict Date Validation (Rejects impossible rollover dates like 2026-02-31)
     if (!isValidStrictIsoDate(bookingDate)) {
       res.status(400).json({ error: 'Invalid booking date. Please specify a real calendar date in YYYY-MM-DD format.' });

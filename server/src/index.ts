@@ -15,6 +15,7 @@ import notificationsRoutes from './routes/notifications';
 import activityLogsRoutes from './routes/activityLogs';
 import settingsRoutes from './routes/settings';
 
+import helmet from 'helmet';
 import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
 import { getJwtSecret } from './utils/jwt';
 
@@ -23,6 +24,15 @@ getJwtSecret();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Security Layer: Helmet headers & disable tech stack leakage (Layer 04 & Step 5)
+app.disable('x-powered-by');
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Allows cross-origin assets for internal campus APIs
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // Production CORS origin restriction based on CLIENT_URL
 const allowedOrigins = process.env.CLIENT_URL
@@ -78,6 +88,17 @@ app.get('/api/health', (_req, res) => {
     status: 'online',
     timestamp: new Date().toISOString(),
     system: 'Seminar Hall & AV Hall Booking Management System API',
+  });
+});
+
+// Global Safe Error Boundary (Layer 04: Don't leak stack traces or internal DB info)
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[SERVER UNHANDLED ERROR]:', err);
+  const isDev = process.env.NODE_ENV !== 'production';
+  res.status(err.status || 500).json({
+    error: isDev
+      ? (err.message || 'An unexpected internal error occurred.')
+      : 'An unexpected institutional service error occurred. Please contact the campus administrator.',
   });
 });
 
