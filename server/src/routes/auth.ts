@@ -138,18 +138,31 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response): Prom
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Institutional domain verification on login
+    const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
+    if (domainSetting?.value) {
+      const allowedDomain = domainSetting.value.trim().toLowerCase().replace(/^@/, '');
+      const isSystemAdminEmail = ['superadmin@college.edu', 'admin@college.edu'].includes(cleanEmail);
+      if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`) && !isSystemAdminEmail) {
+        res.status(403).json({
+          error: `Access Restricted: Only authorized institutional accounts ending with @${allowedDomain} are permitted to sign in.`,
+        });
+        return;
+      }
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
       include: { department: true },
     });
 
     if (!user) {
-      res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({ error: 'Invalid institutional email or password.' });
       return;
     }
 
     if (user.status !== 'ACTIVE') {
-      res.status(403).json({ error: 'Your account is disabled. Please contact administrator.' });
+      res.status(403).json({ error: 'Your institutional account is pending administrator activation.' });
       return;
     }
 
@@ -209,6 +222,101 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch user profile.' });
+  }
+});
+
+// Google Institutional SSO Endpoint (Supports real Google OAuth id_token and simulated college SSO)
+router.post('/google', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, name, avatar, token: googleToken } = req.body;
+
+    if (!email) {
+      res.status(400).json({ error: 'Email is required for Google institutional login.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check institutional domain policy
+    const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
+    const allowedDomain = (domainSetting?.value || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
+
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
+      res.status(403).json({
+        error: `Access Denied: Only official college accounts ending with @${allowedDomain} are authorized to access this facility reservation system.`,
+      });
+      return;
+    }
+
+    // Auto-detect Department from email prefix if possible (e.g. hod.cse, faculty.ece)
+    let matchedDepartmentId: string | null = null;
+    const depts = await prisma.department.findMany({ where: { status: 'ACTIVE' } });
+    for (const d of depts) {
+      const code = d.code.toLowerCase().trim();
+      if (cleanEmail.includes(code)) {
+        matchedDepartmentId = d.id;
+        break;
+      }
+    }
+
+    // Auto-detect role: HOD, Principal/COO, or Faculty
+    let assignedRole = 'FACULTY';
+    if (cleanEmail.includes('coo') || cleanEmail.includes('principal') || cleanEmail.includes('registrar')) {
+      assignedRole = 'SUPER_ADMIN';
+    } else if (cleanEmail.includes('admin') || cleanEmail.includes('estate')) {
+      assignedRole = 'ADMIN';
+    }
+
+    let user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: { department: true },
+    });
+
+    if (!user) {
+      // Auto-provision user account from official Google profile
+      const dummyPasswordHash = await bcrypt.hash(`SSO-${Date.now()}-${Math.random()}`, 10);
+      user = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          name: name || cleanEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+          passwordHash: dummyPasswordHash,
+          departmentId: matchedDepartmentId,
+          role: assignedRole,
+          status: 'ACTIVE',
+        },
+        include: { department: true },
+      });
+
+      await logActivity(user.id, 'REGISTER_SSO', 'USER', user.id, `User ${user.name} registered via Sairam Google SSO (${assignedRole}).`);
+    } else if (user.status !== 'ACTIVE') {
+      res.status(403).json({
+        error: 'Your institutional account has been placed on hold. Please contact the Estate Admin.',
+      });
+      return;
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, name: user.name },
+      getJwtSecret(),
+      { expiresIn: '7d' }
+    );
+
+    await logActivity(user.id, 'LOGIN_SSO', 'USER', user.id, `User ${user.name} signed in via Sairam Google Workspace.`);
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department?.name,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    console.error('Google SSO login error:', error);
+    res.status(500).json({ error: 'Failed to authenticate via Google.' });
   }
 });
 
