@@ -291,6 +291,32 @@ export const AdminSettingsPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Section 3: Technical Equipment & Facilities Catalog */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+            <span>⚙️ 3. Technical Equipment &amp; Facilities Custom Catalog</span>
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Super Admin can add additional equipment options to the booking form. Enter custom equipment names separated by commas (e.g. <code>High-Gain Stage Antenna, Wireless Clicker, Stage Return Monitor, VIP Podium Banner Frame</code>).
+          </p>
+
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-xs">
+              Additional Custom Equipment &amp; Facility Items (Comma-Separated)
+            </label>
+            <textarea
+              rows={3}
+              placeholder="e.g. Wireless Clicker, Extra Extension Boards, Stage Return Monitors, VIP Water Dispenser"
+              value={settings.customEquipmentCatalog || ''}
+              onChange={(e) => handleChange('customEquipmentCatalog', e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Any item added here will automatically appear as selectable one-click equipment pills for faculty on the booking form.
+            </p>
+          </div>
+        </div>
+
         <div className="pt-2 flex justify-end">
           <button
             type="submit"

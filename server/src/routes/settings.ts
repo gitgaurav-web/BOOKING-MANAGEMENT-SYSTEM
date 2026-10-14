@@ -23,6 +23,7 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'allowHolidayBookings',
   'emailNotificationsEnabled',
   'publicUpcomingDisplay',
+  'customEquipmentCatalog',
 ]);
 
 // GET /api/settings - retrieve public/configured settings
@@ -46,6 +47,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       allowHolidayBookings: 'false',
       emailNotificationsEnabled: 'true',
       publicUpcomingDisplay: 'EVENT_TITLE', // 'EVENT_TITLE' | 'DEPARTMENT_EVENT' | 'RESERVED_SLOT'
+      customEquipmentCatalog: '',
     };
 
     for (const item of list) {

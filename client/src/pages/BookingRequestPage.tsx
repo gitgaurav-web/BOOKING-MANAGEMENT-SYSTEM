@@ -15,12 +15,14 @@ import {
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { Hall, Department } from '../types';
 
 export const BookingRequestPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { settings } = useSettings();
 
   const [halls, setHalls] = useState<Hall[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -1202,13 +1204,46 @@ export const BookingRequestPage: React.FC = () => {
               </label>
 
               {specialRequirements.includes('Other') && (
-                <div className="mt-3 pt-2.5 border-t border-purple-200/60 dark:border-purple-900/60 space-y-2 animate-in fade-in zoom-in-95">
+                <div className="mt-3 pt-2.5 border-t border-purple-200/60 dark:border-purple-900/60 space-y-2.5 animate-in fade-in zoom-in-95">
+                  {/* Dynamic Catalog added by Super Admin */}
+                  {settings.customEquipmentCatalog && settings.customEquipmentCatalog.trim() && (
+                    <div className="space-y-1.5 pb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
+                        Campus Admin Available Equipment:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {settings.customEquipmentCatalog
+                          .split(',')
+                          .map((item) => item.trim())
+                          .filter(Boolean)
+                          .map((customItem) => {
+                            const isChecked = specialRequirements.includes(customItem);
+                            return (
+                              <button
+                                type="button"
+                                key={customItem}
+                                onClick={() => toggleRequirement(customItem)}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer flex items-center gap-1 ${
+                                  isChecked
+                                    ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-purple-400'
+                                }`}
+                              >
+                                <span>{isChecked ? '✓' : '+'}</span>
+                                <span>{customItem}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
-                    Specify What Else You Need (e.g. Extra Extension Boards, Whiteboard &amp; Markers, Water Dispenser):
+                    Or Type Additional Special Facility Requirement:
                   </span>
                   <input
                     type="text"
-                    placeholder="Enter custom equipment or facility requirement..."
+                    placeholder="e.g. Extra Extension Boards, Whiteboard & Markers, VIP Water Dispenser..."
                     value={otherCustomReq}
                     onChange={(e) => setOtherCustomReq(e.target.value)}
                     className="w-full px-3.5 py-2 rounded-xl border border-purple-300 dark:border-purple-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-purple-500 focus:outline-hidden"

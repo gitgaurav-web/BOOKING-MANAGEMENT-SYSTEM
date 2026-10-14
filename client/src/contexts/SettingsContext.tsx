@@ -18,6 +18,7 @@ export interface SystemSettings {
   allowHolidayBookings: string;
   emailNotificationsEnabled: string;
   publicUpcomingDisplay: string;
+  customEquipmentCatalog?: string;
 }
 
 const defaultSettings: SystemSettings = {
@@ -37,6 +38,7 @@ const defaultSettings: SystemSettings = {
   allowHolidayBookings: 'false',
   emailNotificationsEnabled: 'true',
   publicUpcomingDisplay: 'EVENT_TITLE',
+  customEquipmentCatalog: '',
 };
 
 interface SettingsContextType {
