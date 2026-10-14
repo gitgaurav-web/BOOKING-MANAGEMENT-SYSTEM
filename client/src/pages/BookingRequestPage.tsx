@@ -905,35 +905,274 @@ export const BookingRequestPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Step 4: Special Requirements Checkboxes */}
-        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-            Special Technical / Facility Requirements
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              'Projector',
-              'Microphone',
-              'Audio System',
-              'AC',
-              'Internet',
-              'Recording',
-              'Stage Lighting',
-              'Other',
-            ].map((req) => (
-              <label
-                key={req}
-                className="flex items-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
-              >
+        {/* Step 4: Special Technical / Facility Requirements with Interactive Sub-options */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+              Special Technical, Audio-Visual &amp; Facility Requirements
+            </label>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Select primary services to customize equipment types (Handmic, Handsfree, Live Telecast, etc.).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* 1. Microphone Card with Sub-options */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                specialRequirements.includes('Microphone')
+                  ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/20 ring-1 ring-blue-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                  <span>🎙️</span>
+                  <span>Microphone Setup</span>
+                </span>
                 <input
                   type="checkbox"
-                  checked={specialRequirements.includes(req)}
-                  onChange={() => toggleRequirement(req)}
-                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                  checked={specialRequirements.includes('Microphone')}
+                  onChange={() => toggleRequirement('Microphone')}
+                  className="rounded text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
                 />
-                <span>{req}</span>
               </label>
-            ))}
+
+              {specialRequirements.includes('Microphone') && (
+                <div className="mt-3 pt-2.5 border-t border-blue-200/60 dark:border-blue-900/60 space-y-1.5 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300 block">
+                    Choose Mic Types:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'Handheld Cordless Mic', label: 'Handmic (Cordless)' },
+                      { id: 'Collar / Lapel Mic', label: 'Collar / Handsfree' },
+                      { id: 'Podium Gooseneck Mic', label: 'Podium Mic' },
+                    ].map((mic) => {
+                      const isChecked = specialRequirements.includes(mic.id);
+                      return (
+                        <button
+                          type="button"
+                          key={mic.id}
+                          onClick={() => toggleRequirement(mic.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer flex items-center gap-1 ${
+                            isChecked
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-blue-400'
+                          }`}
+                        >
+                          <span>{isChecked ? '✓' : '+'}</span>
+                          <span>{mic.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. Audio & Video Recording Card with Sub-options */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                specialRequirements.includes('Audio System') || specialRequirements.includes('Recording')
+                  ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 ring-1 ring-indigo-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                  <span>🔊</span>
+                  <span>Audio &amp; Coverage System</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={specialRequirements.includes('Audio System')}
+                  onChange={() => toggleRequirement('Audio System')}
+                  className="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                />
+              </label>
+
+              {specialRequirements.includes('Audio System') && (
+                <div className="mt-3 pt-2.5 border-t border-indigo-200/60 dark:border-indigo-900/60 space-y-1.5 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 block">
+                    Select Audio/Video Options:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'Still Photography', label: '📸 Photo Coverage' },
+                      { id: 'HD Video Recording', label: '🎥 Video Recording' },
+                      { id: 'Live Video Telecast', label: '📡 Live Telecast (YouTube/Zoom)' },
+                      { id: 'Stage Return Monitors', label: '🔊 Extra Stage Speakers' },
+                    ].map((opt) => {
+                      const isChecked = specialRequirements.includes(opt.id);
+                      return (
+                        <button
+                          type="button"
+                          key={opt.id}
+                          onClick={() => toggleRequirement(opt.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer flex items-center gap-1 ${
+                            isChecked
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-indigo-400'
+                          }`}
+                        >
+                          <span>{isChecked ? '✓' : '+'}</span>
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Projector & Display Card with Sub-options */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                specialRequirements.includes('Projector')
+                  ? 'border-emerald-500 bg-emerald-50/40 dark:bg-emerald-950/20 ring-1 ring-emerald-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                  <span>📽️</span>
+                  <span>Projector &amp; Presentation</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={specialRequirements.includes('Projector')}
+                  onChange={() => toggleRequirement('Projector')}
+                  className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                />
+              </label>
+
+              {specialRequirements.includes('Projector') && (
+                <div className="mt-3 pt-2.5 border-t border-emerald-200/60 dark:border-emerald-900/60 space-y-1.5 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">
+                    Presentation Tools:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'Stage HDMI Interface', label: 'HDMI Cable Interface' },
+                      { id: 'Wireless Presentation Clicker', label: 'Wireless Clicker' },
+                      { id: 'Dual Screen Display', label: 'Dual Screens' },
+                    ].map((tool) => {
+                      const isChecked = specialRequirements.includes(tool.id);
+                      return (
+                        <button
+                          type="button"
+                          key={tool.id}
+                          onClick={() => toggleRequirement(tool.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer flex items-center gap-1 ${
+                            isChecked
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-emerald-400'
+                          }`}
+                        >
+                          <span>{isChecked ? '✓' : '+'}</span>
+                          <span>{tool.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. Air Conditioning (AC) */}
+            <label
+              className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                specialRequirements.includes('AC')
+                  ? 'border-sky-500 bg-sky-50/40 dark:bg-sky-950/20 ring-1 ring-sky-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                <span>❄️</span>
+                <span>Air Conditioning (Full Hall HVAC)</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={specialRequirements.includes('AC')}
+                onChange={() => toggleRequirement('AC')}
+                className="rounded text-sky-600 focus:ring-sky-500 h-4 w-4 cursor-pointer"
+              />
+            </label>
+
+            {/* 5. High-Speed Internet / LAN */}
+            <label
+              className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                specialRequirements.includes('Internet')
+                  ? 'border-cyan-500 bg-cyan-50/40 dark:bg-cyan-950/20 ring-1 ring-cyan-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                <span>🌐</span>
+                <span>High-Speed Wi-Fi / Stage LAN Port</span>
+              </span>
+              <input
+                type="checkbox"
+                checked={specialRequirements.includes('Internet')}
+                onChange={() => toggleRequirement('Internet')}
+                className="rounded text-cyan-600 focus:ring-cyan-500 h-4 w-4 cursor-pointer"
+              />
+            </label>
+
+            {/* 6. Stage Lighting & Seating */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all ${
+                specialRequirements.includes('Stage Lighting')
+                  ? 'border-amber-500 bg-amber-50/40 dark:bg-amber-950/20 ring-1 ring-amber-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                  <span>💡</span>
+                  <span>Stage Lighting &amp; Podiums</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={specialRequirements.includes('Stage Lighting')}
+                  onChange={() => toggleRequirement('Stage Lighting')}
+                  className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4 cursor-pointer"
+                />
+              </label>
+
+              {specialRequirements.includes('Stage Lighting') && (
+                <div className="mt-3 pt-2.5 border-t border-amber-200/60 dark:border-amber-900/60 space-y-1.5 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 block">
+                    Stage Requirements:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { id: 'Stage Focus Lights', label: 'Spot Focus Lights' },
+                      { id: 'Dignitary Stage Chairs', label: 'VIP Chairs on Stage' },
+                      { id: 'Podium Stand & Banner Frame', label: 'Podium Banner Frame' },
+                    ].map((stg) => {
+                      const isChecked = specialRequirements.includes(stg.id);
+                      return (
+                        <button
+                          type="button"
+                          key={stg.id}
+                          onClick={() => toggleRequirement(stg.id)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer flex items-center gap-1 ${
+                            isChecked
+                              ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-amber-400'
+                          }`}
+                        >
+                          <span>{isChecked ? '✓' : '+'}</span>
+                          <span>{stg.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-4">
