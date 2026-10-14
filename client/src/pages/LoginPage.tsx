@@ -204,12 +204,9 @@ export const LoginPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-3 shadow-xs">
-          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
-          <div className="space-y-0.5">
-            <span className="font-bold block">Authentication Notice</span>
-            <span>{error}</span>
-          </div>
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5 shadow-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+          <span>{error}</span>
         </div>
       )}
 

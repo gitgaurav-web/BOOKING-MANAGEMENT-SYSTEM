@@ -145,7 +145,7 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response): Prom
       const isSystemAdminEmail = ['superadmin@college.edu', 'admin@college.edu'].includes(cleanEmail);
       if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`) && !isSystemAdminEmail) {
         res.status(403).json({
-          error: `Access Restricted: Only authorized institutional accounts ending with @${allowedDomain} are permitted to sign in.`,
+          error: `Only @${allowedDomain} email is allowed.`,
         });
         return;
       }
@@ -241,7 +241,7 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
 
     if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
       res.status(403).json({
-        error: `Access Denied: Only official college accounts ending with @${allowedDomain} are authorized to access this facility reservation system.`,
+        error: `Only @${allowedDomain} email is allowed.`,
       });
       return;
     }
