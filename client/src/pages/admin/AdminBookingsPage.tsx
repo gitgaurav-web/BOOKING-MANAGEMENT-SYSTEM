@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiRequest, downloadCsvFile } from '../../services/api';
 import { Booking, Hall, Department } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -25,15 +26,23 @@ import {
 } from 'lucide-react';
 
 export const AdminBookingsPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [hallFilter, setHallFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query !== null) {
+      setSearch(query);
+    }
+  }, [searchParams]);
 
   // Action & Faculty Notice Modal state
   const [selectedBookingForAction, setSelectedBookingForAction] = useState<Booking | null>(null);

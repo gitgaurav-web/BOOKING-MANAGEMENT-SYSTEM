@@ -107,6 +107,52 @@ export const Navbar: React.FC = () => {
     }
   };
 
+  const handleNotificationClick = (n: NotificationItem) => {
+    markSingleRead(n.id);
+    setNotificationsOpen(false);
+
+    // Extract any booking reference ID (e.g., HB-2026-0005-B3E8)
+    const match = n.message.match(/HB-\d{4}-\d{4}-[A-Z0-9]+/i);
+    const bookingId = match ? match[0] : '';
+
+    const text = (n.title + ' ' + n.message).toLowerCase();
+
+    if (text.includes('booking') || text.includes('request') || bookingId) {
+      if (isAdmin) {
+        if (
+          text.includes('new request') ||
+          text.includes('new booking request') ||
+          text.includes('awaiting approval') ||
+          text.includes('pending')
+        ) {
+          navigate('/admin/pending');
+        } else {
+          navigate(bookingId ? `/admin/bookings?search=${encodeURIComponent(bookingId)}` : '/admin/bookings');
+        }
+      } else {
+        navigate('/my-bookings');
+      }
+      return;
+    }
+
+    if (text.includes('maintenance')) {
+      navigate(isAdmin ? '/admin/maintenance' : '/availability');
+      return;
+    }
+
+    if (text.includes('holiday') || text.includes('blocked')) {
+      navigate(isAdmin ? '/admin/blocked-dates' : '/calendar');
+      return;
+    }
+
+    // Default fallback
+    if (isAdmin) {
+      navigate('/admin/bookings');
+    } else {
+      navigate('/my-bookings');
+    }
+  };
+
   const navLinks = [
     { label: 'Home', path: '/' },
     { label: 'Halls', path: '/halls' },
@@ -249,20 +295,33 @@ export const Navbar: React.FC = () => {
                         notifications.map((n) => (
                           <div
                             key={n.id}
-                            onClick={() => markSingleRead(n.id)}
-                            className={`p-2.5 rounded-xl text-xs transition-colors cursor-pointer ${
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-2.5 rounded-xl text-xs transition-colors cursor-pointer border ${
                               n.isRead
-                                ? 'bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/80'
-                                : 'bg-blue-50/70 dark:bg-blue-950/40 text-slate-800 dark:text-slate-200 font-medium hover:bg-blue-100/70 dark:hover:bg-blue-900/40'
+                                ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-100 dark:border-slate-800/60 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                : 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200/50 dark:border-blue-800/50 text-slate-800 dark:text-slate-200 font-medium hover:bg-blue-100/70 dark:hover:bg-blue-900/50 shadow-2xs'
                             }`}
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <p className="font-semibold text-slate-900 dark:text-slate-100">{n.title}</p>
+                              <p className="font-bold text-slate-900 dark:text-slate-100">{n.title}</p>
                               {!n.isRead && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 animate-pulse" />
                               )}
                             </div>
-                            <p className="mt-0.5 leading-relaxed">{n.message}</p>
+                            <p className="mt-0.5 leading-relaxed text-[11px]">{n.message}</p>
+                            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100/80 dark:border-slate-800/80">
+                              <span>
+                                {new Date(n.createdAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                              <span className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
+                                View &rarr;
+                              </span>
+                            </div>
                           </div>
                         ))
                       )}
