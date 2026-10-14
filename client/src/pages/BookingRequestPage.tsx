@@ -66,6 +66,7 @@ export const BookingRequestPage: React.FC = () => {
     'Microphone',
     'AC',
   ]);
+  const [otherCustomReq, setOtherCustomReq] = useState<string>('');
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [uploadingFile, setUploadingFile] = useState<boolean>(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
@@ -314,6 +315,11 @@ export const BookingRequestPage: React.FC = () => {
 
     try {
       setSubmitting(true);
+      const finalSpecialRequirements = [...specialRequirements];
+      if (otherCustomReq.trim()) {
+        finalSpecialRequirements.push(`Other: ${otherCustomReq.trim()}`);
+      }
+
       const payload = {
         hallId,
         bookingDate,
@@ -329,7 +335,7 @@ export const BookingRequestPage: React.FC = () => {
         coordinatorName: coordinatorName.trim(),
         contactNumber: contactNumber.trim(),
         email: email.trim(),
-        specialRequirements,
+        specialRequirements: finalSpecialRequirements,
         attachmentUrl: attachmentUrl || null,
         additionalNotes: additionalNotes.trim(),
       };
@@ -1170,6 +1176,43 @@ export const BookingRequestPage: React.FC = () => {
                       );
                     })}
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* 7. Other Custom Requirements Card */}
+            <div
+              className={`p-3.5 rounded-2xl border transition-all sm:col-span-2 lg:col-span-3 ${
+                specialRequirements.includes('Other')
+                  ? 'border-purple-500 bg-purple-50/40 dark:bg-purple-950/20 ring-1 ring-purple-500/50'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60'
+              }`}
+            >
+              <label className="flex items-center justify-between cursor-pointer">
+                <span className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
+                  <span>✨</span>
+                  <span>Other / Custom Equipment Requirements</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={specialRequirements.includes('Other')}
+                  onChange={() => toggleRequirement('Other')}
+                  className="rounded text-purple-600 focus:ring-purple-500 h-4 w-4 cursor-pointer"
+                />
+              </label>
+
+              {specialRequirements.includes('Other') && (
+                <div className="mt-3 pt-2.5 border-t border-purple-200/60 dark:border-purple-900/60 space-y-2 animate-in fade-in zoom-in-95">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
+                    Specify What Else You Need (e.g. Extra Extension Boards, Whiteboard &amp; Markers, Water Dispenser):
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Enter custom equipment or facility requirement..."
+                    value={otherCustomReq}
+                    onChange={(e) => setOtherCustomReq(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-purple-300 dark:border-purple-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-purple-500 focus:outline-hidden"
+                  />
                 </div>
               )}
             </div>
