@@ -11,6 +11,7 @@ import {
   FileCheck,
   FileText,
   X,
+  Award,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../services/api';
@@ -796,38 +797,7 @@ export const BookingRequestPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Purpose of Reservation <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  id="field-purpose"
-                  type="text"
-                  placeholder="e.g. Faculty Enrichment / Technical Workshop / Placement Drive"
-                  value={purpose}
-                  onChange={(e) => {
-                    setPurpose(e.target.value);
-                    clearFieldError('purpose');
-                  }}
-                  className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
-                    fieldErrors.purpose
-                      ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
-                      : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
-                  }`}
-                />
-                {fieldErrors.purpose && (
-                  <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                    <span>{fieldErrors.purpose}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Counts Row: Attendees, No. of VIP Guests, No. of Mementos */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <span>👥</span>
-                  <span>Expected Attendees</span>
+                  Expected Attendees (Informational Only)
                 </label>
                 <input
                   type="number"
@@ -839,10 +809,49 @@ export const BookingRequestPage: React.FC = () => {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
-                  Total student/faculty audience sizing.
+                  Used solely for ventilation &amp; security sizing; no seat assignment.
                 </span>
               </div>
+            </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Purpose of Reservation <span className="text-rose-500">*</span>
+              </label>
+              <input
+                id="field-purpose"
+                type="text"
+                placeholder="e.g. Faculty Enrichment / Technical Workshop / Placement Drive"
+                value={purpose}
+                onChange={(e) => {
+                  setPurpose(e.target.value);
+                  clearFieldError('purpose');
+                }}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                  fieldErrors.purpose
+                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                }`}
+              />
+              {fieldErrors.purpose && (
+                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{fieldErrors.purpose}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3: VIP Guests & Mementos (Protocol & Schedule) */}
+        <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Award className="w-4 h-4 text-amber-500" />
+            <span>3. VIP Guests &amp; Mementos (Protocol &amp; Schedule)</span>
+          </h3>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <span>🎖️</span>
@@ -858,7 +867,7 @@ export const BookingRequestPage: React.FC = () => {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
-                  Chief guests & VIP dignitaries attending.
+                  Total chief guests &amp; VIP dignitaries attending the function.
                 </span>
               </div>
 
@@ -877,13 +886,13 @@ export const BookingRequestPage: React.FC = () => {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
-                  Mementos / shawls / momentos needed.
+                  Number of mementos, shawls, and momentos required for guests.
                 </span>
               </div>
             </div>
 
-            {/* Full Width Description / Agenda Column */}
-            <div className="w-full">
+            {/* Event Description & Detailed Schedule */}
+            <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <span>📝</span>
                 <span>Event Description &amp; Detailed Schedule / Dignitary Synopsis</span>
@@ -902,11 +911,11 @@ export const BookingRequestPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Step 3: Contact & Coordination */}
+        {/* Step 4: Contact & Coordination */}
         <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
           <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <Users className="w-4 h-4 text-emerald-600" />
-            <span>3. Coordinator & Contact Info</span>
+            <span>4. Coordinator &amp; Contact Info</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -992,11 +1001,11 @@ export const BookingRequestPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Step 4: Special Technical / Facility Requirements with Interactive Sub-options */}
+        {/* Step 5: Special Technical / Facility Requirements with Interactive Sub-options */}
         <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
-              Special Technical, Audio-Visual &amp; Facility Requirements
+              5. Special Technical, Audio-Visual &amp; Facility Requirements
             </label>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Select primary services to customize equipment types (Handmic, Handsfree, Live Telecast, etc.).
