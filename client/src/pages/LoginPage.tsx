@@ -310,20 +310,24 @@ export const LoginPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowPersonaPicker(!showPersonaPicker)}
-          className="w-full px-5 py-3.5 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 text-left transition hover:bg-slate-100/70"
+          className="w-full px-5 py-3.5 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition cursor-pointer group"
         >
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
             <div>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 Instant 1-Click Institutional Demo Personas
               </span>
-              <span className="text-[10px] text-slate-400">
+              <span className="text-[10px] text-slate-500 dark:text-slate-300">
                 Click any role to test with official Sri Sairam college credentials
               </span>
             </div>
           </div>
-          {showPersonaPicker ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          {showPersonaPicker ? (
+            <ChevronUp className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+          )}
         </button>
 
         {showPersonaPicker && (
