@@ -121,6 +121,8 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       startTime = '09:00',
       endTime = '17:00',
       participantCount = 0,
+      guestCount = 0,
+      mementoCount = 0,
       coordinatorName,
       contactNumber,
       email,
@@ -207,6 +209,8 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       res.status(400).json({ error: 'Participant count must be between 1 and 2000.' });
       return;
     }
+    const gCount = Math.max(0, parseInt(String(guestCount ?? 0), 10) || 0);
+    const mCount = Math.max(0, parseInt(String(mementoCount ?? 0), 10) || 0);
 
     // Validate Facility Hall Exists and is Active
     const hall = await prisma.hall.findUnique({ where: { id: hallId } });
@@ -365,6 +369,8 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
           startTime,
           endTime,
           participantCount: pCount,
+          guestCount: gCount,
+          mementoCount: mCount,
           requestedBy: user.name,
           coordinatorName: coordinatorName || user.name,
           contactNumber,
@@ -933,6 +939,8 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
       startTime = '09:00',
       endTime = '17:00',
       participantCount,
+      guestCount,
+      mementoCount,
       coordinatorName,
       contactNumber,
       email,
@@ -994,6 +1002,16 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
       }
     }
 
+    let gCount = existing.guestCount;
+    if (guestCount !== undefined) {
+      gCount = Math.max(0, parseInt(String(guestCount), 10) || 0);
+    }
+
+    let mCount = existing.mementoCount;
+    if (mementoCount !== undefined) {
+      mCount = Math.max(0, parseInt(String(mementoCount), 10) || 0);
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       // Re-evaluate conflict if status is APPROVED or changing to APPROVED
       if (targetStatus === 'APPROVED') {
@@ -1032,6 +1050,8 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
           startTime,
           endTime,
           participantCount: pCount,
+          guestCount: gCount,
+          mementoCount: mCount,
           coordinatorName: coordinatorName !== undefined ? coordinatorName : existing.coordinatorName,
           contactNumber: contactNumber !== undefined ? contactNumber : existing.contactNumber,
           email: email !== undefined ? email : existing.email,

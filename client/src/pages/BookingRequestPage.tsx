@@ -60,6 +60,8 @@ export const BookingRequestPage: React.FC = () => {
   const [purpose, setPurpose] = useState<string>('');
   const [departmentId, setDepartmentId] = useState<string>('');
   const [participantCount, setParticipantCount] = useState<number>(100);
+  const [guestCount, setGuestCount] = useState<number | ''>('');
+  const [mementoCount, setMementoCount] = useState<number | ''>('');
   const [coordinatorName, setCoordinatorName] = useState<string>(user?.name || '');
   const [contactNumber, setContactNumber] = useState<string>(user?.phone || '');
   const [email, setEmail] = useState<string>(user?.email || '');
@@ -361,6 +363,8 @@ export const BookingRequestPage: React.FC = () => {
         purpose: purpose.trim(),
         departmentId: departmentId || null,
         participantCount: Number(participantCount) > 0 ? Number(participantCount) : 50,
+        guestCount: Number(guestCount) || 0,
+        mementoCount: Number(mementoCount) || 0,
         coordinatorName: coordinatorName.trim(),
         contactNumber: contactNumber.trim(),
         email: email.trim(),
@@ -792,60 +796,108 @@ export const BookingRequestPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Expected Attendees (Informational Only)
+                  Purpose of Reservation <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  id="field-purpose"
+                  type="text"
+                  placeholder="e.g. Faculty Enrichment / Technical Workshop / Placement Drive"
+                  value={purpose}
+                  onChange={(e) => {
+                    setPurpose(e.target.value);
+                    clearFieldError('purpose');
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
+                    fieldErrors.purpose
+                      ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
+                      : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
+                  }`}
+                />
+                {fieldErrors.purpose && (
+                  <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{fieldErrors.purpose}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Counts Row: Attendees, No. of VIP Guests, No. of Mementos */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <span>👥</span>
+                  <span>Expected Attendees</span>
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max="1000"
+                  max="2000"
                   value={participantCount}
                   onChange={(e) => setParticipantCount(Number(e.target.value))}
+                  placeholder="e.g. 100"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
-                  Used solely for ventilation & security sizing; no seat assignment.
+                  Total student/faculty audience sizing.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <span>🎖️</span>
+                  <span>No. of Guests (VIP Dignitaries)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 3"
+                  value={guestCount}
+                  onChange={(e) => setGuestCount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Chief guests & VIP dignitaries attending.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <span>🏆</span>
+                  <span>No. of Mementos (Momento)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="e.g. 5"
+                  value={mementoCount}
+                  onChange={(e) => setMementoCount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Mementos / shawls / momentos needed.
                 </span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Purpose of Reservation <span className="text-rose-500">*</span>
-              </label>
-              <input
-                id="field-purpose"
-                type="text"
-                placeholder="e.g. Faculty Enrichment / Technical Workshop / Placement Drive"
-                value={purpose}
-                onChange={(e) => {
-                  setPurpose(e.target.value);
-                  clearFieldError('purpose');
-                }}
-                className={`w-full px-4 py-2.5 rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:outline-hidden transition ${
-                  fieldErrors.purpose
-                    ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/10'
-                    : 'border-slate-300 dark:border-slate-700 focus:ring-blue-500'
-                }`}
-              />
-              {fieldErrors.purpose && (
-                <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  <span>{fieldErrors.purpose}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Event Description / Agenda
+            {/* Full Width Description / Agenda Column */}
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <span>📝</span>
+                <span>Event Description &amp; Detailed Schedule / Dignitary Synopsis</span>
               </label>
               <textarea
-                rows={3}
-                placeholder="Provide a brief synopsis of the scheduled agenda and guest speakers..."
+                rows={4}
+                placeholder="Provide a detailed description of the event agenda, chief guest names, designations, and stage protocol requirements..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden leading-relaxed"
               />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                Full synopsis of the program, dignitaries present, and session flow.
+              </span>
             </div>
           </div>
         </div>

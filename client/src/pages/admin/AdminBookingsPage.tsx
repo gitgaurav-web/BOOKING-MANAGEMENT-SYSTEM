@@ -469,6 +469,30 @@ export const AdminBookingsPage: React.FC = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Logistics & Dignitaries Count Row */}
+              <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]">
+                  👥 Attendees: {selectedBookingForAction.participantCount || 0}
+                </span>
+                {(selectedBookingForAction.guestCount || 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-medium text-[11px]">
+                    🎖️ VIP Guests: {selectedBookingForAction.guestCount}
+                  </span>
+                )}
+                {(selectedBookingForAction.mementoCount || 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-medium text-[11px]">
+                    🏆 Mementos: {selectedBookingForAction.mementoCount}
+                  </span>
+                )}
+              </div>
+
+              {selectedBookingForAction.description && (
+                <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-0.5">
+                  <strong className="text-slate-800 dark:text-slate-200 block text-[11px]">Description &amp; Agenda:</strong>
+                  <p className="whitespace-pre-wrap">{selectedBookingForAction.description}</p>
+                </div>
+              )}
             </div>
 
             {/* Notice / Remarks Textarea */}

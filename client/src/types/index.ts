@@ -68,6 +68,8 @@ export interface Booking {
   startTime: string;
   endTime: string;
   participantCount: number;
+  guestCount?: number;
+  mementoCount?: number;
   specialRequirements: string[];
   attachmentUrl?: string;
   additionalNotes?: string;

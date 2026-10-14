@@ -157,10 +157,34 @@ export const AdminPendingPage: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Scale, VIP Dignitaries & Mementos */}
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                    👥 Attendees: {b.participantCount || 0}
+                  </span>
+                  {(b.guestCount || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-medium">
+                      🎖️ VIP Guests: {b.guestCount}
+                    </span>
+                  )}
+                  {(b.mementoCount || 0) > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-medium">
+                      🏆 Mementos: {b.mementoCount}
+                    </span>
+                  )}
+                </div>
+
                 {b.purpose && (
                   <p className="text-xs text-slate-600 dark:text-slate-400">
                     <strong className="text-slate-800 dark:text-slate-200">Purpose:</strong> {b.purpose}
                   </p>
+                )}
+
+                {b.description && (
+                  <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-0.5">
+                    <strong className="text-slate-800 dark:text-slate-200 block text-[11px]">Event Description &amp; Agenda:</strong>
+                    <p className="whitespace-pre-wrap">{b.description}</p>
+                  </div>
                 )}
 
                 {b.attachmentUrl && (

@@ -78,6 +78,8 @@ model Booking {
   startTime           String      @default("09:00")
   endTime             String      @default("17:00")
   participantCount    Int         @default(0) // Informational only
+  guestCount          Int?        @default(0) // VIP / Dignitary Guest count
+  mementoCount        Int?        @default(0) // Mementos count
   specialRequirements String?     // JSON string of requirements
   attachmentUrl       String?     // PDF or permission document link
   additionalNotes     String?

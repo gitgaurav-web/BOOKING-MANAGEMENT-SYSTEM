@@ -122,7 +122,7 @@ Authority: Facilities Committee & Dean Academics`;
       // Outer Card Box
       doc.setDrawColor(203, 213, 225); // slate-300
       doc.setFillColor(255, 255, 255);
-      doc.roundedRect(15, y, 180, 250, 4, 4, 'FD');
+      doc.roundedRect(15, y, 180, 258, 4, 4, 'FD');
 
       // Top Header Accent Bar
       doc.setFillColor(30, 58, 138); // Deep Navy #1E3A8A
@@ -252,7 +252,7 @@ Authority: Facilities Committee & Dean Academics`;
         `${selectedBooking.startTime} - ${selectedBooking.endTime} (${selectedBooking.bookingType.replace('_', ' ')})`
       );
 
-      y += 25;
+      y += 24;
 
       // Row 2: Event Title & Department
       renderDetailBox(
@@ -274,28 +274,73 @@ Authority: Facilities Committee & Dean Academics`;
         'Sri Sairam College of Engineering'
       );
 
-      y += 25;
+      y += 24;
 
-      // Row 3: Coordinator / Applicant Full Box
+      // Row 3: Attendees, VIP Guests & Mementos
+      const renderCountBox = (bx: number, by: number, bw: number, label: string, countVal: string) => {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(bx, by, bw, 17, 2, 2, 'FD');
+
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.text(label.toUpperCase(), bx + 3.5, by + 5.5);
+
+        doc.setTextColor(15, 23, 42);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.8);
+        doc.text(`${countVal}`, bx + 3.5, by + 12);
+      };
+
+      renderCountBox(20, y, 52, 'Expected Attendees', `${selectedBooking.participantCount || 0} Persons`);
+      renderCountBox(76, y, 52, 'VIP Guests Count', `${selectedBooking.guestCount || 0} Dignitaries`);
+      renderCountBox(132, y, 58, 'Mementos (Momento)', `${selectedBooking.mementoCount || 0} Units`);
+
+      y += 20;
+
+      // Row 4: Coordinator / Applicant Full Box
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(20, y, 170, 18, 2, 2, 'FD');
+      doc.roundedRect(20, y, 170, 16, 2, 2, 'FD');
 
       doc.setTextColor(148, 163, 184);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.text('COORDINATOR / APPLICANT', 24, y + 6);
+      doc.setFontSize(7);
+      doc.text('COORDINATOR / APPLICANT', 24, y + 5.5);
 
       doc.setTextColor(15, 23, 42);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.text(
         `${selectedBooking.coordinatorName} (${selectedBooking.contactNumber}) • ${selectedBooking.email}`,
         24,
-        y + 12.5
+        y + 11.5
       );
 
-      y += 22;
+      y += 19;
+
+      // Row 5: Event Description / Detailed Agenda (if present)
+      if (selectedBooking.description) {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(20, y, 170, 16, 2, 2, 'FD');
+
+        doc.setTextColor(148, 163, 184);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.text('EVENT DESCRIPTION & PROTOCOL', 24, y + 5.5);
+
+        doc.setTextColor(51, 65, 85);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.8);
+        const descSnippet = selectedBooking.description.length > 95
+          ? selectedBooking.description.substring(0, 92) + '...'
+          : selectedBooking.description;
+        doc.text(descSnippet, 24, y + 11.5);
+
+        y += 19;
+      }
 
       // Admin Notes (if any)
       if (selectedBooking.adminNotes) {
@@ -557,6 +602,38 @@ Authority: Facilities Committee & Dean Academics`;
                     {selectedBooking.department?.name || 'N/A'}
                   </span>
                 </div>
+
+                {/* Logistics & Dignitaries Count Row */}
+                <div className="grid grid-cols-3 gap-2.5 col-span-2">
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">Expected Attendees</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      👥 {selectedBooking.participantCount || 0}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">VIP Guests</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      🎖️ {selectedBooking.guestCount || 0}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                    <span className="text-slate-400 block text-[10px]">Mementos (Momento)</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      🏆 {selectedBooking.mementoCount || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Event Description & Agenda */}
+                {selectedBooking.description && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 col-span-2 space-y-1">
+                    <span className="text-slate-400 block text-[10px]">Event Description &amp; Detailed Protocol</span>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {selectedBooking.description}
+                    </p>
+                  </div>
+                )}
 
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 col-span-2">
                   <span className="text-slate-400 block text-[10px]">Coordinator / Applicant</span>
