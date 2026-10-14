@@ -86,6 +86,7 @@ export interface BookingEmailPayload {
   specialRequirements?: string | string[];
   adminNotes?: string;
   pdfBuffer?: Buffer;
+  facultyEmail?: string;
 }
 
 export function escapeHtml(str: string | undefined | null): string {
@@ -130,6 +131,7 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
     description = '',
     specialRequirements = [],
     adminNotes,
+    facultyEmail,
   } = payload;
 
   const { iqacEmail, storeEmail } = await getDesignatedNotificationEmails();
@@ -169,10 +171,21 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
   }
 
   // Determine recipients list
-  // 1. Applicant/Coordinator is always included
-  const recipientList: { email: string; roleTag: string }[] = [
-    { email: to, roleTag: 'APPLICANT' },
-  ];
+  // 1. Applicant / Coordinator email is always included
+  const recipientList: { email: string; roleTag: string }[] = [];
+
+  if (to && to.trim()) {
+    recipientList.push({ email: to.trim(), roleTag: 'APPLICANT_COORDINATOR' });
+  }
+
+  // 1b. Registered Faculty user email (who submitted the request) is always included
+  if (
+    facultyEmail &&
+    facultyEmail.trim() &&
+    !recipientList.some((r) => r.email.toLowerCase() === facultyEmail.trim().toLowerCase())
+  ) {
+    recipientList.push({ email: facultyEmail.trim(), roleTag: 'FACULTY_USER' });
+  }
 
   // 2. IQAC always receives notification for all requests (Pending, Approved, Rejected, Cancelled)
   if (iqacEmail && !recipientList.some((r) => r.email.toLowerCase() === iqacEmail.toLowerCase())) {

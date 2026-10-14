@@ -420,7 +420,8 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
     // Trigger Outbound Email Notification with Attached PDF Gate Pass
     sendBookingNotificationEmail({
       to: booking.email || user.email,
-      recipientName: booking.requestedBy || user.name,
+      facultyEmail: user.email,
+      recipientName: booking.coordinatorName || booking.requestedBy || user.name,
       bookingId: booking.bookingId,
       eventName: booking.eventName,
       hallName: booking.hall.name,
@@ -720,7 +721,7 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
           approvedAt: new Date(),
           adminNotes: adminNotes || existing.adminNotes,
         },
-        include: { hall: true, department: true },
+        include: { hall: true, department: true, user: true },
       });
     });
 
@@ -741,8 +742,9 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
 
     // Trigger Outbound Approval Email with Attached PDF Gate Pass
     sendBookingNotificationEmail({
-      to: updated.email,
-      recipientName: updated.requestedBy,
+      to: updated.email || updated.user?.email,
+      facultyEmail: updated.user?.email,
+      recipientName: updated.coordinatorName || updated.requestedBy || updated.user?.name,
       bookingId: updated.bookingId,
       eventName: updated.eventName,
       hallName: updated.hall.name,
@@ -801,7 +803,7 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
         rejectionReason: rejectionReason || 'Request rejected by administration.',
         adminNotes: adminNotes || existing.adminNotes,
       },
-      include: { hall: true, department: true },
+      include: { hall: true, department: true, user: true },
     });
 
     await logActivity(
@@ -821,8 +823,9 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
 
     // Trigger Outbound Rejection Email with Attached PDF Slip
     sendBookingNotificationEmail({
-      to: updated.email,
-      recipientName: updated.requestedBy,
+      to: updated.email || updated.user?.email,
+      facultyEmail: updated.user?.email,
+      recipientName: updated.coordinatorName || updated.requestedBy || updated.user?.name,
       bookingId: updated.bookingId,
       eventName: updated.eventName,
       hallName: updated.hall.name,
@@ -882,7 +885,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
         status: 'CANCELLED',
         adminNotes: adminNotes !== undefined ? adminNotes : (reason ? `Cancelled: ${reason}` : existing.adminNotes),
       },
-      include: { hall: true, department: true },
+      include: { hall: true, department: true, user: true },
     });
 
     await logActivity(
@@ -904,8 +907,9 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
 
     // Trigger Outbound Cancellation Email Notification with Attached Cancellation Slip
     sendBookingNotificationEmail({
-      to: updated.email,
-      recipientName: updated.requestedBy,
+      to: updated.email || updated.user?.email,
+      facultyEmail: updated.user?.email,
+      recipientName: updated.coordinatorName || updated.requestedBy || updated.user?.name,
       bookingId: updated.bookingId,
       eventName: updated.eventName,
       hallName: updated.hall.name,
