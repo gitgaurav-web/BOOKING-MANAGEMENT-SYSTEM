@@ -27,9 +27,6 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleCustomEmail, setGoogleCustomEmail] = useState('');
-  const [googleCustomName, setGoogleCustomName] = useState('');
   const [showPersonaPicker, setShowPersonaPicker] = useState(true);
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '942810506433-51b9mhg7lkmp3cc6s9mseju5aiodnti2.apps.googleusercontent.com';
@@ -66,8 +63,54 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Launch Google Sign-In Prompt or Modal
+  // Launch Real Google Sign-In Account Chooser Prompt
   const triggerGoogleSignIn = () => {
+    setError(null);
+
+    // 1. Direct Google OAuth2 Account Chooser (prompts real Google login every time)
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
+      try {
+        const client = (window as any).google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse.error) {
+              if (tokenResponse.error !== 'popup_closed_by_user') {
+                setError(`Google Sign-in: ${tokenResponse.error_description || tokenResponse.error}`);
+              }
+              return;
+            }
+            if (tokenResponse.access_token) {
+              try {
+                setLoading(true);
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const profile = await res.json();
+                if (!profile.email) {
+                  throw new Error('Could not retrieve email from Google account.');
+                }
+                await loginWithGoogle({
+                  email: profile.email,
+                  name: profile.name,
+                });
+                navigate(redirect);
+              } catch (err: any) {
+                setError(err.message || 'Google Institutional verification failed.');
+              } finally {
+                setLoading(false);
+              }
+            }
+          },
+        });
+        client.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn('OAuth2 token client init failed, trying Google ID prompt:', err);
+      }
+    }
+
+    // 2. Fallback: Google GSI One Tap / Account Picker
     if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
       try {
         (window as any).google.accounts.id.initialize({
@@ -76,21 +119,14 @@ export const LoginPage: React.FC = () => {
           auto_select: false,
           cancel_on_tap_outside: true,
         });
-
-        // Prompt Google One-Tap / Account Chooser
-        (window as any).google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // Fallback to simulated/persona modal if blocked or prompt dismissed
-            setShowGoogleModal(true);
-          }
-        });
+        (window as any).google.accounts.id.prompt();
+        return;
       } catch (err) {
-        console.warn('Google GSI init fallback:', err);
-        setShowGoogleModal(true);
+        console.warn('Google GSI prompt failed:', err);
       }
-    } else {
-      setShowGoogleModal(true);
     }
+
+    setError('Google Sign-in SDK is still loading. Please check your internet connection and try again.');
   };
 
   // Sri Sairam Institutional Personas for instant demo verification
@@ -165,7 +201,6 @@ export const LoginPage: React.FC = () => {
         email: ssoEmail,
         name: ssoName,
       });
-      setShowGoogleModal(false);
       navigate(redirect);
     } catch (err: any) {
       setError(err.message || 'Google Institutional SSO authentication failed.');
@@ -369,101 +404,6 @@ export const LoginPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* Google SSO Modal Simulation (For testing any custom @sairamce.edu.in account) */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                  <path
-                    fill="#4285F4"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                  />
-                </svg>
-                <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
-                  Google Workspace for Sairam
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-bold p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                Choose an official institutional account:
-              </span>
-              <div className="space-y-1.5">
-                {sairamPersonas.map((p) => (
-                  <button
-                    key={p.email}
-                    type="button"
-                    onClick={() => handleGoogleSsoLogin(p.email, p.name)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 text-left transition flex items-center justify-between"
-                  >
-                    <div>
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                        {p.name}
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        {p.email}
-                      </span>
-                    </div>
-                    <span className="text-xs text-blue-600 font-semibold">Select →</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Custom Sairam Email Tester */}
-            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
-                Or enter any custom Faculty name &amp; @sairamce.edu.in email:
-              </span>
-              <input
-                type="text"
-                placeholder="Faculty Name (e.g. Dr. Priya Suresh)"
-                value={googleCustomName}
-                onChange={(e) => setGoogleCustomName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs bg-white dark:bg-slate-800"
-              />
-              <input
-                type="email"
-                placeholder="priya.mech@sairamce.edu.in"
-                value={googleCustomEmail}
-                onChange={(e) => setGoogleCustomEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs bg-white dark:bg-slate-800"
-              />
-              <button
-                type="button"
-                disabled={!googleCustomEmail.trim()}
-                onClick={() => handleGoogleSsoLogin(googleCustomEmail, googleCustomName)}
-                className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs transition"
-              >
-                Authenticate via Sairam Google Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
