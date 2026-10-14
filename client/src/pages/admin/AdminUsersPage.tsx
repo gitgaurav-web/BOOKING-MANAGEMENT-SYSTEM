@@ -27,7 +27,7 @@ export const AdminUsersPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -297,43 +297,174 @@ export const AdminUsersPage: React.FC = () => {
           {/* Quick Filters */}
           <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
             {/* Role Filter */}
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium"
-            >
-              <option value="ALL">All Roles</option>
-              <option value="SUPER_ADMIN">Super Admin</option>
-              <option value="ADMIN">Admin</option>
-              <option value="FACULTY">Faculty</option>
-              <option value="USER">User</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenDropdownId(openDropdownId === 'filter-role' ? null : 'filter-role')}
+                className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-2xs"
+              >
+                <span>
+                  {selectedRole === 'ALL'
+                    ? 'All Roles'
+                    : selectedRole === 'SUPER_ADMIN'
+                    ? 'Super Admin'
+                    : selectedRole === 'ADMIN'
+                    ? 'Admin'
+                    : selectedRole === 'FACULTY'
+                    ? 'Faculty'
+                    : 'User'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${openDropdownId === 'filter-role' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+              </button>
+              {openDropdownId === 'filter-role' && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                  <div className="absolute left-0 mt-1.5 w-44 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      Filter by Role
+                    </div>
+                    {[
+                      { label: 'All Roles', value: 'ALL' },
+                      { label: 'Super Admin', value: 'SUPER_ADMIN' },
+                      { label: 'Admin', value: 'ADMIN' },
+                      { label: 'Faculty', value: 'FACULTY' },
+                      { label: 'User', value: 'USER' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setSelectedRole(opt.value); setOpenDropdownId(null); }}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                          selectedRole === opt.value
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {selectedRole === opt.value && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Department Filter */}
-            <select
-              value={selectedDeptFilter}
-              onChange={(e) => setSelectedDeptFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium max-w-[180px] truncate"
-            >
-              <option value="ALL">All Departments</option>
-              <option value="GENERAL">General / Campus Wide</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.code} - {d.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenDropdownId(openDropdownId === 'filter-dept' ? null : 'filter-dept')}
+                className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2 max-w-[210px] hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-2xs"
+              >
+                <span className="truncate">
+                  {selectedDeptFilter === 'ALL'
+                    ? 'All Departments'
+                    : selectedDeptFilter === 'GENERAL'
+                    ? 'General / Campus Wide'
+                    : departments.find((d) => d.id === selectedDeptFilter)?.code || 'Department'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-150 ${openDropdownId === 'filter-dept' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+              </button>
+              {openDropdownId === 'filter-dept' && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                  <div className="absolute left-0 mt-1.5 w-64 max-h-64 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      Filter by Department
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedDeptFilter('ALL'); setOpenDropdownId(null); }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                        selectedDeptFilter === 'ALL'
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>All Departments</span>
+                      {selectedDeptFilter === 'ALL' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedDeptFilter('GENERAL'); setOpenDropdownId(null); }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                        selectedDeptFilter === 'GENERAL'
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>General / Campus Wide</span>
+                      {selectedDeptFilter === 'GENERAL' && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                    </button>
+                    {departments.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => { setSelectedDeptFilter(d.id); setOpenDropdownId(null); }}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                          selectedDeptFilter === d.id
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <span className="truncate">{d.code} - {d.name}</span>
+                        {selectedDeptFilter === d.id && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 ml-1" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Status Filter */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-medium"
-            >
-              <option value="ALL">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setOpenDropdownId(openDropdownId === 'filter-status' ? null : 'filter-status')}
+                className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold flex items-center gap-2 hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-2xs"
+              >
+                <span>
+                  {selectedStatus === 'ALL'
+                    ? 'All Status'
+                    : selectedStatus === 'ACTIVE'
+                    ? 'Active Accounts'
+                    : 'Inactive Accounts'}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${openDropdownId === 'filter-status' ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+              </button>
+              {openDropdownId === 'filter-status' && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                  <div className="absolute right-0 mt-1.5 w-48 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      Filter by Status
+                    </div>
+                    {[
+                      { label: 'All Status', value: 'ALL' },
+                      { label: 'Active Accounts', value: 'ACTIVE', dot: 'bg-emerald-500' },
+                      { label: 'Inactive Accounts', value: 'INACTIVE', dot: 'bg-rose-500' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setSelectedStatus(opt.value); setOpenDropdownId(null); }}
+                        className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                          selectedStatus === opt.value
+                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          {opt.dot && <span className={`w-2 h-2 rounded-full ${opt.dot}`}></span>}
+                          <span>{opt.label}</span>
+                        </span>
+                        {selectedStatus === opt.value && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -403,18 +534,58 @@ export const AdminUsersPage: React.FC = () => {
                       {/* Department */}
                       <td className="py-3.5 px-4">
                         {isSuperAdmin ? (
-                          <select
-                            value={currentDeptId}
-                            onChange={(e) => handleDepartmentChange(u.id, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-medium text-[11px] text-slate-800 dark:text-slate-200 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">General / Campus Wide</option>
-                            {departments.map((d) => (
-                              <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-                                {d.code} - {d.name}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative inline-block text-left">
+                            <button
+                              type="button"
+                              onClick={() => setOpenDropdownId(openDropdownId === `dept-${u.id}` ? null : `dept-${u.id}`)}
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-semibold text-[11px] flex items-center justify-between gap-1.5 max-w-[210px] hover:border-slate-300 dark:hover:border-slate-600 transition cursor-pointer shadow-2xs"
+                              title="Assign Department"
+                            >
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{getDepartmentName(u)}</span>
+                              </div>
+                              <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform duration-150 ${openDropdownId === `dept-${u.id}` ? 'rotate-180 opacity-100' : 'opacity-60'}`} />
+                            </button>
+
+                            {openDropdownId === `dept-${u.id}` && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                                <div className="absolute left-0 mt-1.5 w-64 max-h-60 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                                    Assign Department
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => { handleDepartmentChange(u.id, ''); setOpenDropdownId(null); }}
+                                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                                      !currentDeptId
+                                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                                  >
+                                    <span>General / Campus Wide</span>
+                                    {!currentDeptId && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                                  </button>
+                                  {departments.map((d) => (
+                                    <button
+                                      key={d.id}
+                                      type="button"
+                                      onClick={() => { handleDepartmentChange(u.id, d.id); setOpenDropdownId(null); }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                                        currentDeptId === d.id
+                                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <span className="truncate">{d.code} - {d.name}</span>
+                                      {currentDeptId === d.id && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0 ml-1" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         ) : (
                           <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-medium">
                             <Building2 className="w-3.5 h-3.5 text-slate-400" />
@@ -426,17 +597,58 @@ export const AdminUsersPage: React.FC = () => {
                       {/* Role Privileges */}
                       <td className="py-3.5 px-4">
                         {isSuperAdmin ? (
-                          <select
-                            value={u.role}
-                            disabled={isCurrentSuper}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="USER" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">USER</option>
-                            <option value="FACULTY" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">FACULTY</option>
-                            <option value="ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ADMIN</option>
-                            <option value="SUPER_ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">SUPER_ADMIN</option>
-                          </select>
+                          <div className="relative inline-block text-left">
+                            <button
+                              type="button"
+                              disabled={isCurrentSuper}
+                              onClick={() => setOpenDropdownId(openDropdownId === `role-${u.id}` ? null : `role-${u.id}`)}
+                              className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-extrabold tracking-wide flex items-center gap-1.5 transition shadow-2xs ${
+                                isCurrentSuper ? 'opacity-80 cursor-default' : 'cursor-pointer hover:opacity-90'
+                              } ${getRoleBadge(u.role)}`}
+                              title={isCurrentSuper ? 'Current Super Admin account' : 'Change role privilege'}
+                            >
+                              <span>{u.role}</span>
+                              {!isCurrentSuper && (
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-150 ${openDropdownId === `role-${u.id}` ? 'rotate-180 opacity-100' : 'opacity-70'}`} />
+                              )}
+                            </button>
+
+                            {openDropdownId === `role-${u.id}` && !isCurrentSuper && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
+                                <div className="absolute left-0 mt-1.5 w-60 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                                    Set Role Privilege
+                                  </div>
+                                  {[
+                                    { role: 'SUPER_ADMIN', badge: 'bg-purple-100 text-purple-800 dark:bg-purple-950/70 dark:text-purple-300', desc: 'Full control & settings' },
+                                    { role: 'ADMIN', badge: 'bg-blue-100 text-blue-800 dark:bg-blue-950/70 dark:text-blue-300', desc: 'Approve & manage halls' },
+                                    { role: 'FACULTY', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300', desc: 'Request booking for events' },
+                                    { role: 'USER', badge: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200', desc: 'Standard viewing access' },
+                                  ].map((r) => (
+                                    <button
+                                      key={r.role}
+                                      type="button"
+                                      onClick={() => { handleRoleChange(u.id, r.role); setOpenDropdownId(null); }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                                        u.role === r.role
+                                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-500/20'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <div>
+                                        <div className="flex items-center gap-1.5">
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold ${r.badge}`}>{r.role}</span>
+                                        </div>
+                                        <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 mt-0.5">{r.desc}</div>
+                                      </div>
+                                      {u.role === r.role && <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 ml-1" />}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
                         ) : (
                           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wide ${getRoleBadge(u.role)}`}>
                             {u.role}
@@ -451,7 +663,7 @@ export const AdminUsersPage: React.FC = () => {
                             <>
                               <button
                                 type="button"
-                                onClick={() => setOpenStatusMenuId(openStatusMenuId === u.id ? null : u.id)}
+                                onClick={() => setOpenDropdownId(openDropdownId === `status-${u.id}` ? null : `status-${u.id}`)}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-xs cursor-pointer ${
                                   u.status === 'INACTIVE'
                                     ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/60'
@@ -469,16 +681,16 @@ export const AdminUsersPage: React.FC = () => {
                                 <span>{u.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'}</span>
                                 <ChevronDown
                                   className={`w-3.5 h-3.5 transition-transform duration-150 ${
-                                    openStatusMenuId === u.id ? 'rotate-180 opacity-100' : 'opacity-70'
+                                    openDropdownId === `status-${u.id}` ? 'rotate-180 opacity-100' : 'opacity-70'
                                   }`}
                                 />
                               </button>
 
-                              {openStatusMenuId === u.id && (
+                              {openDropdownId === `status-${u.id}` && (
                                 <>
                                   <div
                                     className="fixed inset-0 z-40"
-                                    onClick={() => setOpenStatusMenuId(null)}
+                                    onClick={() => setOpenDropdownId(null)}
                                   />
                                   <div className="absolute right-0 top-full mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                                     <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
@@ -490,7 +702,7 @@ export const AdminUsersPage: React.FC = () => {
                                       type="button"
                                       onClick={() => {
                                         handleStatusChange(u.id, 'ACTIVE');
-                                        setOpenStatusMenuId(null);
+                                        setOpenDropdownId(null);
                                       }}
                                       className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
                                         u.status !== 'INACTIVE'
@@ -515,7 +727,7 @@ export const AdminUsersPage: React.FC = () => {
                                       type="button"
                                       onClick={() => {
                                         handleStatusChange(u.id, 'INACTIVE');
-                                        setOpenStatusMenuId(null);
+                                        setOpenDropdownId(null);
                                       }}
                                       className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left mt-1 cursor-pointer ${
                                         u.status === 'INACTIVE'
@@ -674,11 +886,11 @@ export const AdminUsersPage: React.FC = () => {
                   <select
                     value={formData.departmentId}
                     onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="">General / Campus Wide</option>
+                    <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">General / Campus Wide</option>
                     {departments.map((d) => (
-                      <option key={d.id} value={d.id}>
+                      <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
                         {d.code} - {d.name}
                       </option>
                     ))}
@@ -692,12 +904,12 @@ export const AdminUsersPage: React.FC = () => {
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    <option value="FACULTY">FACULTY (Request Bookings)</option>
-                    <option value="ADMIN">ADMIN (Approve Bookings)</option>
-                    <option value="SUPER_ADMIN">SUPER_ADMIN (Full Control)</option>
-                    <option value="USER">USER (Student / Staff)</option>
+                    <option value="FACULTY" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">FACULTY (Request Bookings)</option>
+                    <option value="ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">ADMIN (Approve Bookings)</option>
+                    <option value="SUPER_ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SUPER_ADMIN (Full Control)</option>
+                    <option value="USER" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">USER (Student / Staff)</option>
                   </select>
                 </div>
               </div>
