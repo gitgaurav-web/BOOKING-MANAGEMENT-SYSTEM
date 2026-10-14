@@ -32,6 +32,67 @@ export const LoginPage: React.FC = () => {
   const [googleCustomName, setGoogleCustomName] = useState('');
   const [showPersonaPicker, setShowPersonaPicker] = useState(true);
 
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '942810506433-51b9mhg7lkmp3cc6s9mseju5aiodnti2.apps.googleusercontent.com';
+
+  // Decode Google JWT Credential Response
+  const handleGoogleCredentialResponse = async (response: any) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const idToken = response.credential;
+      if (!idToken) throw new Error('No credential received from Google.');
+
+      // Decode JWT payload without external library
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const payload = JSON.parse(jsonPayload);
+
+      await loginWithGoogle({
+        email: payload.email,
+        name: payload.name,
+        token: idToken,
+      });
+      navigate(redirect);
+    } catch (err: any) {
+      setError(err.message || 'Google Institutional verification failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Launch Google Sign-In Prompt or Modal
+  const triggerGoogleSignIn = () => {
+    if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
+      try {
+        (window as any).google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+
+        // Prompt Google One-Tap / Account Chooser
+        (window as any).google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // Fallback to simulated/persona modal if blocked or prompt dismissed
+            setShowGoogleModal(true);
+          }
+        });
+      } catch (err) {
+        console.warn('Google GSI init fallback:', err);
+        setShowGoogleModal(true);
+      }
+    } else {
+      setShowGoogleModal(true);
+    }
+  };
+
   // Sri Sairam Institutional Personas for instant demo verification
   const sairamPersonas = [
     {
@@ -166,7 +227,7 @@ export const LoginPage: React.FC = () => {
         <button
           type="button"
           disabled={loading}
-          onClick={() => setShowGoogleModal(true)}
+          onClick={triggerGoogleSignIn}
           className="w-full py-3 px-4 rounded-2xl border-2 border-slate-200 dark:border-slate-700 hover:border-blue-600 dark:hover:border-blue-500 bg-slate-50/70 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-800 dark:text-white font-bold text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-3 cursor-pointer group"
         >
           {/* Official Google G Logo */}
