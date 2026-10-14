@@ -292,8 +292,43 @@ export const AdminSettingsPage: React.FC = () => {
                 className="rounded text-blue-600 h-4 w-4"
               />
               <label htmlFor="emailNotif" className="text-slate-700 dark:text-slate-300 font-medium">
-                Enable In-App & Email Dispatch Notifications for Approvals & Cancellations
+                Enable In-App &amp; Email Dispatch Notifications for Approvals &amp; Cancellations
               </label>
+            </div>
+
+            {/* Automated Dispatch Email Recipients */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  IQAC Requisition Alert Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="iqac@sairamce.edu.in"
+                  value={settings.iqacNotificationEmail !== undefined ? settings.iqacNotificationEmail : 'iqac@sairamce.edu.in'}
+                  onChange={(e) => handleChange('iqacNotificationEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Receives automated copy of all new requisitions, approved bookings, and cancellation slips + PDF pass.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Store &amp; Logistics Setup Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="store@sairamce.edu.in"
+                  value={settings.storeNotificationEmail !== undefined ? settings.storeNotificationEmail : 'store@sairamce.edu.in'}
+                  onChange={(e) => handleChange('storeNotificationEmail', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Receives approved booking logistics (mementos count, VIP guests, AV equipment) &amp; cancellation alerts.
+                </p>
+              </div>
             </div>
 
             {/* Public Upcoming Events Privacy Mode */}

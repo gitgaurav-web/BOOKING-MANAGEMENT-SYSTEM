@@ -19,6 +19,8 @@ export interface SystemSettings {
   emailNotificationsEnabled: string;
   publicUpcomingDisplay: string;
   customEquipmentCatalog?: string;
+  iqacNotificationEmail?: string;
+  storeNotificationEmail?: string;
 }
 
 const defaultSettings: SystemSettings = {
@@ -39,6 +41,8 @@ const defaultSettings: SystemSettings = {
   emailNotificationsEnabled: 'true',
   publicUpcomingDisplay: 'EVENT_TITLE',
   customEquipmentCatalog: '',
+  iqacNotificationEmail: 'iqac@sairamce.edu.in',
+  storeNotificationEmail: 'store@sairamce.edu.in',
 };
 
 interface SettingsContextType {

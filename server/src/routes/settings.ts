@@ -24,6 +24,8 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'emailNotificationsEnabled',
   'publicUpcomingDisplay',
   'customEquipmentCatalog',
+  'iqacNotificationEmail',
+  'storeNotificationEmail',
 ]);
 
 // GET /api/settings - retrieve public/configured settings
@@ -48,6 +50,8 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       emailNotificationsEnabled: 'true',
       publicUpcomingDisplay: 'EVENT_TITLE', // 'EVENT_TITLE' | 'DEPARTMENT_EVENT' | 'RESERVED_SLOT'
       customEquipmentCatalog: '',
+      iqacNotificationEmail: 'iqac@sairamce.edu.in',
+      storeNotificationEmail: 'store@sairamce.edu.in',
     };
 
     for (const item of list) {

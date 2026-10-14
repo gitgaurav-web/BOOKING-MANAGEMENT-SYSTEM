@@ -417,16 +417,32 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
       }
     }
 
-    // Trigger Outbound Email Notification
+    // Trigger Outbound Email Notification with Attached PDF Gate Pass
     sendBookingNotificationEmail({
       to: booking.email || user.email,
       recipientName: booking.requestedBy || user.name,
       bookingId: booking.bookingId,
       eventName: booking.eventName,
       hallName: booking.hall.name,
+      hallLocation: booking.hall.location,
+      departmentName: booking.department?.name,
       bookingDate: booking.bookingDate,
+      endDate: booking.endDate,
       timeSlot: `${booking.startTime} - ${booking.endTime}`,
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+      bookingType: booking.bookingType,
       status: initialStatus as any,
+      coordinatorName: booking.coordinatorName || user.name,
+      contactNumber: booking.contactNumber,
+      email: booking.email,
+      participantCount: booking.participantCount,
+      guestCount: booking.guestCount ?? 0,
+      mementoCount: booking.mementoCount ?? 0,
+      purpose: booking.purpose,
+      description: booking.description || undefined,
+      specialRequirements: booking.specialRequirements || undefined,
+      adminNotes: booking.adminNotes || undefined,
     }).catch(err => console.error('Outbound email error:', err));
 
     res.status(201).json({
@@ -723,16 +739,32 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       'SUCCESS'
     );
 
-    // Trigger Outbound Approval Email
+    // Trigger Outbound Approval Email with Attached PDF Gate Pass
     sendBookingNotificationEmail({
-      to: existing.email,
-      recipientName: existing.requestedBy,
-      bookingId: existing.bookingId,
-      eventName: existing.eventName,
-      hallName: existing.hall.name,
-      bookingDate: existing.bookingDate,
-      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      to: updated.email,
+      recipientName: updated.requestedBy,
+      bookingId: updated.bookingId,
+      eventName: updated.eventName,
+      hallName: updated.hall.name,
+      hallLocation: updated.hall.location,
+      departmentName: updated.department?.name,
+      bookingDate: updated.bookingDate,
+      endDate: updated.endDate,
+      timeSlot: `${updated.startTime} - ${updated.endTime}`,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      bookingType: updated.bookingType,
       status: 'APPROVED',
+      coordinatorName: updated.coordinatorName || updated.requestedBy,
+      contactNumber: updated.contactNumber,
+      email: updated.email,
+      participantCount: updated.participantCount,
+      guestCount: updated.guestCount ?? 0,
+      mementoCount: updated.mementoCount ?? 0,
+      purpose: updated.purpose,
+      description: updated.description || undefined,
+      specialRequirements: updated.specialRequirements || undefined,
+      adminNotes: updated.adminNotes || undefined,
     }).catch(err => console.error('Approval email error:', err));
 
     res.json({
@@ -769,7 +801,7 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
         rejectionReason: rejectionReason || 'Request rejected by administration.',
         adminNotes: adminNotes || existing.adminNotes,
       },
-      include: { hall: true },
+      include: { hall: true, department: true },
     });
 
     await logActivity(
@@ -787,17 +819,33 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
       'ALERT'
     );
 
-    // Trigger Outbound Rejection Email
+    // Trigger Outbound Rejection Email with Attached PDF Slip
     sendBookingNotificationEmail({
-      to: existing.email,
-      recipientName: existing.requestedBy,
-      bookingId: existing.bookingId,
-      eventName: existing.eventName,
-      hallName: existing.hall.name,
-      bookingDate: existing.bookingDate,
-      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      to: updated.email,
+      recipientName: updated.requestedBy,
+      bookingId: updated.bookingId,
+      eventName: updated.eventName,
+      hallName: updated.hall.name,
+      hallLocation: updated.hall.location,
+      departmentName: updated.department?.name,
+      bookingDate: updated.bookingDate,
+      endDate: updated.endDate,
+      timeSlot: `${updated.startTime} - ${updated.endTime}`,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      bookingType: updated.bookingType,
       status: 'REJECTED',
       rejectionReason: rejectionReason || 'Facility unavailable or schedule conflict.',
+      coordinatorName: updated.coordinatorName || updated.requestedBy,
+      contactNumber: updated.contactNumber,
+      email: updated.email,
+      participantCount: updated.participantCount,
+      guestCount: updated.guestCount ?? 0,
+      mementoCount: updated.mementoCount ?? 0,
+      purpose: updated.purpose,
+      description: updated.description || undefined,
+      specialRequirements: updated.specialRequirements || undefined,
+      adminNotes: updated.adminNotes || undefined,
     }).catch(err => console.error('Rejection email error:', err));
 
     res.json({
@@ -834,7 +882,7 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
         status: 'CANCELLED',
         adminNotes: adminNotes !== undefined ? adminNotes : (reason ? `Cancelled: ${reason}` : existing.adminNotes),
       },
-      include: { hall: true },
+      include: { hall: true, department: true },
     });
 
     await logActivity(
@@ -854,17 +902,33 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
       );
     }
 
-    // Trigger Outbound Cancellation Email Notification
+    // Trigger Outbound Cancellation Email Notification with Attached Cancellation Slip
     sendBookingNotificationEmail({
-      to: existing.email,
-      recipientName: existing.requestedBy,
-      bookingId: existing.bookingId,
-      eventName: existing.eventName,
-      hallName: existing.hall.name,
-      bookingDate: existing.bookingDate,
-      timeSlot: `${existing.startTime} - ${existing.endTime}`,
+      to: updated.email,
+      recipientName: updated.requestedBy,
+      bookingId: updated.bookingId,
+      eventName: updated.eventName,
+      hallName: updated.hall.name,
+      hallLocation: updated.hall.location,
+      departmentName: updated.department?.name,
+      bookingDate: updated.bookingDate,
+      endDate: updated.endDate,
+      timeSlot: `${updated.startTime} - ${updated.endTime}`,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      bookingType: updated.bookingType,
       status: 'CANCELLED',
       rejectionReason: effectiveReason,
+      coordinatorName: updated.coordinatorName || updated.requestedBy,
+      contactNumber: updated.contactNumber,
+      email: updated.email,
+      participantCount: updated.participantCount,
+      guestCount: updated.guestCount ?? 0,
+      mementoCount: updated.mementoCount ?? 0,
+      purpose: updated.purpose,
+      description: updated.description || undefined,
+      specialRequirements: updated.specialRequirements || undefined,
+      adminNotes: updated.adminNotes || undefined,
     }).catch(err => console.error('Cancellation email error:', err));
 
     res.json({
