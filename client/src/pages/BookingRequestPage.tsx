@@ -63,11 +63,7 @@ export const BookingRequestPage: React.FC = () => {
   const [coordinatorName, setCoordinatorName] = useState<string>(user?.name || '');
   const [contactNumber, setContactNumber] = useState<string>(user?.phone || '');
   const [email, setEmail] = useState<string>(user?.email || '');
-  const [specialRequirements, setSpecialRequirements] = useState<string[]>([
-    'Projector',
-    'Microphone',
-    'AC',
-  ]);
+  const [specialRequirements, setSpecialRequirements] = useState<string[]>([]);
   const [otherCustomReq, setOtherCustomReq] = useState<string>('');
   const [attachmentUrl, setAttachmentUrl] = useState<string>('');
   const [uploadingFile, setUploadingFile] = useState<boolean>(false);
@@ -150,7 +146,38 @@ export const BookingRequestPage: React.FC = () => {
 
   const toggleRequirement = (req: string) => {
     if (specialRequirements.includes(req)) {
-      setSpecialRequirements(specialRequirements.filter((r) => r !== req));
+      let subItemsToRemove: string[] = [req];
+      if (req === 'Microphone') {
+        subItemsToRemove = [
+          ...subItemsToRemove,
+          'Handheld Cordless Mic',
+          'Collar / Lapel Mic',
+          'Podium Gooseneck Mic',
+        ];
+      } else if (req === 'Audio System') {
+        subItemsToRemove = [
+          ...subItemsToRemove,
+          'Still Photography',
+          'HD Video Recording',
+          'Live Video Telecast',
+          'Stage Return Monitors',
+        ];
+      } else if (req === 'Projector') {
+        subItemsToRemove = [
+          ...subItemsToRemove,
+          'Stage HDMI Interface',
+          'Wireless Presentation Clicker',
+          'Dual Screen Display',
+        ];
+      } else if (req === 'Stage Lighting') {
+        subItemsToRemove = [
+          ...subItemsToRemove,
+          'Stage Focus Lights',
+          'Dignitary Stage Chairs',
+          'Podium Stand & Banner Frame',
+        ];
+      }
+      setSpecialRequirements(specialRequirements.filter((r) => !subItemsToRemove.includes(r)));
     } else {
       setSpecialRequirements([...specialRequirements, req]);
     }
