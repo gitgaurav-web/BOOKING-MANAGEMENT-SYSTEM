@@ -281,7 +281,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
 
           const sanitizeBookingForAvailability = (b: any) => {
             const isOwner = requester && requester.id === b.userId;
-            const canSeePrivateDetails = isRequesterAdmin || isOwner;
+            const canSeePrivateDetails = Boolean(requester) || isRequesterAdmin || isOwner;
 
             let sanitizedTitle: string;
             let sanitizedBookingId: string;
@@ -319,8 +319,9 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
               startTime: b.startTime,
               endTime: b.endTime,
               department: sanitizedDept,
-              bookedBy: canSeePrivateDetails ? b.requestedBy : undefined,
+              bookedBy: canSeePrivateDetails ? (b.requestedBy || b.user?.name) : (b.requestedBy || undefined),
               purpose: canSeePrivateDetails ? b.purpose : undefined,
+              participantCount: b.participantCount,
             };
           };
 
@@ -359,6 +360,7 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response): Promise<v
             department: sanitizedPrimary.department,
             bookedBy: sanitizedPrimary.bookedBy,
             purpose: sanitizedPrimary.purpose,
+            participantCount: sanitizedPrimary.participantCount,
             events: eventsList,
           };
           continue;

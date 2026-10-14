@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
+  User,
+  Building2,
+  Clock,
+  Calendar,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  Wrench,
+  Sparkles,
 } from 'lucide-react';
 import {
   format,
@@ -47,6 +56,30 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'list'>(initialViewMode);
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const [hoverTooltip, setHoverTooltip] = useState<{
+    x: number;
+    y: number;
+    item: AvailabilityDayInfo;
+    dateStr: string;
+  } | null>(null);
+
+  const handleMouseEnterSlot = (
+    e: React.MouseEvent,
+    item: AvailabilityDayInfo,
+    dateStr: string
+  ) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setHoverTooltip({
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      item,
+      dateStr,
+    });
+  };
+
+  const handleMouseLeaveSlot = () => {
+    setHoverTooltip(null);
+  };
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -63,6 +96,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
       : eachDayOfInterval({ start: startDate, end: endDate });
 
   const handlePrev = () => {
+    setHoverTooltip(null);
     if (viewMode === 'week') {
       onDateChange(subWeeks(currentDate, 1));
     } else {
@@ -71,6 +105,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   };
 
   const handleNext = () => {
+    setHoverTooltip(null);
     if (viewMode === 'week') {
       onDateChange(addWeeks(currentDate, 1));
     } else {
@@ -79,6 +114,7 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
   };
 
   const handleToday = () => {
+    setHoverTooltip(null);
     onDateChange(new Date());
   };
 
@@ -185,7 +221,10 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
         <div className="flex items-center gap-2">
           <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center text-xs font-semibold">
             <button
-              onClick={() => setViewMode('month')}
+              onClick={() => {
+                setHoverTooltip(null);
+                setViewMode('month');
+              }}
               className={`px-3 py-1.5 rounded-lg transition ${
                 viewMode === 'month'
                   ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -195,7 +234,10 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               Month View
             </button>
             <button
-              onClick={() => setViewMode('week')}
+              onClick={() => {
+                setHoverTooltip(null);
+                setViewMode('week');
+              }}
               className={`px-3 py-1.5 rounded-lg transition ${
                 viewMode === 'week'
                   ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -205,7 +247,10 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
               Week View
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => {
+                setHoverTooltip(null);
+                setViewMode('list');
+              }}
               className={`px-3 py-1.5 rounded-lg transition ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
@@ -273,7 +318,12 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                         const displayStatus = isBooked ? 'BOOKED' : it.status;
                         const shortName = getShortHallName(it.hallName);
                         return (
-                          <span key={it.hallId} className="text-xs text-slate-500">
+                          <span
+                            key={it.hallId}
+                            onMouseEnter={(e) => handleMouseEnterSlot(e, it, dateStr)}
+                            onMouseLeave={handleMouseLeaveSlot}
+                            className="text-xs text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                          >
                             {shortName}:{' '}
                             <span
                               className={`font-semibold ${
@@ -348,8 +398,19 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 <div
                   key={dateStr}
                   onClick={() => {
+                    setHoverTooltip(null);
                     setSelectedDateStr(dateStr);
                     onDateClick(dateStr, items);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (items.length === 1) {
+                      handleMouseEnterSlot(e, items[0], dateStr);
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (items.length === 1) {
+                      handleMouseLeaveSlot();
+                    }
                   }}
                   className={`min-h-[75px] sm:min-h-[96px] p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${getStatusColorClasses(
                     aggregateStatus,
@@ -392,7 +453,15 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                       return (
                         <div
                           key={it.hallId}
-                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between border ${
+                          onMouseEnter={(e) => {
+                            e.stopPropagation();
+                            handleMouseEnterSlot(e, it, dateStr);
+                          }}
+                          onMouseLeave={(e) => {
+                            e.stopPropagation();
+                            handleMouseLeaveSlot();
+                          }}
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded truncate flex items-center justify-between border cursor-pointer hover:ring-1 hover:ring-blue-400 dark:hover:ring-blue-500 transition-all ${
                             displayStatus === 'AVAILABLE'
                               ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-300/40'
                               : displayStatus === 'BOOKED'
@@ -401,7 +470,6 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                               ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200 border-amber-400/60 font-bold'
                               : 'bg-slate-500/20 text-slate-800 dark:text-slate-300 border-slate-300/40'
                           }`}
-                          title={`${it.hallName}: ${displayStatus}`}
                         >
                           <span className="truncate">
                             {selectedHallId === 'ALL'
@@ -422,6 +490,133 @@ export const AvailabilityCalendar: React.FC<AvailabilityCalendarProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Executive Floating Tooltip on Hover */}
+      {hoverTooltip && (
+        <div
+          className="fixed z-50 pointer-events-none transition-all duration-150 animate-in fade-in zoom-in-95"
+          style={{
+            left: Math.min(
+              Math.max(hoverTooltip.x, 160),
+              (typeof window !== 'undefined' ? window.innerWidth : 1000) - 160
+            ),
+            top: hoverTooltip.y < 250 ? hoverTooltip.y + 24 : hoverTooltip.y - 12,
+            transform: hoverTooltip.y < 250 ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="bg-slate-900/95 dark:bg-slate-950/95 text-white backdrop-blur-md border border-slate-700/80 rounded-2xl shadow-2xl p-3.5 max-w-xs w-72 text-left ring-1 ring-white/10">
+            {/* Header: Hall Name & Date */}
+            <div className="flex items-start justify-between border-b border-slate-800/80 pb-2 mb-2 gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">{hoverTooltip.item.hallName}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {format(new Date(hoverTooltip.dateStr + 'T00:00:00'), 'EEEE, MMM d, yyyy')}
+                </p>
+              </div>
+              <span
+                className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                  hoverTooltip.item.status === 'BOOKED' || hoverTooltip.item.status === 'PARTIAL'
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : hoverTooltip.item.status === 'PENDING'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : hoverTooltip.item.status === 'HOLIDAY'
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    : hoverTooltip.item.status === 'MAINTENANCE' || hoverTooltip.item.status === 'BLOCKED'
+                    ? 'bg-slate-700 text-slate-300 border border-slate-600'
+                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                }`}
+              >
+                {hoverTooltip.item.status === 'BOOKED' || hoverTooltip.item.status === 'PARTIAL'
+                  ? 'Booked'
+                  : hoverTooltip.item.status === 'PENDING'
+                  ? 'Pending'
+                  : hoverTooltip.item.status}
+              </span>
+            </div>
+
+            {/* Bookings / Event Details */}
+            {hoverTooltip.item.events && hoverTooltip.item.events.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {hoverTooltip.item.events.map((ev, idx) => (
+                  <div key={idx} className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50 space-y-1">
+                    <p className="text-xs font-bold text-blue-300 leading-snug">{ev.eventName}</p>
+                    {ev.bookedBy && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                        <User className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{ev.bookedBy}</span>
+                      </div>
+                    )}
+                    {ev.department && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                        <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{ev.department}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                      <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                      <span>
+                        {ev.startTime} - {ev.endTime} ({ev.bookingType})
+                      </span>
+                    </div>
+                    {ev.participantCount && ev.participantCount > 0 ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <Users className="w-3 h-3 text-slate-500 shrink-0" />
+                        <span>{ev.participantCount} Expected Attendees</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : hoverTooltip.item.eventName ? (
+              <div className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50 space-y-1">
+                <p className="text-xs font-bold text-blue-300 leading-snug">{hoverTooltip.item.eventName}</p>
+                {hoverTooltip.item.bookedBy && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                    <User className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate">{hoverTooltip.item.bookedBy}</span>
+                  </div>
+                )}
+                {hoverTooltip.item.department && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-300">
+                    <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                    <span className="truncate">{hoverTooltip.item.department}</span>
+                  </div>
+                )}
+                {hoverTooltip.item.startTime && hoverTooltip.item.endTime && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                    <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                    <span>
+                      {hoverTooltip.item.startTime} - {hoverTooltip.item.endTime}
+                    </span>
+                  </div>
+                )}
+                {hoverTooltip.item.participantCount && hoverTooltip.item.participantCount > 0 ? (
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                    <Users className="w-3 h-3 text-slate-500 shrink-0" />
+                    <span>{hoverTooltip.item.participantCount} Expected Attendees</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : hoverTooltip.item.reason ? (
+              <div className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50">
+                <p className="text-xs text-slate-300 leading-relaxed">{hoverTooltip.item.reason}</p>
+              </div>
+            ) : (
+              <div className="bg-slate-800/60 rounded-xl p-2 border border-slate-700/50">
+                <p className="text-xs text-emerald-400 font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Slot is available for booking.</span>
+                </p>
+              </div>
+            )}
+
+            {/* Footer hint */}
+            <div className="mt-2 text-[9px] text-slate-400 text-center flex items-center justify-center gap-1 border-t border-slate-800/60 pt-1.5">
+              <span>Click cell to open full booking view &rarr;</span>
+            </div>
           </div>
         </div>
       )}

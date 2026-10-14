@@ -143,6 +143,7 @@ export interface AvailabilitySlotEvent {
   department?: string;
   bookedBy?: string;
   purpose?: string;
+  participantCount?: number;
 }
 
 export interface AvailabilityDayInfo {
@@ -159,6 +160,7 @@ export interface AvailabilityDayInfo {
   department?: string;
   bookedBy?: string;
   purpose?: string;
+  participantCount?: number;
   details?: Record<string, any>;
   events?: AvailabilitySlotEvent[];
   hasPending?: boolean;
