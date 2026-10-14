@@ -15,7 +15,9 @@ import {
   Mail, 
   Phone, 
   UserPlus, 
-  RefreshCw 
+  RefreshCw,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -25,6 +27,7 @@ export const AdminUsersPage: React.FC = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -403,11 +406,11 @@ export const AdminUsersPage: React.FC = () => {
                           <select
                             value={currentDeptId}
                             onChange={(e) => handleDepartmentChange(u.id, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-medium text-[11px] text-slate-800 dark:text-slate-200 max-w-[200px]"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-medium text-[11px] text-slate-800 dark:text-slate-200 max-w-[200px] focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
-                            <option value="">General / Campus Wide</option>
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">General / Campus Wide</option>
                             {departments.map((d) => (
-                              <option key={d.id} value={d.id}>
+                              <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                                 {d.code} - {d.name}
                               </option>
                             ))}
@@ -427,12 +430,12 @@ export const AdminUsersPage: React.FC = () => {
                             value={u.role}
                             disabled={isCurrentSuper}
                             onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-[11px]"
+                            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold text-[11px] text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                           >
-                            <option value="USER">USER</option>
-                            <option value="FACULTY">FACULTY</option>
-                            <option value="ADMIN">ADMIN</option>
-                            <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                            <option value="USER" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">USER</option>
+                            <option value="FACULTY" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">FACULTY</option>
+                            <option value="ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">ADMIN</option>
+                            <option value="SUPER_ADMIN" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">SUPER_ADMIN</option>
                           </select>
                         ) : (
                           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold tracking-wide ${getRoleBadge(u.role)}`}>
@@ -443,29 +446,115 @@ export const AdminUsersPage: React.FC = () => {
 
                       {/* Account Status */}
                       <td className="py-3.5 px-4">
-                        {isSuperAdmin ? (
-                          <select
-                            value={u.status || 'ACTIVE'}
-                            disabled={isCurrentSuper}
-                            onChange={(e) => handleStatusChange(u.id, e.target.value)}
-                            className={`px-2.5 py-1.5 rounded-lg border font-semibold text-[11px] ${
-                              u.status === 'INACTIVE'
-                                ? 'border-rose-300 bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
-                                : 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
-                            }`}
-                          >
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                          </select>
-                        ) : (
-                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                            u.status === 'INACTIVE'
-                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                          }`}>
-                            {u.status === 'INACTIVE' ? 'Inactive' : 'Active'}
-                          </span>
-                        )}
+                        <div className="relative inline-block text-left">
+                          {isSuperAdmin && !isCurrentSuper ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setOpenStatusMenuId(openStatusMenuId === u.id ? null : u.id)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                                  u.status === 'INACTIVE'
+                                    ? 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 dark:bg-rose-950/60 dark:border-rose-700 dark:text-rose-200 dark:hover:bg-rose-900/60'
+                                    : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:border-emerald-700 dark:text-emerald-200 dark:hover:bg-emerald-900/60'
+                                }`}
+                                title="Click to toggle or change status"
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    u.status === 'INACTIVE'
+                                      ? 'bg-rose-500 shadow-sm shadow-rose-500/50'
+                                      : 'bg-emerald-500 shadow-sm shadow-emerald-500/50 animate-pulse'
+                                  }`}
+                                />
+                                <span>{u.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'}</span>
+                                <ChevronDown
+                                  className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                                    openStatusMenuId === u.id ? 'rotate-180 opacity-100' : 'opacity-70'
+                                  }`}
+                                />
+                              </button>
+
+                              {openStatusMenuId === u.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setOpenStatusMenuId(null)}
+                                  />
+                                  <div className="absolute right-0 top-full mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
+                                      Account Status
+                                    </div>
+
+                                    {/* Option 1: ACTIVE */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleStatusChange(u.id, 'ACTIVE');
+                                        setOpenStatusMenuId(null);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                                        u.status !== 'INACTIVE'
+                                          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50 shrink-0"></span>
+                                        <div>
+                                          <div className="text-emerald-700 dark:text-emerald-300 font-extrabold">ACTIVE</div>
+                                          <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Can login & request halls</div>
+                                        </div>
+                                      </div>
+                                      {u.status !== 'INACTIVE' && (
+                                        <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
+                                      )}
+                                    </button>
+
+                                    {/* Option 2: INACTIVE */}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        handleStatusChange(u.id, 'INACTIVE');
+                                        setOpenStatusMenuId(null);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition text-left mt-1 cursor-pointer ${
+                                        u.status === 'INACTIVE'
+                                          ? 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30'
+                                          : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50 shrink-0"></span>
+                                        <div>
+                                          <div className="text-rose-700 dark:text-rose-300 font-extrabold">INACTIVE</div>
+                                          <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400">Access suspended</div>
+                                        </div>
+                                      </div>
+                                      {u.status === 'INACTIVE' && (
+                                        <Check className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 ml-1" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold ${
+                                u.status === 'INACTIVE'
+                                  ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300'
+                                  : 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
+                              }`}
+                            >
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  u.status === 'INACTIVE' ? 'bg-rose-500' : 'bg-emerald-500'
+                                }`}
+                              />
+                              <span>{u.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Bookings Count */}
