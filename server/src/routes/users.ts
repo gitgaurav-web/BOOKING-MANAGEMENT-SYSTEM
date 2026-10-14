@@ -67,6 +67,62 @@ router.put('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN')
   }
 });
 
+// Departments: Delete department (unassigns users and bookings cleanly)
+router.delete('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.department.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { users: true, bookings: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'Department not found.' });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Safely unassign all users referencing this department to null (General / Campus Wide)
+      await tx.user.updateMany({
+        where: { departmentId: id },
+        data: { departmentId: null },
+      });
+
+      // 2. Safely unassign all bookings referencing this department to null
+      await tx.booking.updateMany({
+        where: { departmentId: id },
+        data: { departmentId: null },
+      });
+
+      // 3. Delete the department record completely
+      await tx.department.delete({
+        where: { id },
+      });
+    });
+
+    await logActivity(
+      req.user!.id,
+      'DELETE_DEPARTMENT',
+      'DEPARTMENT',
+      id,
+      `Permanently deleted department ${existing.name} (${existing.code}). Unassigned from ${existing._count.users} users and ${existing._count.bookings} bookings.`
+    );
+
+    res.json({
+      message: `Department "${existing.name}" deleted successfully and unassigned from all users and bookings.`,
+      deletedId: id,
+    });
+  } catch (error: any) {
+    console.error('Failed to delete department:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete department.' });
+  }
+});
+
 // Users: List all (Admin only)
 router.get('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
