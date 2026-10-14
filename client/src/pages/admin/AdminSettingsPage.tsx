@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
-import { Settings, Save, CheckCircle2 } from 'lucide-react';
+import { Settings, Save, CheckCircle2, Plus, X, Trash2 } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 
 export const AdminSettingsPage: React.FC = () => {
@@ -9,6 +9,7 @@ export const AdminSettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [newEquipmentInput, setNewEquipmentInput] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -46,6 +47,31 @@ export const AdminSettingsPage: React.FC = () => {
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const currentEquipmentList = (settings.customEquipmentCatalog || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const handleAddEquipment = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = newEquipmentInput.trim();
+    if (!trimmed) return;
+    if (currentEquipmentList.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+      setNewEquipmentInput('');
+      return;
+    }
+    const updated = [...currentEquipmentList, trimmed].join(', ');
+    handleChange('customEquipmentCatalog', updated);
+    setNewEquipmentInput('');
+  };
+
+  const handleDeleteEquipment = (itemToDelete: string) => {
+    const updated = currentEquipmentList
+      .filter((item) => item.toLowerCase() !== itemToDelete.toLowerCase())
+      .join(', ');
+    handleChange('customEquipmentCatalog', updated);
   };
 
   if (loading) {
@@ -293,28 +319,100 @@ export const AdminSettingsPage: React.FC = () => {
 
         {/* Section 3: Technical Equipment & Facilities Catalog */}
         <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-            <span>⚙️ 3. Technical Equipment &amp; Facilities Custom Catalog</span>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span>⚙️ 3. Technical Equipment &amp; Facilities Catalog</span>
+            </span>
+            <span className="text-[11px] font-normal text-slate-500">
+              {currentEquipmentList.length} item{currentEquipmentList.length === 1 ? '' : 's'} configured
+            </span>
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Super Admin can add additional equipment options to the booking form. Enter custom equipment names separated by commas (e.g. <code>High-Gain Stage Antenna, Wireless Clicker, Stage Return Monitor, VIP Podium Banner Frame</code>).
+            Super Admin can add new equipment/facility options or delete existing ones. Items added here will automatically appear on the faculty booking form for one-click selection.
           </p>
 
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5 text-xs">
-              Additional Custom Equipment &amp; Facility Items (Comma-Separated)
+          {/* Add New Item Input Box */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-2">
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 text-xs">
+              Add New Equipment / Facility Option
             </label>
-            <textarea
-              rows={3}
-              placeholder="e.g. Wireless Clicker, Extra Extension Boards, Stage Return Monitors, VIP Water Dispenser"
-              value={settings.customEquipmentCatalog || ''}
-              onChange={(e) => handleChange('customEquipmentCatalog', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              Any item added here will automatically appear as selectable one-click equipment pills for faculty on the booking form.
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. Wireless Clicker, Stage Return Monitors, VIP Water Dispenser..."
+                value={newEquipmentInput}
+                onChange={(e) => setNewEquipmentInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddEquipment(e);
+                  }
+                }}
+                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              />
+              <button
+                type="button"
+                onClick={handleAddEquipment}
+                disabled={!newEquipmentInput.trim()}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold text-xs transition flex items-center gap-1.5 shadow-xs shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Item</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Type the item name and click <strong>Add Item</strong> (or press Enter). Don't forget to click <strong>Save Settings</strong> below to persist changes.
             </p>
           </div>
+
+          {/* Current Active Equipment List with Delete Buttons */}
+          <div>
+            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-2 text-xs">
+              Active Catalog Items ({currentEquipmentList.length})
+            </label>
+            {currentEquipmentList.length === 0 ? (
+              <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-xs text-slate-400">
+                No custom equipment added yet. Type an item name above and click "Add Item".
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {currentEquipmentList.map((item) => (
+                  <div
+                    key={item}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/80 text-blue-800 dark:text-blue-200 text-xs font-medium shadow-2xs group transition"
+                  >
+                    <span>{item}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEquipment(item)}
+                      title={`Delete "${item}"`}
+                      className="p-0.5 rounded text-blue-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950/60 dark:hover:text-red-400 transition"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Bulk Edit Fallback Details */}
+          <details className="text-xs text-slate-500 pt-1">
+            <summary className="cursor-pointer hover:text-slate-700 dark:hover:text-slate-300 font-medium">
+              Advanced: Bulk Edit (Comma-Separated)
+            </summary>
+            <div className="mt-2 space-y-1">
+              <textarea
+                rows={2}
+                value={settings.customEquipmentCatalog || ''}
+                onChange={(e) => handleChange('customEquipmentCatalog', e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
+              />
+              <p className="text-[11px] text-slate-400">
+                You can also paste a raw comma-separated list here directly.
+              </p>
+            </div>
+          </details>
         </div>
 
         <div className="pt-2 flex justify-end">
