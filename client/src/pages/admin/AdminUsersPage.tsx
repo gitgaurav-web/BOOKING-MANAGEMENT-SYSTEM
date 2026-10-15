@@ -17,7 +17,8 @@ import {
   UserPlus, 
   RefreshCw,
   ChevronDown,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -39,6 +40,11 @@ export const AdminUsersPage: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  // Delete User Confirmation Modal State
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -133,6 +139,21 @@ export const AdminUsersPage: React.FC = () => {
       loadUsers();
     } catch (err: any) {
       alert(err.message || 'Failed to update account status');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      setDeletingUser(true);
+      setDeleteError(null);
+      await apiRequest(`/users/${userToDelete.id}`, { method: 'DELETE' });
+      setUserToDelete(null);
+      loadUsers();
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to remove user account');
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -504,6 +525,7 @@ export const AdminUsersPage: React.FC = () => {
                   <th className="py-3 px-4">Role Privileges</th>
                   <th className="py-3 px-4">Account Status</th>
                   <th className="py-3 px-4 text-center">Bookings</th>
+                  {isSuperAdmin && <th className="py-3 px-4 text-center">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -775,6 +797,29 @@ export const AdminUsersPage: React.FC = () => {
                           {u._count?.bookings ?? 0}
                         </span>
                       </td>
+
+                      {/* Action: Remove User (Super Admin only) */}
+                      {isSuperAdmin && (
+                        <td className="py-3.5 px-4 text-center">
+                          {u.id === currentUser?.id ? (
+                            <span className="text-[10px] text-slate-400 font-medium italic">Active Self</span>
+                          ) : ['coo@sairamce.edu.in', 'superadmin@college.edu'].includes(u.email.toLowerCase()) ? (
+                            <span className="text-[10px] text-slate-400 font-medium italic">Root Admin</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUserToDelete(u);
+                                setDeleteError(null);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                              title={`Remove ${u.name}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -932,6 +977,85 @@ export const AdminUsersPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirm Remove User */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Remove User Account
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Permanent removal from institutional database
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Name:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{userToDelete.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Email:</span>
+                <span className="font-mono text-slate-800 dark:text-slate-200">{userToDelete.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Role:</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">{userToDelete.role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Department:</span>
+                <span className="text-slate-800 dark:text-slate-200">{getDepartmentName(userToDelete)}</span>
+              </div>
+              {userToDelete._count?.bookings ? (
+                <div className="flex justify-between text-amber-600 dark:text-amber-400 pt-1 border-t border-slate-200 dark:border-slate-700">
+                  <span className="font-medium">Associated Bookings:</span>
+                  <span className="font-bold">{userToDelete._count.bookings} bookings</span>
+                </div>
+              ) : null}
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Are you sure you want to permanently delete this user? Their login credentials and notifications will be wiped immediately. This action cannot be reversed.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={deletingUser}
+                onClick={() => {
+                  setUserToDelete(null);
+                  setDeleteError(null);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingUser}
+                onClick={handleDeleteUser}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition flex items-center gap-1.5 cursor-pointer"
+              >
+                {deletingUser ? 'Removing...' : 'Confirm Remove User'}
+              </button>
+            </div>
           </div>
         </div>
       )}

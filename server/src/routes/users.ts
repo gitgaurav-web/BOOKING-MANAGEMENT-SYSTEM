@@ -258,4 +258,62 @@ router.post('/', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimite
   }
 });
 
+// Users: Delete user (Super Admin only)
+router.delete('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    if (req.user!.id === id) {
+      res.status(400).json({ error: 'Security restriction: You cannot delete your own active administrator account.' });
+      return;
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      include: { _count: { select: { bookings: true } } },
+    });
+
+    if (!targetUser) {
+      res.status(404).json({ error: 'User account not found.' });
+      return;
+    }
+
+    const rootAdminEmails = ['coo@sairamce.edu.in', 'superadmin@college.edu'];
+    if (rootAdminEmails.includes(targetUser.email.toLowerCase())) {
+      res.status(403).json({ error: 'Protected account: The primary institution root administrator cannot be deleted.' });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete user's notifications
+      await tx.notification.deleteMany({ where: { userId: id } });
+
+      // 2. Detach user from activity logs to preserve audit integrity
+      await tx.activityLog.updateMany({
+        where: { userId: id },
+        data: { userId: null },
+      });
+
+      // 3. Delete user's bookings
+      await tx.booking.deleteMany({ where: { userId: id } });
+
+      // 4. Delete the user
+      await tx.user.delete({ where: { id } });
+    });
+
+    await logActivity(
+      req.user!.id,
+      'DELETE_USER',
+      'USER',
+      id,
+      `Super Admin permanently deleted user account ${targetUser.name} (${targetUser.email}, ${targetUser.role})`
+    );
+
+    res.json({ message: `User ${targetUser.name} has been permanently removed.` });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user account.' });
+  }
+});
+
 export default router;
