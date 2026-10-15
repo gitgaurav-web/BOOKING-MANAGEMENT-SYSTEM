@@ -50,6 +50,11 @@ export const LoginPage: React.FC = () => {
           .join('')
       );
       const payload = JSON.parse(jsonPayload);
+      const userEmail = (payload.email || '').toLowerCase().trim();
+      if (!userEmail.endsWith('@sairamce.edu.in')) {
+        setError('Access Denied: Only official Sri Sairam College Google accounts (@sairamce.edu.in) are permitted to sign in.');
+        return;
+      }
 
       await loginWithGoogle({
         email: payload.email,
@@ -68,12 +73,13 @@ export const LoginPage: React.FC = () => {
   const triggerGoogleSignIn = () => {
     setError(null);
 
-    // 1. Direct Google OAuth2 Account Chooser (prompts real Google login every time)
+    // 1. Direct Google OAuth2 Account Chooser (Strictly restricted to @sairamce.edu.in)
     if (typeof window !== 'undefined' && (window as any).google?.accounts?.oauth2) {
       try {
         const client = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: googleClientId,
           scope: 'email profile openid',
+          hint: '@sairamce.edu.in',
           callback: async (tokenResponse: any) => {
             if (tokenResponse.error) {
               if (tokenResponse.error !== 'popup_closed_by_user') {
@@ -91,6 +97,13 @@ export const LoginPage: React.FC = () => {
                 if (!profile.email) {
                   throw new Error('Could not retrieve email from Google account.');
                 }
+
+                const userEmail = profile.email.toLowerCase().trim();
+                if (!userEmail.endsWith('@sairamce.edu.in')) {
+                  setError('Access Denied: Only official Sri Sairam College Google accounts (@sairamce.edu.in) are permitted to sign in.');
+                  return;
+                }
+
                 await loginWithGoogle({
                   email: profile.email,
                   name: profile.name,
@@ -105,14 +118,14 @@ export const LoginPage: React.FC = () => {
             }
           },
         });
-        client.requestAccessToken({ prompt: 'select_account' });
+        client.requestAccessToken({ prompt: 'select_account', hd: 'sairamce.edu.in' });
         return;
       } catch (err) {
         console.warn('OAuth2 token client init failed, trying Google ID prompt:', err);
       }
     }
 
-    // 2. Fallback: Google GSI One Tap / Account Picker
+    // 2. Fallback: Google GSI One Tap / Account Picker (Restricted to @sairamce.edu.in)
     if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
       try {
         (window as any).google.accounts.id.initialize({
@@ -120,6 +133,7 @@ export const LoginPage: React.FC = () => {
           callback: handleGoogleCredentialResponse,
           auto_select: false,
           cancel_on_tap_outside: true,
+          hosted_domain: 'sairamce.edu.in',
         });
         (window as any).google.accounts.id.prompt();
         return;
