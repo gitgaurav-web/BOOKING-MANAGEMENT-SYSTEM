@@ -515,7 +515,7 @@ export const AdminUsersPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[380px] pb-12">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
@@ -529,12 +529,18 @@ export const AdminUsersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredUsers.map((u) => {
+                {filteredUsers.map((u, idx) => {
                   const currentDeptId = getDepartmentId(u);
                   const isCurrentSuper = u.id === currentUser?.id && u.role === 'SUPER_ADMIN';
+                  const isLastRows = filteredUsers.length >= 3 && (idx === filteredUsers.length - 1 || (filteredUsers.length >= 5 && idx >= filteredUsers.length - 2));
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                    <tr
+                      key={u.id}
+                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors ${
+                        openDropdownId?.includes(u.id) ? 'relative z-30' : ''
+                      }`}
+                    >
                       {/* Name & Account */}
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -556,7 +562,7 @@ export const AdminUsersPage: React.FC = () => {
                       {/* Department */}
                       <td className="py-3.5 px-4">
                         {isSuperAdmin ? (
-                          <div className="relative inline-block text-left">
+                          <div className={`relative inline-block text-left ${openDropdownId === `dept-${u.id}` ? 'z-40' : ''}`}>
                             <button
                               type="button"
                               onClick={() => setOpenDropdownId(openDropdownId === `dept-${u.id}` ? null : `dept-${u.id}`)}
@@ -573,7 +579,11 @@ export const AdminUsersPage: React.FC = () => {
                             {openDropdownId === `dept-${u.id}` && (
                               <>
                                 <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
-                                <div className="absolute left-0 mt-1.5 w-64 max-h-60 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                <div
+                                  className={`absolute left-0 ${
+                                    isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                                  } w-64 max-h-56 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100`}
+                                >
                                   <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
                                     Assign Department
                                   </div>
@@ -619,7 +629,7 @@ export const AdminUsersPage: React.FC = () => {
                       {/* Role Privileges */}
                       <td className="py-3.5 px-4">
                         {isSuperAdmin ? (
-                          <div className="relative inline-block text-left">
+                          <div className={`relative inline-block text-left ${openDropdownId === `role-${u.id}` ? 'z-40' : ''}`}>
                             <button
                               type="button"
                               disabled={isCurrentSuper}
@@ -638,7 +648,11 @@ export const AdminUsersPage: React.FC = () => {
                             {openDropdownId === `role-${u.id}` && !isCurrentSuper && (
                               <>
                                 <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
-                                <div className="absolute left-0 mt-1.5 w-60 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                <div
+                                  className={`absolute left-0 ${
+                                    isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                                  } w-60 max-h-64 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100`}
+                                >
                                   <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
                                     Set Role Privilege
                                   </div>
@@ -680,7 +694,7 @@ export const AdminUsersPage: React.FC = () => {
 
                       {/* Account Status */}
                       <td className="py-3.5 px-4">
-                        <div className="relative inline-block text-left">
+                        <div className={`relative inline-block text-left ${openDropdownId === `status-${u.id}` ? 'z-40' : ''}`}>
                           {isSuperAdmin && !isCurrentSuper ? (
                             <>
                               <button
@@ -714,7 +728,11 @@ export const AdminUsersPage: React.FC = () => {
                                     className="fixed inset-0 z-40"
                                     onClick={() => setOpenDropdownId(null)}
                                   />
-                                  <div className="absolute right-0 top-full mt-1.5 w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                                  <div
+                                    className={`absolute right-0 ${
+                                      isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                                    } w-52 max-h-56 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100`}
+                                  >
                                     <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1">
                                       Account Status
                                     </div>
