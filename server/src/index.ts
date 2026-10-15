@@ -25,11 +25,26 @@ getJwtSecret();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Security Layer: Helmet headers & disable tech stack leakage (Layer 04 & Step 5)
+// Reverse-Proxy support for accurate IP detection behind Nginx, Render, Cloudflare
+app.set('trust proxy', 1);
+
+// Security Layer: Helmet headers & disable tech stack leakage
 app.disable('x-powered-by');
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Allows cross-origin assets for internal campus APIs
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com', 'https://apis.google.com'],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://lh3.googleusercontent.com'],
+        connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com', 'https://www.googleapis.com'],
+        frameSrc: ["'self'", 'https://accounts.google.com'],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+      },
+    },
     crossOriginEmbedderPolicy: false,
   })
 );
@@ -43,15 +58,19 @@ const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Allow server-to-server, mobile or curl requests without origin
     if (!origin) return callback(null, true);
-    // In development or test, allow all origins
+
+    // In development or test, allow local origins
     if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    // In production, restrict to allowed CLIENT_URL origins
+
+    // In production, strictly restrict to allowed CLIENT_URL origins
     const normalizedOrigin = origin.replace(/\/$/, '');
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(normalizedOrigin)) {
+    if (allowedOrigins.length > 0 && allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
+
+    console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
     return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
   },
   credentials: true,
@@ -61,7 +80,9 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.json());
+// Input & Payload size limits: prevent memory exhaustion and DoS
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Protected file access for uploads (Requires Bearer token or ?token= query param with owner/admin authorization)
 app.get('/uploads/:filename', handleAuthorizedFileDownload);
