@@ -72,19 +72,32 @@ body {
   background: #475569;
 }
 
-/* Print optimization: only print the active voucher slip cleanly on paper */
+/* Print optimization: print active voucher slip or full official report cleanly on paper */
 @media print {
+  @page {
+    margin: 12mm 15mm;
+    size: auto;
+  }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
+
   body * {
     visibility: hidden;
   }
+
   #printable-voucher,
-  #printable-voucher * {
+  #printable-voucher *,
+  #printable-report,
+  #printable-report * {
     visibility: visible;
   }
+
+  /* Single Booking Gate Pass Voucher */
   #printable-voucher {
     position: fixed;
     left: 0;
@@ -99,10 +112,12 @@ body {
     border-radius: 12px !important;
     box-shadow: none !important;
   }
+
   #printable-voucher * {
     color: #0f172a !important;
     text-shadow: none !important;
   }
+
   #printable-voucher .bg-slate-50,
   #printable-voucher .dark\:bg-slate-800\/40,
   #printable-voucher .dark\:bg-slate-800\/60,
@@ -110,8 +125,62 @@ body {
     background-color: #f8fafc !important;
     border-color: #e2e8f0 !important;
   }
+
   #printable-voucher .text-blue-600,
   #printable-voucher .dark\:text-blue-400 {
     color: #1d4ed8 !important;
+  }
+
+  /* Full Institutional Audit & Analytics Report */
+  #printable-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  #printable-report * {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+
+  #printable-report .dark\:text-white,
+  #printable-report .dark\:text-slate-100,
+  #printable-report .dark\:text-slate-200,
+  #printable-report .dark\:text-slate-300,
+  #printable-report .dark\:text-slate-400 {
+    color: #0f172a !important;
+  }
+
+  #printable-report .dark\:bg-slate-900,
+  #printable-report .dark\:bg-slate-800,
+  #printable-report .dark\:bg-slate-800\/50,
+  #printable-report .bg-slate-50 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  #printable-report table,
+  #printable-report th,
+  #printable-report td {
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+
+  /* Hide navigation, sidebar and action buttons */
+  nav,
+  aside,
+  header,
+  footer,
+  .no-print,
+  button:not(.force-print),
+  .action-dropdown-container {
+    display: none !important;
   }
 }

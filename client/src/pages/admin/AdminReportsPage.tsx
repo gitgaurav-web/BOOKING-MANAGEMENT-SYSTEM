@@ -39,21 +39,54 @@ export const AdminReportsPage: React.FC = () => {
   const { metrics, deptUsage, monthlyTrends, hallUsage = [] } = data;
 
   return (
-    <div className="space-y-8">
+    <div id="printable-report" className="space-y-8">
+      {/* Official Sri Sairam Institutional Header (Appears only on printed report) */}
+      <div className="hidden print:flex items-center justify-between pb-6 border-b-2 border-slate-900 mb-6">
+        <div className="flex items-center gap-4">
+          <img
+            src="/images/sairam-logo-light.png"
+            alt="Sri Sairam College"
+            className="h-16 w-auto object-contain"
+          />
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase">
+              Sri Sairam College of Engineering
+            </h2>
+            <p className="text-xs font-bold text-slate-700">
+              Campus Facility Booking Portal • Central Management Information Systems (MIS)
+            </p>
+            <p className="text-[11px] text-slate-500">
+              Anekal, Bengaluru - 562106, Karnataka, India
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="inline-block px-3 py-1 rounded bg-slate-100 border border-slate-300 text-[10px] font-extrabold text-slate-800 uppercase tracking-wider">
+            Official Audit Report
+          </span>
+          <p className="text-[11px] text-slate-600 mt-1 font-medium">
+            Date: {new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
+          <p className="text-[10px] text-slate-500">
+            Time: {new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-            Reports & Facility Analytics
+            Reports &amp; Facility Analytics
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Detailed utilization metrics, actual hall-use hours, department allocations, and downloadable spreadsheets.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 no-print">
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs shadow-xs transition cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
             <span>Print Report</span>
@@ -124,10 +157,34 @@ export const AdminReportsPage: React.FC = () => {
                 }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="seminarHall" name="Seminar Hall" fill="#3B82F6" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="avHall" name="AV Hall" fill="#10B981" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="seminarHall" name="Seminar Hall" fill="#3B82F6" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="avHall" name="AV Hall" fill="#10B981" radius={[6, 6, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Print-Only Monthly Trend Data Table (Guarantees crisp figures on paper) */}
+        <div className="hidden print:block pt-3 border-t border-slate-200">
+          <table className="w-full text-left text-xs border border-slate-200">
+            <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
+              <tr>
+                <th className="py-2 px-3">Month</th>
+                <th className="py-2 px-3 text-right">Seminar Hall (Bookings)</th>
+                <th className="py-2 px-3 text-right">AV Hall (Bookings)</th>
+                <th className="py-2 px-3 text-right">Total Utilization</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 text-slate-800">
+              {monthlyTrends.map((m: any, idx: number) => (
+                <tr key={idx}>
+                  <td className="py-2 px-3 font-semibold">{m.month}</td>
+                  <td className="py-2 px-3 text-right">{m.seminarHall || 0}</td>
+                  <td className="py-2 px-3 text-right">{m.avHall || 0}</td>
+                  <td className="py-2 px-3 text-right font-bold">{(m.seminarHall || 0) + (m.avHall || 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -163,6 +220,25 @@ export const AdminReportsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Official Institutional Verification & Signatures (Print Only) */}
+      <div className="hidden print:grid grid-cols-3 gap-8 pt-10 mt-10 border-t-2 border-slate-300 text-center text-xs">
+        <div>
+          <div className="h-12 border-b border-dashed border-slate-400 mb-2"></div>
+          <p className="font-bold text-slate-900">Estate Admin / Facility In-Charge</p>
+          <p className="text-[10px] text-slate-500">Sri Sairam College of Engineering</p>
+        </div>
+        <div>
+          <div className="h-12 border-b border-dashed border-slate-400 mb-2"></div>
+          <p className="font-bold text-slate-900">Administrative Officer / Dean</p>
+          <p className="text-[10px] text-slate-500">Verified &amp; Audited</p>
+        </div>
+        <div>
+          <div className="h-12 border-b border-dashed border-slate-400 mb-2"></div>
+          <p className="font-bold text-slate-900">Principal / Chief Operating Officer</p>
+          <p className="text-[10px] text-slate-500">Executive Approval Stamp</p>
         </div>
       </div>
     </div>
