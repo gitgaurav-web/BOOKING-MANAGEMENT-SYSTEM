@@ -6,7 +6,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: (googlePayload: { email: string; name?: string; token?: string }) => Promise<void>;
+  loginWithGoogle: (googlePayload: { email?: string; name?: string; token?: string }) => Promise<void>;
+  loginDemo: (email: string) => Promise<void>;
   register: (data: { name: string; email: string; password: string; phone?: string; departmentId?: string }) => Promise<void>;
   logout: () => void;
   isAdmin: boolean;
@@ -45,10 +46,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
   };
 
-  const loginWithGoogle = async (googlePayload: { email: string; name?: string; token?: string }) => {
+  const loginWithGoogle = async (googlePayload: { email?: string; name?: string; token?: string }) => {
     const res = await apiRequest<{ token: string; user: User }>('/auth/google', {
       method: 'POST',
       body: JSON.stringify(googlePayload),
+    });
+    setAuthToken(res.token);
+    setUser(res.user);
+  };
+
+  const loginDemo = async (email: string) => {
+    const res = await apiRequest<{ token: string; user: User }>('/auth/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
     setAuthToken(res.token);
     setUser(res.user);
@@ -72,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isSuperAdmin = !!user && user.role === 'SUPER_ADMIN';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, register, logout, isAdmin, isSuperAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, loginDemo, register, logout, isAdmin, isSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

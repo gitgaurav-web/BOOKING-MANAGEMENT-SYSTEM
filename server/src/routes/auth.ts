@@ -223,25 +223,114 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
   }
 });
 
-// Google Institutional SSO Endpoint (Supports real Google OAuth id_token and simulated college SSO)
+// Helper: Cryptographically verify Google ID Token or Access Token with Google servers
+interface VerifiedGoogleProfile {
+  email: string;
+  name?: string;
+  picture?: string;
+}
+
+async function verifyGoogleAuthToken(token: string): Promise<VerifiedGoogleProfile> {
+  const cleanToken = token.trim();
+  if (!cleanToken) {
+    throw new Error('Google credential token is missing.');
+  }
+
+  // 1. Try Google ID Token verification (JWT with 3 parts: header.payload.signature)
+  if (cleanToken.split('.').length === 3) {
+    try {
+      const idTokenRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(cleanToken)}`
+      );
+      if (idTokenRes.ok) {
+        const idData: any = await idTokenRes.json();
+
+        // Validate Google issuer
+        const validIssuers = ['accounts.google.com', 'https://accounts.google.com'];
+        if (!validIssuers.includes(idData.iss)) {
+          throw new Error('Untrusted Google token issuer.');
+        }
+
+        // Validate verified email presence
+        if (!idData.email) {
+          throw new Error('Google token does not contain an email address.');
+        }
+        if (idData.email_verified !== 'true' && idData.email_verified !== true) {
+          throw new Error('Google email address is not verified.');
+        }
+
+        const configuredClientId = process.env.GOOGLE_CLIENT_ID;
+        if (configuredClientId && idData.aud !== configuredClientId) {
+          console.warn(`[Google SSO] Warning: Token audience (${idData.aud}) does not match configured GOOGLE_CLIENT_ID.`);
+        }
+
+        return {
+          email: idData.email.trim().toLowerCase(),
+          name: idData.name,
+          picture: idData.picture,
+        };
+      }
+    } catch (err: any) {
+      console.warn('[Google SSO] ID token verification attempt failed:', err.message);
+    }
+  }
+
+  // 2. Try Google OAuth2 Access Token verification via userinfo endpoint
+  try {
+    const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${cleanToken}` },
+    });
+    if (userinfoRes.ok) {
+      const userData: any = await userinfoRes.json();
+      if (!userData.email) {
+        throw new Error('Google user profile does not contain an email address.');
+      }
+      if (userData.email_verified !== true && userData.email_verified !== 'true') {
+        throw new Error('Google account email is not verified.');
+      }
+      return {
+        email: userData.email.trim().toLowerCase(),
+        name: userData.name,
+        picture: userData.picture,
+      };
+    }
+  } catch (err: any) {
+    console.warn('[Google SSO] Access token verification attempt failed:', err.message);
+  }
+
+  throw new Error('Invalid, expired, or rejected Google authentication credential.');
+}
+
+// Google Institutional SSO Endpoint (Cryptographically verified)
 router.post('/google', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, name, avatar, token: googleToken } = req.body;
+    const { token: googleToken, credential, idToken } = req.body;
+    const tokenToVerify = googleToken || credential || idToken;
 
-    if (!email) {
-      res.status(400).json({ error: 'Email is required for Google institutional login.' });
+    if (!tokenToVerify || typeof tokenToVerify !== 'string') {
+      res.status(401).json({ error: 'Google authentication credential is required.' });
       return;
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    // Cryptographically verify token directly with Google API
+    let verifiedGoogleUser: VerifiedGoogleProfile;
+    try {
+      verifiedGoogleUser = await verifyGoogleAuthToken(tokenToVerify);
+    } catch (err: any) {
+      res.status(401).json({ error: err.message || 'Failed to verify Google credentials.' });
+      return;
+    }
 
-    // Check institutional domain policy
+    const cleanEmail = verifiedGoogleUser.email;
+    const verifiedName = verifiedGoogleUser.name;
+
+    // Check institutional domain policy against verified email
     const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
     const allowedDomain = (domainSetting?.value || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
 
     if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
       res.status(403).json({
-        error: `Only @${allowedDomain} email is allowed.`,
+        error: `Access Restricted: Only official @${allowedDomain} institutional Google accounts are permitted.`,
       });
       return;
     }
@@ -257,26 +346,21 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
       }
     }
 
-    // Auto-detect role: HOD, Principal/COO, or Faculty
-    let assignedRole = 'FACULTY';
-    if (cleanEmail.includes('coo') || cleanEmail.includes('principal') || cleanEmail.includes('registrar')) {
-      assignedRole = 'SUPER_ADMIN';
-    } else if (cleanEmail.includes('admin') || cleanEmail.includes('estate')) {
-      assignedRole = 'ADMIN';
-    }
-
     let user = await prisma.user.findUnique({
       where: { email: cleanEmail },
       include: { department: true },
     });
 
     if (!user) {
-      // Auto-provision user account from official Google profile
+      // SECURITY GUARD: Never auto-elevate role based on email string!
+      // New SSO registrations are assigned standard FACULTY or USER role.
+      // Admin / Super Admin roles must be explicitly granted by an existing Super Admin or pre-seeded.
+      const assignedRole = matchedDepartmentId ? 'FACULTY' : 'USER';
       const dummyPasswordHash = await bcrypt.hash(`SSO-${Date.now()}-${Math.random()}`, 10);
       user = await prisma.user.create({
         data: {
           email: cleanEmail,
-          name: name || cleanEmail.split('@')[0].replace('.', ' ').toUpperCase(),
+          name: verifiedName || cleanEmail.split('@')[0].replace('.', ' ').toUpperCase(),
           passwordHash: dummyPasswordHash,
           departmentId: matchedDepartmentId,
           role: assignedRole,
@@ -299,7 +383,7 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
       { expiresIn: '7d' }
     );
 
-    await logActivity(user.id, 'LOGIN_SSO', 'USER', user.id, `User ${user.name} signed in via Sairam Google Workspace.`);
+    await logActivity(user.id, 'LOGIN_SSO', 'USER', user.id, `User ${user.name} signed in via verified Sairam Google Workspace.`);
 
     res.json({
       token,
@@ -315,6 +399,76 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
   } catch (error) {
     console.error('Google SSO login error:', error);
     res.status(500).json({ error: 'Failed to authenticate via Google.' });
+  }
+});
+
+// Development / Testing Demo Personas Login (Strictly disabled in production)
+router.post('/demo-login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_DEMO_LOGIN) {
+      res.status(403).json({ error: 'Instant demo persona login is strictly disabled in production.' });
+      return;
+    }
+
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({ error: 'Demo email is required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const ALLOWED_DEMO_EMAILS = [
+      'coo@sairamce.edu.in',
+      'estate.admin@sairamce.edu.in',
+      'hod.cse@sairamce.edu.in',
+      'faculty.ece@sairamce.edu.in',
+      'superadmin@college.edu',
+      'admin@college.edu',
+      'faculty@college.edu',
+    ];
+
+    if (!ALLOWED_DEMO_EMAILS.includes(cleanEmail)) {
+      res.status(403).json({ error: 'Unauthorized demo account request.' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: { department: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Demo account not found in database. Please run npm run seed.' });
+      return;
+    }
+
+    if (user.status !== 'ACTIVE') {
+      res.status(403).json({ error: 'This demo account is currently inactive.' });
+      return;
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, name: user.name },
+      getJwtSecret(),
+      { expiresIn: '7d' }
+    );
+
+    await logActivity(user.id, 'DEMO_LOGIN', 'USER', user.id, `Demo persona login used for ${user.email} (${user.role}).`);
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department?.name,
+        phone: user.phone,
+      },
+    });
+  } catch (error) {
+    console.error('Demo login error:', error);
+    res.status(500).json({ error: 'Failed to process demo login.' });
   }
 });
 

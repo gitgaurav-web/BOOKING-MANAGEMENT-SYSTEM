@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, loginWithGoogle } = useAuth();
+  const { login, loginWithGoogle, loginDemo } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -29,6 +29,7 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPersonaPicker, setShowPersonaPicker] = useState(true);
 
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PERSONAS === 'true';
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '942810506433-51b9mhg7lkmp3cc6s9mseju5aiodnti2.apps.googleusercontent.com';
 
   // Decode Google JWT Credential Response
@@ -93,6 +94,7 @@ export const LoginPage: React.FC = () => {
                 await loginWithGoogle({
                   email: profile.email,
                   name: profile.name,
+                  token: tokenResponse.access_token,
                 });
                 navigate(redirect);
               } catch (err: any) {
@@ -193,17 +195,14 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogleSsoLogin = async (ssoEmail: string, ssoName?: string) => {
+  const handleDemoPersonaLogin = async (ssoEmail: string) => {
     setError(null);
     setLoading(true);
     try {
-      await loginWithGoogle({
-        email: ssoEmail,
-        name: ssoName,
-      });
+      await loginDemo(ssoEmail);
       navigate(redirect);
     } catch (err: any) {
-      setError(err.message || 'Google Institutional SSO authentication failed.');
+      setError(err.message || 'Demo persona authentication failed.');
     } finally {
       setLoading(false);
     }
@@ -340,70 +339,72 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Institutional Demo Personas for COO / Committee Presentation */}
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
-        <button
-          type="button"
-          onClick={() => setShowPersonaPicker(!showPersonaPicker)}
-          className="w-full px-5 py-3.5 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition cursor-pointer group"
-        >
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
-            <div>
-              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                Instant 1-Click Institutional Demo Personas
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-300">
-                Click any role to test with official Sri Sairam college credentials
-              </span>
-            </div>
-          </div>
-          {showPersonaPicker ? (
-            <ChevronUp className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-          )}
-        </button>
-
-        {showPersonaPicker && (
-          <div className="p-4 space-y-2.5 divide-y divide-slate-100 dark:divide-slate-800">
-            {sairamPersonas.map((persona) => (
-              <div
-                key={persona.email}
-                className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 group"
-              >
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5">
-                    <span>{persona.icon}</span>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white">
-                      {persona.name}
-                    </span>
-                    <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${persona.badgeColor}`}>
-                      {persona.roleBadge}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-mono">
-                    {persona.email}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {persona.desc}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={() => handleGoogleSsoLogin(persona.email, persona.name)}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white dark:bg-blue-950/60 dark:hover:bg-blue-600 dark:text-blue-300 dark:hover:text-white border border-blue-200 dark:border-blue-800 text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
-                >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Login As</span>
-                </button>
+      {/* Institutional Demo Personas (Development & Testing only - stripped in production) */}
+      {isDev && (
+        <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => setShowPersonaPicker(!showPersonaPicker)}
+            className="w-full px-5 py-3.5 flex items-center justify-between bg-slate-50/80 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition cursor-pointer group"
+          >
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  Instant 1-Click Institutional Demo Personas
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-300">
+                  Click any role to test with official Sri Sairam college credentials (Dev Only)
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+            {showPersonaPicker ? (
+              <ChevronUp className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            )}
+          </button>
+
+          {showPersonaPicker && (
+            <div className="p-4 space-y-2.5 divide-y divide-slate-100 dark:divide-slate-800">
+              {sairamPersonas.map((persona) => (
+                <div
+                  key={persona.email}
+                  className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 group"
+                >
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <span>{persona.icon}</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        {persona.name}
+                      </span>
+                      <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded border uppercase ${persona.badgeColor}`}>
+                        {persona.roleBadge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      {persona.email}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {persona.desc}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleDemoPersonaLogin(persona.email)}
+                    className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white dark:bg-blue-950/60 dark:hover:bg-blue-600 dark:text-blue-300 dark:hover:text-white border border-blue-200 dark:border-blue-800 text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-xs"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Login As</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

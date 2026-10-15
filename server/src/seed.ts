@@ -74,7 +74,10 @@ async function main() {
 
   const superAdmin = await prisma.user.upsert({
     where: { email: 'superadmin@college.edu' },
-    update: {},
+    update: {
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    },
     create: {
       name: 'Principal & Chief Administrator',
       email: 'superadmin@college.edu',
@@ -108,6 +111,79 @@ async function main() {
       passwordHash: facultyPasswordHash,
       phone: '+91 98765 22223',
       departmentId: departments['AIML'].id,
+      role: 'FACULTY',
+      status: 'ACTIVE',
+    },
+  });
+
+  // 2b. Official Sri Sairam Institutional Accounts
+  await prisma.user.upsert({
+    where: { email: 'coo@sairamce.edu.in' },
+    update: {
+      name: 'Dr. B. Shadaksharappa',
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    },
+    create: {
+      name: 'Dr. B. Shadaksharappa',
+      email: 'coo@sairamce.edu.in',
+      passwordHash: superPasswordHash,
+      phone: '+91 98765 00010',
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'estate.admin@sairamce.edu.in' },
+    update: {
+      name: 'Campus Estate Manager',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+    },
+    create: {
+      name: 'Campus Estate Manager',
+      email: 'estate.admin@sairamce.edu.in',
+      passwordHash,
+      phone: '+91 98765 00011',
+      role: 'ADMIN',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'hod.cse@sairamce.edu.in' },
+    update: {
+      name: 'Dr. C. Valarmathi',
+      role: 'FACULTY',
+      status: 'ACTIVE',
+      departmentId: departments['CSE'].id,
+    },
+    create: {
+      name: 'Dr. C. Valarmathi',
+      email: 'hod.cse@sairamce.edu.in',
+      passwordHash: facultyPasswordHash,
+      phone: '+91 98765 00012',
+      departmentId: departments['CSE'].id,
+      role: 'FACULTY',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'faculty.ece@sairamce.edu.in' },
+    update: {
+      name: 'Prof. R. Anand',
+      role: 'FACULTY',
+      status: 'ACTIVE',
+      departmentId: departments['ECE'].id,
+    },
+    create: {
+      name: 'Prof. R. Anand',
+      email: 'faculty.ece@sairamce.edu.in',
+      passwordHash: facultyPasswordHash,
+      phone: '+91 98765 00013',
+      departmentId: departments['ECE'].id,
       role: 'FACULTY',
       status: 'ACTIVE',
     },
