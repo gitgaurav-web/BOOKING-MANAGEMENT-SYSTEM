@@ -23,7 +23,6 @@ async function main() {
     { name: 'Electrical & Electronics Engineering', code: 'EEE', description: 'Department of Electrical & Electronics' },
     { name: 'Mechanical Engineering', code: 'MECH', description: 'Department of Mechanical Engineering' },
     { name: 'CSE (IoT & CyberSecurity with Blockchain)', code: 'CSE-CY', description: 'Department of Cyber Security and IoT' },
-    { name: 'Department of Management Studies', code: 'MBA', description: 'MBA and Executive Education' },
   ];
 
   const departments: Record<string, any> = {};

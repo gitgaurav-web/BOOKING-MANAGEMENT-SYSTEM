@@ -83,8 +83,9 @@ export const AdminDepartmentsPage: React.FC = () => {
       await apiRequest(`/users/departments/${dept.id}`, {
         method: 'DELETE',
       });
+      setDepartments((prev) => prev.filter((d) => d.id !== dept.id));
       setDeletingDept(null);
-      loadDepartments();
+      await loadDepartments();
     } catch (err: any) {
       alert(err.message || 'Failed to delete department');
     } finally {
