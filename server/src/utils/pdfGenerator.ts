@@ -124,18 +124,39 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
         .fillColor('#94a3b8')
         .text('Scan offline QR at hall entrance to verify reservation authorization.', margin + 16, currentY + 54);
 
-      // QR Code Generation
-      const qrData = JSON.stringify({
-        id: data.bookingId,
-        hall: data.hallName,
-        date: data.bookingDate,
-        time: `${data.startTime}-${data.endTime}`,
-        status: data.status,
-        faculty: data.coordinatorName,
-      });
+      // QR Code Generation with Full Formatted Text Data
+      const qrDateText =
+        data.endDate && data.endDate !== data.bookingDate
+          ? `${data.bookingDate} to ${data.endDate}`
+          : data.bookingDate;
+      const qrTimeText = `${data.startTime} - ${data.endTime} (${data.bookingType.replace('_', ' ')})`;
+
+      const qrData = [
+        'SRI SAIRAM COLLEGE OF ENGINEERING',
+        'OFFICIAL FACILITY GATE PASS & RESERVATION',
+        '----------------------------------------',
+        `Booking ID  : ${data.bookingId}`,
+        `Status      : ${statusLabel}`,
+        `Facility    : ${data.hallName}${data.hallLocation ? ` (${data.hallLocation})` : ''}`,
+        `Event       : ${data.eventName}`,
+        `Date        : ${qrDateText}`,
+        `Time Slot   : ${qrTimeText}`,
+        `Department  : ${data.departmentName || 'Academic Unit'}`,
+        `Coordinator : ${data.coordinatorName}`,
+        `Contact     : ${data.contactNumber}`,
+        `Email       : ${data.email}`,
+        `Attendees   : ${data.participantCount || 0} Persons`,
+        `VIP Guests  : ${data.guestCount || 0} Dignitaries`,
+        '----------------------------------------',
+        'Authority: Facilities Committee & Dean Academics',
+      ].join('\n');
 
       try {
-        const qrBuffer = await QRCode.toBuffer(qrData, { width: 140, margin: 1 });
+        const qrBuffer = await QRCode.toBuffer(qrData, {
+          width: 320,
+          margin: 1,
+          errorCorrectionLevel: 'M',
+        });
         doc.image(qrBuffer, contentWidth - 48, currentY + 6, { width: 56, height: 56 });
       } catch (err) {
         console.error('QR code generation error:', err);
