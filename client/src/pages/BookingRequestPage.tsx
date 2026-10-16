@@ -12,6 +12,8 @@ import {
   FileText,
   X,
   Award,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../services/api';
@@ -72,6 +74,7 @@ export const BookingRequestPage: React.FC = () => {
   const [uploadingFile, setUploadingFile] = useState<boolean>(false);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
 
   const clearFieldError = (fieldKey: string) => {
     if (fieldErrors[fieldKey]) {
@@ -295,6 +298,10 @@ export const BookingRequestPage: React.FC = () => {
       errors.email = 'Please provide a valid institutional email address.';
     }
 
+    if (!acceptedTerms) {
+      errors.acceptedTerms = 'You must read and agree to the Facility Usage Terms & Conditions.';
+    }
+
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -310,6 +317,7 @@ export const BookingRequestPage: React.FC = () => {
         coordinatorName: 'Coordinator Name',
         contactNumber: 'Contact Phone Number',
         email: 'Official Email Address',
+        acceptedTerms: 'Facility Usage Terms & Conditions Agreement',
       };
 
       const missingList = Object.keys(errors)
@@ -1399,6 +1407,102 @@ export const BookingRequestPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Terms and Conditions Section */}
+        <div
+          id="field-acceptedTerms"
+          tabIndex={-1}
+          className={`rounded-2xl border transition-all duration-200 p-5 md:p-6 shadow-sm ${
+            fieldErrors.acceptedTerms
+              ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20 ring-2 ring-rose-400/30'
+              : acceptedTerms
+              ? 'border-emerald-300 dark:border-emerald-700/60 bg-emerald-50/20 dark:bg-emerald-950/10'
+              : 'border-amber-200 dark:border-amber-800/60 bg-amber-50/30 dark:bg-amber-950/10'
+          }`}
+        >
+          <div className="flex items-start gap-3.5 mb-4">
+            <div
+              className={`p-2.5 rounded-xl ${
+                acceptedTerms
+                  ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300'
+                  : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'
+              }`}
+            >
+              {acceptedTerms ? (
+                <ShieldCheck className="w-5 h-5" />
+              ) : (
+                <ShieldAlert className="w-5 h-5" />
+              )}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Terms &amp; Conditions for Facility Booking
+                </h3>
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                  Mandatory Compliance
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                All booking applicants, coordinators, and hosting departments must strictly adhere to the following institutional guidelines.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white/90 dark:bg-slate-900/90 rounded-xl p-4 md:p-5 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs text-slate-700 dark:text-slate-300 shadow-inner">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {[
+                'Sticking posters or notices on walls is strictly prohibited.',
+                'Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
+                'Any damage to walls, furniture, equipment, or other facilities must be repaired at the cost of the hosting department.',
+                'Furniture must be handled carefully and returned to its original arrangement after use.',
+                'All audio-visual equipment must be handled carefully. Unauthorised operation is not permitted.',
+                'Food and beverages are not permitted inside.',
+                'Any decorations or banners must be approved in advance.',
+                'Lights, AC, projectors, and other equipment must be switched off after use.',
+                'The hall must be vacated on time and left in proper condition.',
+                'Any damage or technical issues must be reported to the concerned authority immediately.',
+                'The hosting department is responsible for ensuring that all participants follow these rules.',
+              ].map((term, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
+                >
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[10px] flex items-center justify-center">
+                    {index + 1}
+                  </span>
+                  <span className="leading-snug">{term}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive Agreement Checkbox */}
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <label className="flex items-start gap-3 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => {
+                  setAcceptedTerms(e.target.checked);
+                  if (e.target.checked) {
+                    clearFieldError('acceptedTerms');
+                  }
+                }}
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 cursor-pointer"
+              />
+              <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">
+                I have read, understood, and agree to strictly abide by all the Facility Usage Terms &amp; Conditions stated above. On behalf of the hosting department, I accept full responsibility for adherence.
+              </span>
+            </label>
+            {fieldErrors.acceptedTerms && (
+              <p className="text-[11px] text-rose-500 font-medium mt-2 flex items-center gap-1 pl-7">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                {fieldErrors.acceptedTerms}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Submit Button */}
         <div className="pt-4 flex items-center justify-end gap-3">
           <button
@@ -1410,8 +1514,8 @@ export const BookingRequestPage: React.FC = () => {
           </button>
           <button
             type="submit"
-            disabled={submitting}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2"
+            disabled={submitting || !acceptedTerms}
+            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2"
           >
             <Send className="w-3.5 h-3.5" />
             <span>{submitting ? 'Submitting Request...' : 'Submit Booking Request'}</span>
