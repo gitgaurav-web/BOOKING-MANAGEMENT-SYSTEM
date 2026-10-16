@@ -150,7 +150,7 @@ router.get('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: 
 router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { role, status, departmentId } = req.body;
+    const { name, phone, role, status, departmentId, password } = req.body;
 
     const targetUser = await prisma.user.findUnique({ where: { id } });
     if (!targetUser) {
@@ -172,19 +172,79 @@ router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimi
       }
     }
 
-    const user = await prisma.user.update({
+    let passwordHash: string | undefined = undefined;
+    if (password && typeof password === 'string' && password.trim().length > 0) {
+      if (password.length < 8) {
+        res.status(400).json({ error: 'New password must contain at least 8 characters.' });
+        return;
+      }
+      const salt = await bcrypt.genSalt(10);
+      passwordHash = await bcrypt.hash(password, salt);
+    }
+
+    let finalDeptId: string | null | undefined = undefined;
+    if (departmentId !== undefined) {
+      if (departmentId) {
+        const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+        if (!dept) {
+          res.status(400).json({ error: 'Selected department does not exist.' });
+          return;
+        }
+        finalDeptId = dept.id;
+      } else {
+        finalDeptId = null;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
       where: { id },
       data: {
+        ...(name && typeof name === 'string' && name.trim() ? { name: name.trim() } : {}),
+        ...(phone !== undefined ? { phone: phone ? phone.trim() : null } : {}),
         ...(role ? { role } : {}),
         ...(status ? { status } : {}),
-        ...(departmentId !== undefined ? { departmentId: departmentId || null } : {}),
+        ...(finalDeptId !== undefined ? { departmentId: finalDeptId } : {}),
+        ...(passwordHash ? { passwordHash } : {}),
+      },
+      include: {
+        department: true,
+        _count: { select: { bookings: true } },
       },
     });
 
-    await logActivity(req.user!.id, 'UPDATE_USER_ROLE', 'USER', id, `Updated role/status of ${user.name}`);
-    res.json({ message: 'User updated successfully.' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update user.' });
+    const changeDetails: string[] = [];
+    if (name && name.trim() !== targetUser.name) changeDetails.push('name');
+    if (phone !== undefined && phone !== targetUser.phone) changeDetails.push('phone');
+    if (role && role !== targetUser.role) changeDetails.push(`role to ${role}`);
+    if (status && status !== targetUser.status) changeDetails.push(`status to ${status}`);
+    if (passwordHash) changeDetails.push('password reset');
+
+    await logActivity(
+      req.user!.id,
+      'UPDATE_USER',
+      'USER',
+      id,
+      `Super Admin updated account of ${updatedUser.name} (${updatedUser.email}): ${changeDetails.join(', ') || 'profile updated'}`
+    );
+
+    res.json({
+      message: passwordHash
+        ? `Account for ${updatedUser.name} updated and new password set successfully.`
+        : `Account for ${updatedUser.name} updated successfully.`,
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        department: updatedUser.department,
+        _count: updatedUser._count,
+      },
+    });
+  } catch (error: any) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: error.message || 'Failed to update user.' });
   }
 });
 

@@ -18,7 +18,11 @@ import {
   RefreshCw,
   ChevronDown,
   Check,
-  Trash2
+  Trash2,
+  Edit2,
+  Eye,
+  EyeOff,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -56,6 +60,29 @@ export const AdminUsersPage: React.FC = () => {
     departmentId: '',
     status: 'ACTIVE',
   });
+
+  // Edit User Modal State
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    departmentId: string;
+    role: string;
+    status: string;
+    newPassword: string;
+  }>({
+    name: '',
+    email: '',
+    phone: '',
+    departmentId: '',
+    role: 'FACULTY',
+    status: 'ACTIVE',
+    newPassword: '',
+  });
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -210,6 +237,66 @@ export const AdminUsersPage: React.FC = () => {
       setModalError(err.message || 'Failed to register account');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOpenEditModal = (u: User) => {
+    setEditingUser(u);
+    setEditFormData({
+      name: u.name,
+      email: u.email,
+      phone: u.phone || '',
+      departmentId: getDepartmentId(u) || '',
+      role: u.role,
+      status: u.status || 'ACTIVE',
+      newPassword: '',
+    });
+    setShowEditPassword(false);
+    setEditModalError(null);
+  };
+
+  const handleSaveEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditModalError(null);
+
+    if (!editFormData.name.trim()) {
+      setEditModalError('Full Name is required.');
+      return;
+    }
+
+    if (editFormData.newPassword && editFormData.newPassword.length < 8) {
+      setEditModalError('New password must contain at least 8 characters.');
+      return;
+    }
+
+    try {
+      setIsUpdatingUser(true);
+      const res = await apiRequest<{ message: string; user: User }>(`/users/${editingUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editFormData.name.trim(),
+          phone: editFormData.phone.trim() || null,
+          departmentId: editFormData.departmentId || null,
+          role: editFormData.role,
+          status: editFormData.status,
+          ...(editFormData.newPassword && editFormData.newPassword.trim()
+            ? { password: editFormData.newPassword.trim() }
+            : {}),
+        }),
+      });
+
+      // Update local state immediately
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editingUser.id ? { ...u, ...res.user } : u))
+      );
+
+      setEditingUser(null);
+      await loadUsers();
+    } catch (err: any) {
+      setEditModalError(err.message || 'Failed to update user profile');
+    } finally {
+      setIsUpdatingUser(false);
     }
   };
 
@@ -825,26 +912,37 @@ export const AdminUsersPage: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Action: Remove User (Super Admin only) */}
+                      {/* Action: Edit Profile & Delete User (Super Admin only) */}
                       {isSuperAdmin && (
                         <td className="py-3.5 px-4 text-center">
-                          {u.id === currentUser?.id ? (
-                            <span className="text-[10px] text-slate-400 font-medium italic">Active Self</span>
-                          ) : ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(u.email.toLowerCase()) ? (
-                            <span className="text-[10px] text-slate-400 font-medium italic">Root Admin</span>
-                          ) : (
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => {
-                                setUserToDelete(u);
-                                setDeleteError(null);
-                              }}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
-                              title={`Remove ${u.name}`}
+                              onClick={() => handleOpenEditModal(u)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition cursor-pointer"
+                              title={`Edit Profile / Reset Password for ${u.name}`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
-                          )}
+
+                            {u.id === currentUser?.id ? (
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40">You</span>
+                            ) : ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(u.email.toLowerCase()) ? (
+                              <span className="text-[10px] text-slate-400 font-medium italic">Root</span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUserToDelete(u);
+                                  setDeleteError(null);
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                                title={`Remove ${u.name}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -1004,6 +1102,192 @@ export const AdminUsersPage: React.FC = () => {
                 >
                   {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>{submitting ? 'Creating Account...' : 'Register User'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit User & Reset Password */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
+          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    Edit User Profile &amp; Security
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Update profile, role privileges, department, or reset password.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editModalError && (
+              <div className="p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{editModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEditUser} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    College Email (Primary ID)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      disabled
+                      value={editFormData.email}
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 cursor-not-allowed select-none"
+                    />
+                    <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Contact Phone
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="+91 98765 43210"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Department
+                  </label>
+                  <select
+                    value={editFormData.departmentId}
+                    onChange={(e) => setEditFormData({ ...editFormData, departmentId: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">General / Campus Wide</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name} ({d.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Role Privileges
+                  </label>
+                  <select
+                    value={editFormData.role}
+                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                  >
+                    <option value="USER">USER (Student / Staff)</option>
+                    <option value="FACULTY">FACULTY (Request Bookings)</option>
+                    <option value="ADMIN">ADMIN (Approve Bookings)</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN (Full Control)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Account Status
+                  </label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
+                  >
+                    <option value="ACTIVE">ACTIVE (Authorized Access)</option>
+                    <option value="INACTIVE">INACTIVE (Access Suspended)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Password Reset Section */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Reset Password (Optional)
+                    </label>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                      Leave blank to keep existing
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? 'text' : 'password'}
+                      placeholder="Enter new password (min 8 chars) to reset..."
+                      value={editFormData.newPassword}
+                      onChange={(e) => setEditFormData({ ...editFormData, newPassword: e.target.value })}
+                      className="w-full pl-3 pr-9 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="p-1 absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer"
+                    >
+                      {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    💡 If this faculty/admin forgot their password, type a new password here to reset their login credentials immediately.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isUpdatingUser}
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingUser}
+                  className="px-5 py-2 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition flex items-center gap-1.5 shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50"
+                >
+                  {isUpdatingUser && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isUpdatingUser ? 'Saving Changes...' : 'Save Profile Changes'}</span>
                 </button>
               </div>
             </form>
