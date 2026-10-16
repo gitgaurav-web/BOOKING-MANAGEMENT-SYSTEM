@@ -324,13 +324,13 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
     const cleanEmail = verifiedGoogleUser.email;
     const verifiedName = verifiedGoogleUser.name;
 
-    // Strict Institutional Domain Lockdown: Strictly only @sairamce.edu.in Google accounts allowed
+    // Check institutional domain policy against verified email
     const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
     const allowedDomain = (domainSetting?.value || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
 
-    if (!cleanEmail.endsWith('@sairamce.edu.in') || !cleanEmail.endsWith(`@${allowedDomain}`)) {
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
       res.status(403).json({
-        error: 'Access Denied: Only official Sri Sairam College Google accounts (@sairamce.edu.in) are permitted to sign in.',
+        error: `Access Restricted: Only official @${allowedDomain} institutional Google accounts are permitted.`,
       });
       return;
     }
@@ -418,6 +418,7 @@ router.post('/demo-login', authRateLimiter, async (req: Request, res: Response):
 
     const cleanEmail = email.trim().toLowerCase();
     const ALLOWED_DEMO_EMAILS = [
+      'iqac@sairamce.edu.in',
       'coo@sairamce.edu.in',
       'estate.admin@sairamce.edu.in',
       'hod.cse@sairamce.edu.in',

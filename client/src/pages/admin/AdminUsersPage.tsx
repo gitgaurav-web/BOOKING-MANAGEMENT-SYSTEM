@@ -821,7 +821,7 @@ export const AdminUsersPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-center">
                           {u.id === currentUser?.id ? (
                             <span className="text-[10px] text-slate-400 font-medium italic">Active Self</span>
-                          ) : ['coo@sairamce.edu.in', 'superadmin@college.edu'].includes(u.email.toLowerCase()) ? (
+                          ) : ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in', 'superadmin@college.edu'].includes(u.email.toLowerCase()) ? (
                             <span className="text-[10px] text-slate-400 font-medium italic">Root Admin</span>
                           ) : (
                             <button

@@ -118,6 +118,23 @@ async function main() {
 
   // 2b. Official Sri Sairam Institutional Accounts
   await prisma.user.upsert({
+    where: { email: 'iqac@sairamce.edu.in' },
+    update: {
+      name: 'IQAC',
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    },
+    create: {
+      name: 'IQAC',
+      email: 'iqac@sairamce.edu.in',
+      passwordHash: superPasswordHash,
+      phone: '+91 98765 00010',
+      role: 'SUPER_ADMIN',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.user.upsert({
     where: { email: 'coo@sairamce.edu.in' },
     update: {
       name: 'Dr. B. Shadaksharappa',
