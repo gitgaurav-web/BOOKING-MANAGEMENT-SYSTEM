@@ -21,9 +21,11 @@ import {
   Trash2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 export const AdminUsersPage: React.FC = () => {
   const { isSuperAdmin, user: currentUser } = useAuth();
+  const { settings } = useSettings();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,6 +170,13 @@ export const AdminUsersPage: React.FC = () => {
 
     if (formData.password.length < 8) {
       setModalError('Password must contain at least 8 characters.');
+      return;
+    }
+
+    const cleanEmail = formData.email.trim().toLowerCase();
+    const allowedDomain = (settings?.allowedEmailDomain || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
+      setModalError(`Access Restricted: Only official institutional accounts ending with @${allowedDomain} are permitted.`);
       return;
     }
 
@@ -903,11 +912,14 @@ export const AdminUsersPage: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="e.g. preeti@college.edu"
+                    placeholder="e.g. preeti@sairamce.edu.in"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    Must be an official institutional account ending with @sairamce.edu.in
+                  </p>
                 </div>
               </div>
 

@@ -42,16 +42,14 @@ router.post('/register', authRateLimiter, async (req: Request, res: Response): P
       return;
     }
 
-    // Domain verification if institutional email domain restriction is configured
+    // Domain verification (Always strictly enforced for Sairam institution)
     const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
-    if (domainSetting?.value) {
-      const allowedDomain = domainSetting.value.trim().toLowerCase().replace(/^@/, '');
-      if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`)) {
-        res.status(400).json({
-          error: `Registration is restricted to institutional accounts ending with @${allowedDomain}.`,
-        });
-        return;
-      }
+    const allowedDomain = domainSetting?.value?.trim().toLowerCase().replace(/^@/, '') || 'sairamce.edu.in';
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
+      res.status(400).json({
+        error: `Registration is restricted to institutional accounts ending with @${allowedDomain}.`,
+      });
+      return;
     }
 
     let finalDeptId: string | null = null;

@@ -204,6 +204,15 @@ router.post('/', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimite
       return;
     }
 
+    const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
+    const allowedDomain = domainSetting?.value?.trim().toLowerCase().replace(/^@/, '') || 'sairamce.edu.in';
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
+      res.status(400).json({
+        error: `Access Restricted: Only official institutional accounts ending with @${allowedDomain} are permitted.`,
+      });
+      return;
+    }
+
     if (password.length < 8) {
       res.status(400).json({ error: 'Password must be at least 8 characters long.' });
       return;
