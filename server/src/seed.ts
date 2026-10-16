@@ -72,21 +72,6 @@ async function main() {
     },
   });
 
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@college.edu' },
-    update: {
-      role: 'SUPER_ADMIN',
-      status: 'ACTIVE',
-    },
-    create: {
-      name: 'Principal & Chief Administrator',
-      email: 'superadmin@college.edu',
-      passwordHash: superPasswordHash,
-      phone: '+91 98765 00000',
-      role: 'SUPER_ADMIN',
-      status: 'ACTIVE',
-    },
-  });
 
   const facultyUser = await prisma.user.upsert({
     where: { email: 'faculty@college.edu' },

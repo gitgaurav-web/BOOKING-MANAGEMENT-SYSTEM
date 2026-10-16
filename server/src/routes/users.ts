@@ -278,7 +278,7 @@ router.delete('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateL
       return;
     }
 
-    const rootAdminEmails = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in', 'superadmin@college.edu'];
+    const rootAdminEmails = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'];
     if (rootAdminEmails.includes(targetUser.email.toLowerCase())) {
       res.status(403).json({ error: 'Protected account: The primary institution root administrator cannot be deleted.' });
       return;

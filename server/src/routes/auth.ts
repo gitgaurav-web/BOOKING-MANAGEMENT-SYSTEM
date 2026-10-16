@@ -142,7 +142,7 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response): Prom
     const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
     if (domainSetting?.value) {
       const allowedDomain = domainSetting.value.trim().toLowerCase().replace(/^@/, '');
-      const isSystemAdminEmail = ['superadmin@college.edu', 'admin@college.edu'].includes(cleanEmail);
+      const isSystemAdminEmail = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(cleanEmail);
       if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`) && !isSystemAdminEmail) {
         res.status(403).json({
           error: `Only @${allowedDomain} email is allowed.`,
@@ -423,7 +423,6 @@ router.post('/demo-login', authRateLimiter, async (req: Request, res: Response):
       'estate.admin@sairamce.edu.in',
       'hod.cse@sairamce.edu.in',
       'faculty.ece@sairamce.edu.in',
-      'superadmin@college.edu',
       'admin@college.edu',
       'faculty@college.edu',
     ];

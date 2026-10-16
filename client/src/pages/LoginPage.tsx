@@ -177,7 +177,7 @@ export const LoginPage: React.FC = () => {
 
     const cleanEmail = email.trim().toLowerCase();
     const allowedDomain = (settings.allowedEmailDomain || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
-    const isSystemAdmin = ['superadmin@college.edu', 'admin@college.edu'].includes(cleanEmail);
+    const isSystemAdmin = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(cleanEmail);
 
     if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`) && !isSystemAdmin) {
       setError(`Access Restricted: Only official accounts ending with @${allowedDomain} are permitted.`);
