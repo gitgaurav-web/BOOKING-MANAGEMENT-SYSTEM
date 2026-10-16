@@ -420,6 +420,7 @@ router.post('/demo-login', authRateLimiter, async (req: Request, res: Response):
       'coo@sairamce.edu.in',
       'estate.admin@sairamce.edu.in',
       'hod.cse@sairamce.edu.in',
+      'aiml.hod@sairamce.edu.in',
       'faculty.ece@sairamce.edu.in',
       'admin@college.edu',
       'faculty@college.edu',
