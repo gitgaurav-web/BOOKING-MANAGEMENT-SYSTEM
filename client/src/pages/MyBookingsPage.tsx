@@ -14,6 +14,7 @@ import {
   FileCheck2,
   MessageSquare,
   AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -122,7 +123,7 @@ Authority: Facilities Committee & Dean Academics`;
       // Outer Card Box
       doc.setDrawColor(203, 213, 225); // slate-300
       doc.setFillColor(255, 255, 255);
-      doc.roundedRect(15, y, 180, 258, 4, 4, 'FD');
+      doc.roundedRect(15, y, 180, 266, 4, 4, 'FD');
 
       // Top Header Accent Bar
       doc.setFillColor(30, 58, 138); // Deep Navy #1E3A8A
@@ -360,31 +361,85 @@ Authority: Facilities Committee & Dean Academics`;
         y += 20;
       }
 
+      // Mandatory Facility Usage Terms & Conditions Box
+      const termsBoxY = Math.max(y + 2, 218);
+      const termsBoxH = 35;
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(20, termsBoxY, 170, termsBoxH, 2, 2, 'FD');
+
+      // Top bar for Terms
+      doc.setFillColor(30, 58, 138);
+      doc.roundedRect(20, termsBoxY, 170, 5.5, 2, 2, 'F');
+      doc.rect(20, termsBoxY + 3.5, 170, 2, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6);
+      doc.text(
+        'MANDATORY FACILITY USAGE TERMS & CONDITIONS (STRICT COMPLIANCE REQUIRED)',
+        23,
+        termsBoxY + 3.8
+      );
+
+      const rulesL = [
+        '1. Sticking posters/notices on walls strictly prohibited.',
+        '2. Double-sided tape, glue, nails or adhesive not allowed.',
+        '3. Damage to walls/furniture repaired by host dept.',
+        '4. Furniture must be returned to original arrangement.',
+        '5. Audio-visual equipment requires authorized operation.',
+        '6. Food and beverages are not permitted inside.',
+      ];
+      const rulesR = [
+        '7. Decorations or banners must be approved in advance.',
+        '8. Lights, AC & projectors switched off after use.',
+        '9. Hall vacated on time & left in proper condition.',
+        '10. Damage or technical issues reported immediately.',
+        '11. Host dept responsible for participant compliance.',
+      ];
+
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5.5);
+
+      let rly = termsBoxY + 8.5;
+      rulesL.forEach((r) => {
+        doc.text(r, 23, rly);
+        rly += 4.0;
+      });
+
+      let rry = termsBoxY + 8.5;
+      rulesR.forEach((r) => {
+        doc.text(r, 106, rry);
+        rry += 4.0;
+      });
+
       // Footer divider
+      const footerDividerY = termsBoxY + termsBoxH + 3.5;
       doc.setDrawColor(203, 213, 225);
       doc.setLineDashPattern([2, 2], 0);
-      doc.line(20, y + 10, 190, y + 10);
+      doc.line(20, footerDividerY, 190, footerDividerY);
       doc.setLineDashPattern([], 0);
 
-      y += 18;
+      const footerTextY = footerDividerY + 5.5;
 
       // Footer Text & Authority Stamp Box
       doc.setTextColor(148, 163, 184);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.text(`System Generated on: ${new Date().toLocaleDateString()}`, 20, y + 2);
-      doc.text('Authority: Facilities Committee & Dean Academics', 20, y + 6);
+      doc.setFontSize(7);
+      doc.text(`System Generated on: ${new Date().toLocaleDateString()}`, 20, footerTextY);
+      doc.text('Authority: Facilities Committee & Dean Academics', 20, footerTextY + 3.8);
 
       if (sealDataUrl) {
-        doc.addImage(sealDataUrl, 'PNG', 152, y - 10, 16, 16);
+        doc.addImage(sealDataUrl, 'PNG', 152, footerDividerY - 4.5, 14, 14);
       }
 
       doc.setDrawColor(148, 163, 184);
-      doc.line(135, y + 7, 185, y + 7);
+      doc.line(135, footerTextY + 7, 185, footerTextY + 7);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(71, 85, 105);
-      doc.text('[ Official Stamp / Signature ]', 160, y + 11, { align: 'center' });
+      doc.text('[ Official Stamp / Signature ]', 160, footerTextY + 10.5, { align: 'center' });
 
       // Save PDF
       doc.save(`Booking-Pass-${selectedBooking.bookingId}.pdf`);
@@ -685,6 +740,39 @@ Authority: Facilities Committee & Dean Academics`;
                   </p>
                 </div>
               )}
+
+              {/* Facility Usage Terms & Conditions */}
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white uppercase text-[10px] tracking-wider">
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Facility Usage Terms &amp; Conditions</span>
+                  </div>
+                  <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+                    Mandatory Compliance
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] text-slate-600 dark:text-slate-300">
+                  {[
+                    '1. Sticking posters or notices on walls is strictly prohibited.',
+                    '2. Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
+                    '3. Any damage to walls, furniture, or equipment must be repaired by host dept.',
+                    '4. Furniture must be handled carefully & returned to original arrangement.',
+                    '5. Audio-visual equipment requires authorized operation only.',
+                    '6. Food and beverages are not permitted inside under any circumstances.',
+                    '7. Any decorations or banners must be approved in advance.',
+                    '8. Lights, AC, projectors, and other equipment must be switched off after use.',
+                    '9. The hall must be vacated on time and left in proper clean condition.',
+                    '10. Any damage or technical issues must be reported immediately.',
+                    '11. The hosting department is responsible for ensuring all participants follow these rules.',
+                  ].map((rule, idx) => (
+                    <div key={idx} className="flex items-start gap-1.5 leading-snug">
+                      <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">•</span>
+                      <span>{rule}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               {/* Institutional Seal Footnote */}
               <div className="pt-4 border-t border-dashed border-slate-200 dark:border-slate-700 flex items-end justify-between text-[11px] text-slate-400">

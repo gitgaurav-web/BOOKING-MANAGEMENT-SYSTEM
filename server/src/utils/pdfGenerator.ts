@@ -281,8 +281,76 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
         currentY += 33;
       }
 
-      // Footer divider & Authority Signatures
+      // Mandatory Facility Usage Terms & Conditions Section
       const footerY = pageHeight - margin - 42;
+      const termsBoxH = 126;
+      const termsBoxY = Math.max(currentY + 6, footerY - termsBoxH - 32);
+      const termsBoxW = contentWidth - 16;
+
+      doc
+        .roundedRect(margin + 8, termsBoxY, termsBoxW, termsBoxH, 4)
+        .fillColor('#f8fafc')
+        .strokeColor('#cbd5e1')
+        .lineWidth(0.8)
+        .fillAndStroke();
+
+      // Top bar for Terms Header
+      doc
+        .roundedRect(margin + 8, termsBoxY, termsBoxW, 16, 4)
+        .fillColor('#1e3a8a')
+        .fill();
+      doc.rect(margin + 8, termsBoxY + 10, termsBoxW, 6).fillColor('#1e3a8a').fill();
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(7.5)
+        .fillColor('#ffffff')
+        .text('MANDATORY FACILITY USAGE TERMS & CONDITIONS (STRICT COMPLIANCE REQUIRED)', margin + 14, termsBoxY + 4.5);
+
+      const rulesLeft = [
+        '1. Sticking posters or notices on walls is strictly prohibited.',
+        '2. Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
+        '3. Any damage to walls, furniture, equipment, or facilities must be repaired by host dept.',
+        '4. Furniture must be handled carefully & returned to original arrangement.',
+        '5. Audio-visual equipment requires authorized operation only.',
+        '6. Food and beverages are not permitted inside.',
+      ];
+
+      const rulesRight = [
+        '7. Any decorations or banners must be approved in advance.',
+        '8. Lights, AC, projectors, and other equipment must be switched off after use.',
+        '9. The hall must be vacated on time and left in proper condition.',
+        '10. Any damage or technical issues must be reported immediately.',
+        '11. The hosting department is responsible for ensuring all participants follow these rules.',
+      ];
+
+      const colTermsW = (termsBoxW - 24) / 2;
+      let leftY = termsBoxY + 20;
+      doc.font('Helvetica').fontSize(6.5).fillColor('#334155');
+
+      rulesLeft.forEach((rule) => {
+        doc.text(rule, margin + 14, leftY, { width: colTermsW, lineGap: 1.2 });
+        leftY += rule.length > 70 ? 18 : 14;
+      });
+
+      let rightY = termsBoxY + 20;
+      rulesRight.forEach((rule) => {
+        doc.text(rule, margin + 18 + colTermsW, rightY, { width: colTermsW, lineGap: 1.2 });
+        rightY += rule.length > 70 ? 18 : 14;
+      });
+
+      doc
+        .font('Helvetica-Oblique')
+        .fontSize(6)
+        .fillColor('#64748b')
+        .text(
+          '* Acceptance of this gate pass implies binding agreement by the faculty coordinator & hosting department to strictly abide by all institutional rules.',
+          margin + 14,
+          termsBoxY + termsBoxH - 11,
+          { width: termsBoxW - 24 }
+        );
+
+      // Footer divider & Authority Signatures
       doc
         .moveTo(margin + 8, footerY)
         .lineTo(pageWidth - margin - 8, footerY)
