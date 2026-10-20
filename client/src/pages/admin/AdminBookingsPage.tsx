@@ -276,18 +276,33 @@ export const AdminBookingsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
-        <div className="w-full overflow-x-auto min-h-[420px] pb-16">
+      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col">
+        {/* Table Top Status Bar */}
+        <div className="px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50/70 dark:bg-slate-800/40 select-none">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Booking Records:
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
+              {filtered.length} total
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
+            ↕ Scroll table vertically &bull; Header stays locked at top
+          </span>
+        </div>
+
+        <div className="w-full overflow-x-auto overflow-y-auto max-h-[580px] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 pb-28">
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider">
+            <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider shadow-xs">
               <tr>
-                <th className="py-3 px-3.5 font-semibold w-28 whitespace-nowrap">Booking ID</th>
-                <th className="py-3 px-3 font-semibold w-36">Hall</th>
-                <th className="py-3 px-3 font-semibold min-w-[180px]">Event Details & Notice</th>
-                <th className="py-3 px-3 font-semibold w-32 whitespace-nowrap">Date & Slot</th>
-                <th className="py-3 px-3 font-semibold min-w-[160px]">Department / Coordinator</th>
-                <th className="py-3 px-2 text-center font-semibold w-28 whitespace-nowrap">Status</th>
-                <th className="py-3 px-3 text-center font-semibold w-28 whitespace-nowrap">Actions</th>
+                <th className="py-3 px-3.5 font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Booking ID</th>
+                <th className="py-3 px-3 font-bold w-36 bg-slate-100 dark:bg-slate-800">Hall</th>
+                <th className="py-3 px-3 font-bold min-w-[180px] bg-slate-100 dark:bg-slate-800">Event Details & Notice</th>
+                <th className="py-3 px-3 font-bold w-32 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Date & Slot</th>
+                <th className="py-3 px-3 font-bold min-w-[160px] bg-slate-100 dark:bg-slate-800">Department / Coordinator</th>
+                <th className="py-3 px-2 text-center font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Status</th>
+                <th className="py-3 px-3 text-center font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
