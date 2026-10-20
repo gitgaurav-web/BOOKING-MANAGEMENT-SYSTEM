@@ -133,6 +133,55 @@ export const BookingRequestPage: React.FC = () => {
     loadFormData();
   }, []);
 
+  // Live availability check to immediately detect & highlight blocked dates, holidays or conflicts in RED
+  useEffect(() => {
+    if (!hallId || !bookingDate || bookingDate < todayIso) return;
+
+    let isMounted = true;
+    const checkAvailabilityLive = async () => {
+      try {
+        const effEnd = isMultiDay && endDate && endDate >= bookingDate ? endDate : bookingDate;
+        const res = await apiRequest<{ availability?: Record<string, Record<string, any>> }>(
+          `/availability?hallId=${hallId}&startDate=${bookingDate}&endDate=${effEnd}`
+        );
+
+        if (!isMounted) return;
+
+        if (res?.availability) {
+          for (const [dStr, hallsOnDate] of Object.entries(res.availability)) {
+            const hallAvail = hallsOnDate[hallId];
+            if (hallAvail && hallAvail.status !== 'AVAILABLE' && hallAvail.status !== 'PARTIAL') {
+              let reasonMsg = '';
+              if (hallAvail.status === 'BLOCKED') {
+                reasonMsg = `Date is blocked: ${hallAvail.reason || 'EXAMINATION / Institutional reservation'}`;
+              } else if (hallAvail.status === 'HOLIDAY') {
+                reasonMsg = `Date is an official holiday: ${hallAvail.reason || 'Campus Holiday'}`;
+              } else if (hallAvail.status === 'MAINTENANCE') {
+                reasonMsg = `Facility under maintenance: ${hallAvail.reason || 'Scheduled maintenance'}`;
+              } else if (hallAvail.status === 'BOOKED') {
+                reasonMsg = `Facility is already fully booked on ${dStr}`;
+              }
+
+              if (reasonMsg) {
+                setFieldErrors((prev) => ({ ...prev, bookingDate: reasonMsg }));
+                setError(reasonMsg);
+                return;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Silently ignore during live check
+      }
+    };
+
+    const timer = setTimeout(checkAvailabilityLive, 300);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [hallId, bookingDate, endDate, isMultiDay, todayIso]);
+
   const handleBookingTypeChange = (type: string) => {
     setBookingType(type);
     clearFieldError('bookingType');
@@ -394,7 +443,74 @@ export const BookingRequestPage: React.FC = () => {
         origin: { y: 0.6 },
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to submit booking request.');
+      const msg = err.message || 'Failed to submit booking request.';
+      setError(msg);
+
+      // Automatically highlight matching field in RED
+      const newErrors: Record<string, string> = { ...fieldErrors };
+      const lower = msg.toLowerCase();
+
+      if (
+        lower.includes('blocked') ||
+        lower.includes('holiday') ||
+        lower.includes('weekend') ||
+        lower.includes('date') ||
+        lower.includes('day') ||
+        lower.includes('examination')
+      ) {
+        newErrors.bookingDate = msg;
+        if (isMultiDay) newErrors.endDate = msg;
+      }
+      if (
+        lower.includes('conflict') ||
+        lower.includes('already booked') ||
+        lower.includes('slot') ||
+        lower.includes('occupied') ||
+        lower.includes('reserved')
+      ) {
+        newErrors.bookingDate = msg;
+        newErrors.bookingType = msg;
+        newErrors.hallId = 'Selected facility schedule conflict.';
+      }
+      if (lower.includes('facility') || lower.includes('hall')) {
+        newErrors.hallId = msg;
+      }
+      if (lower.includes('time') || lower.includes('24-hour')) {
+        newErrors.startTime = msg;
+        newErrors.endTime = msg;
+      }
+      if (lower.includes('event name') || lower.includes('title')) {
+        newErrors.eventName = msg;
+      }
+      if (lower.includes('department')) {
+        newErrors.departmentId = msg;
+      }
+      if (lower.includes('participant') || lower.includes('capacity')) {
+        newErrors.participantCount = msg;
+      }
+      if (lower.includes('email')) {
+        newErrors.email = msg;
+      }
+      if (lower.includes('phone') || lower.includes('contact')) {
+        newErrors.contactNumber = msg;
+      }
+      if (lower.includes('coordinator')) {
+        newErrors.coordinatorName = msg;
+      }
+      if (lower.includes('terms') || lower.includes('condition')) {
+        newErrors.acceptedTerms = msg;
+      }
+
+      setFieldErrors(newErrors);
+
+      const firstKey = Object.keys(newErrors)[0];
+      if (firstKey) {
+        const el = document.getElementById(`field-${firstKey}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+      }
     } finally {
       setSubmitting(false);
     }
@@ -480,20 +596,26 @@ export const BookingRequestPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs shadow-sm space-y-2">
+        <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-400 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs shadow-sm space-y-2 animate-fade-in">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 mt-0.5" />
             <div className="space-y-1">
               <p className="font-extrabold text-sm text-rose-900 dark:text-rose-100">
-                Action Required: Incomplete Booking Details
+                {Object.keys(fieldErrors).some((k) =>
+                  ['eventName', 'departmentId', 'purpose', 'coordinatorName', 'contactNumber', 'email', 'acceptedTerms'].includes(k)
+                )
+                  ? 'Action Required: Incomplete Booking Details (Please complete all red fields)'
+                  : error && (error.toLowerCase().includes('blocked') || error.toLowerCase().includes('holiday') || error.toLowerCase().includes('weekend') || error.toLowerCase().includes('conflict') || error.toLowerCase().includes('examination'))
+                  ? 'Schedule / Date Notice: Selected Date Cannot Be Booked'
+                  : 'Notice: Form Submission Issue'}
               </p>
-              <p className="text-slate-600 dark:text-slate-300">{error}</p>
+              <p className="text-slate-700 dark:text-slate-300 font-medium">{error}</p>
             </div>
           </div>
           {Object.keys(fieldErrors).length > 0 && (
             <div className="pt-2 border-t border-rose-200 dark:border-rose-900/60 pl-8">
               <span className="font-semibold text-rose-900 dark:text-rose-200 block mb-1">
-                Click below to jump directly to the missing fields:
+                Please complete the missing or conflicting fields highlighted in red below:
               </span>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(fieldErrors).map(([key, msg]) => (
@@ -680,6 +802,12 @@ export const BookingRequestPage: React.FC = () => {
                 </button>
               ))}
             </div>
+            {fieldErrors.bookingType && (
+              <p className="text-xs text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{fieldErrors.bookingType}</span>
+              </p>
+            )}
 
             {bookingType === 'CUSTOM' && (
               <div className="grid grid-cols-2 gap-4 pt-2">
@@ -1502,8 +1630,8 @@ export const BookingRequestPage: React.FC = () => {
           </button>
           <button
             type="submit"
-            disabled={submitting || !acceptedTerms}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2"
+            disabled={submitting}
+            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer"
           >
             <Send className="w-3.5 h-3.5" />
             <span>{submitting ? 'Submitting Request...' : 'Submit Booking Request'}</span>
