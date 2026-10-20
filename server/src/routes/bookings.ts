@@ -944,6 +944,92 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
   }
 });
 
+// Admin / Super Admin: Revert Booking back to Pending Review
+router.patch('/:id/pending', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { adminNotes } = req.body;
+
+    const existing = await prisma.booking.findUnique({
+      where: { id },
+      include: { hall: true, user: true, department: true },
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Booking not found.' });
+      return;
+    }
+
+    const previousStatus = existing.status;
+    if (previousStatus === 'PENDING') {
+      res.status(400).json({ error: 'Booking is already in Pending Review status.' });
+      return;
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id },
+      data: {
+        status: 'PENDING',
+        approvedById: null,
+        approvedAt: null,
+        rejectionReason: null,
+        adminNotes: adminNotes !== undefined ? adminNotes : existing.adminNotes,
+      },
+      include: { hall: true, department: true, user: true },
+    });
+
+    await logActivity(
+      req.user!.id,
+      'REVERT_TO_PENDING',
+      'BOOKING',
+      id,
+      `Reverted booking ${existing.bookingId} (${existing.eventName}) from ${previousStatus} to PENDING`
+    );
+
+    await createNotification(
+      existing.userId,
+      'Booking Status Moved to Pending Review',
+      `Your booking request ${existing.bookingId} for ${existing.hall.name} on ${existing.bookingDate} has been placed back in Pending Review for administrative re-evaluation.`,
+      'INFO'
+    );
+
+    // Outbound email notification
+    sendBookingNotificationEmail({
+      to: updated.email || updated.user?.email,
+      facultyEmail: updated.user?.email,
+      recipientName: updated.coordinatorName || updated.requestedBy || updated.user?.name,
+      bookingId: updated.bookingId,
+      eventName: updated.eventName,
+      hallName: updated.hall.name,
+      hallLocation: updated.hall.location,
+      departmentName: updated.department?.name,
+      bookingDate: updated.bookingDate,
+      endDate: updated.endDate,
+      timeSlot: `${updated.startTime} - ${updated.endTime}`,
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      bookingType: updated.bookingType,
+      status: 'PENDING',
+      coordinatorName: updated.coordinatorName || updated.requestedBy,
+      contactNumber: updated.contactNumber,
+      email: updated.email,
+      participantCount: updated.participantCount,
+      guestCount: updated.guestCount ?? 0,
+      mementoCount: updated.mementoCount ?? 0,
+      purpose: updated.purpose,
+      description: updated.description || undefined,
+      specialRequirements: updated.specialRequirements || undefined,
+      adminNotes: updated.adminNotes || 'Reverted back to Pending Review by campus administration.',
+    }).catch((err) => console.error('Pending status email notification error:', err));
+
+    res.json({
+      ...updated,
+      message: 'Booking successfully reverted back to Pending Review status.',
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to revert booking to pending review.' });
+  }
+});
+
 // Admin: Update Admin Notice / Notes for Faculty
 router.patch('/:id/notes', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

@@ -156,6 +156,27 @@ export const AdminBookingsPage: React.FC = () => {
     }
   };
 
+  const handleRevertToPendingWithNotice = async (bookingId?: string, notes?: string) => {
+    const id = bookingId || selectedBookingForAction?.id;
+    if (!id) return;
+    const finalNotes = notes !== undefined ? notes : actionNotes;
+    if (!window.confirm('Are you sure you want to revert this booking back to Pending Review status? It will reappear in the Pending Requests desk.')) return;
+    try {
+      setActionSubmitting(true);
+      await apiRequest(`/bookings/${id}/pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ adminNotes: finalNotes }),
+      });
+      alert('Booking reverted back to Pending Review successfully! It is now accessible in the Pending Requests desk.');
+      closeActionModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to revert booking to pending');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
   const handleDelete = async (id: string, bookingId: string) => {
     if (!window.confirm(`Are you sure you want to permanently delete booking ${bookingId}?`)) return;
     try {
@@ -402,6 +423,21 @@ export const AdminBookingsPage: React.FC = () => {
                                   </button>
                                 )}
 
+                                {/* Option 2.5: Move to Pending Review */}
+                                {b.status !== 'PENDING' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      handleRevertToPendingWithNotice(b.id, b.adminNotes || '');
+                                    }}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition cursor-pointer"
+                                  >
+                                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                    <span>Move to Pending Review</span>
+                                  </button>
+                                )}
+
                                 {/* Option 3: Cancel */}
                                 {b.status !== 'CANCELLED' && b.status !== 'REJECTED' && (
                                   <button
@@ -582,6 +618,20 @@ export const AdminBookingsPage: React.FC = () => {
                   <Send className="w-3.5 h-3.5" />
                   <span>Save Notice Only</span>
                 </button>
+
+                {/* Move to Pending Review */}
+                {selectedBookingForAction.status !== 'PENDING' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevertToPendingWithNotice()}
+                    disabled={actionSubmitting}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer"
+                    title="Move this booking back to Pending Review status"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Move to Pending</span>
+                  </button>
+                )}
 
                 {/* Cancel Booking */}
                 {selectedBookingForAction.status !== 'CANCELLED' && selectedBookingForAction.status !== 'REJECTED' && (
