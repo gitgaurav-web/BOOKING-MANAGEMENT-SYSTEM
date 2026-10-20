@@ -18,7 +18,7 @@ import {
 import confetti from 'canvas-confetti';
 import { apiRequest } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings, parseBookingTerms } from '../contexts/SettingsContext';
 import { Hall, Department } from '../types';
 
 export const BookingRequestPage: React.FC = () => {
@@ -1450,19 +1450,7 @@ export const BookingRequestPage: React.FC = () => {
 
           <div className="bg-white/90 dark:bg-slate-900/90 rounded-xl p-4 md:p-5 border border-slate-200 dark:border-slate-800 space-y-2.5 text-xs text-slate-700 dark:text-slate-300 shadow-inner">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              {[
-                'Sticking posters or notices on walls is strictly prohibited.',
-                'Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
-                'Any damage to walls, furniture, equipment, or other facilities must be repaired at the cost of the hosting department.',
-                'Furniture must be handled carefully and returned to its original arrangement after use.',
-                'All audio-visual equipment must be handled carefully. Unauthorised operation is not permitted.',
-                'Food and beverages are not permitted inside.',
-                'Any decorations or banners must be approved in advance.',
-                'Lights, AC, projectors, and other equipment must be switched off after use.',
-                'The hall must be vacated on time and left in proper condition.',
-                'Any damage or technical issues must be reported to the concerned authority immediately.',
-                'The hosting department is responsible for ensuring that all participants follow these rules.',
-              ].map((term, index) => (
+              {parseBookingTerms(settings.bookingTermsAndConditions).map((term, index) => (
                 <div
                   key={index}
                   className="flex items-start gap-2.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"

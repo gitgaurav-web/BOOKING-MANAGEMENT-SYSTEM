@@ -19,8 +19,10 @@ import {
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { AddToCalendarButton } from '../components/AddToCalendarButton';
+import { useSettings, parseBookingTerms } from '../contexts/SettingsContext';
 
 export const MyBookingsPage: React.FC = () => {
+  const { settings } = useSettings();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -382,21 +384,16 @@ Authority: Facilities Committee & Dean Academics`;
         termsBoxY + 3.8
       );
 
-      const rulesL = [
-        '1. Sticking posters/notices on walls strictly prohibited.',
-        '2. Double-sided tape, glue, nails or adhesive not allowed.',
-        '3. Damage to walls/furniture repaired by host dept.',
-        '4. Furniture must be returned to original arrangement.',
-        '5. Audio-visual equipment requires authorized operation.',
-        '6. Food and beverages are not permitted inside.',
-      ];
-      const rulesR = [
-        '7. Decorations or banners must be approved in advance.',
-        '8. Lights, AC & projectors switched off after use.',
-        '9. Hall vacated on time & left in proper condition.',
-        '10. Damage or technical issues reported immediately.',
-        '11. Host dept responsible for participant compliance.',
-      ];
+      const allTerms = parseBookingTerms(settings.bookingTermsAndConditions);
+      const mid = Math.ceil(allTerms.length / 2);
+      const rulesL = allTerms.slice(0, mid).map((r, i) => {
+        const text = `${i + 1}. ${r}`;
+        return text.length > 58 ? text.substring(0, 56) + '...' : text;
+      });
+      const rulesR = allTerms.slice(mid).map((r, i) => {
+        const text = `${mid + i + 1}. ${r}`;
+        return text.length > 58 ? text.substring(0, 56) + '...' : text;
+      });
 
       doc.setTextColor(71, 85, 105);
       doc.setFont('helvetica', 'normal');
@@ -753,21 +750,9 @@ Authority: Facilities Committee & Dean Academics`;
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] text-slate-600 dark:text-slate-300">
-                  {[
-                    '1. Sticking posters or notices on walls is strictly prohibited.',
-                    '2. Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
-                    '3. Any damage to walls, furniture, or equipment must be repaired by host dept.',
-                    '4. Furniture must be handled carefully & returned to original arrangement.',
-                    '5. Audio-visual equipment requires authorized operation only.',
-                    '6. Food and beverages are not permitted inside under any circumstances.',
-                    '7. Any decorations or banners must be approved in advance.',
-                    '8. Lights, AC, projectors, and other equipment must be switched off after use.',
-                    '9. The hall must be vacated on time and left in proper clean condition.',
-                    '10. Any damage or technical issues must be reported immediately.',
-                    '11. The hosting department is responsible for ensuring all participants follow these rules.',
-                  ].map((rule, idx) => (
+                  {parseBookingTerms(settings.bookingTermsAndConditions).map((rule, idx) => (
                     <div key={idx} className="flex items-start gap-1.5 leading-snug">
-                      <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">•</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-bold shrink-0">{idx + 1}.</span>
                       <span>{rule}</span>
                     </div>
                   ))}

@@ -6,6 +6,20 @@ import { apiMutationRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
+export const DEFAULT_BOOKING_TERMS = [
+  'Sticking posters or notices on walls is strictly prohibited.',
+  'Use of double-sided tape, glue, nails, or any adhesive on walls is not allowed.',
+  'Any damage to walls, furniture, equipment, or other facilities must be repaired at the cost of the hosting department.',
+  'Furniture must be handled carefully and returned to its original arrangement after use.',
+  'All audio-visual equipment must be handled carefully. Unauthorised operation is not permitted.',
+  'Food and beverages are not permitted inside.',
+  'Any decorations or banners must be approved in advance.',
+  'Lights, AC, projectors, and other equipment must be switched off after use.',
+  'The hall must be vacated on time and left in proper condition.',
+  'Any damage or technical issues must be reported to the concerned authority immediately.',
+  'The hosting department is responsible for ensuring that all participants follow these rules.',
+];
+
 export const ALLOWED_SETTING_KEYS = new Set([
   'siteName',
   'institutionName',
@@ -26,6 +40,7 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'customEquipmentCatalog',
   'iqacNotificationEmail',
   'storeNotificationEmail',
+  'bookingTermsAndConditions',
 ]);
 
 // GET /api/settings - retrieve public/configured settings
@@ -52,6 +67,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       customEquipmentCatalog: '',
       iqacNotificationEmail: 'iqac@sairamce.edu.in',
       storeNotificationEmail: 'store@sairamce.edu.in',
+      bookingTermsAndConditions: JSON.stringify(DEFAULT_BOOKING_TERMS),
     };
 
     for (const item of list) {
@@ -80,6 +96,38 @@ router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRa
     for (const key of Object.keys(updates)) {
       if (!ALLOWED_SETTING_KEYS.has(key)) {
         res.status(400).json({ error: `Invalid setting key '${key}'. Not in allowed configuration keys.` });
+        return;
+      }
+    }
+
+    // 1.1 Super Admin only permission check for bookingTermsAndConditions
+    if (updates.bookingTermsAndConditions !== undefined) {
+      if (req.user?.role !== 'SUPER_ADMIN') {
+        res.status(403).json({
+          error: 'Permission Denied: Only Super Admin (IQAC) is authorized to modify Facility Booking Terms & Conditions.',
+        });
+        return;
+      }
+
+      try {
+        const parsed = typeof updates.bookingTermsAndConditions === 'string'
+          ? JSON.parse(updates.bookingTermsAndConditions)
+          : updates.bookingTermsAndConditions;
+
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          res.status(400).json({ error: 'bookingTermsAndConditions must be a non-empty array of rules.' });
+          return;
+        }
+
+        const cleaned = parsed.map((item: any) => String(item).trim()).filter(Boolean);
+        if (cleaned.length === 0) {
+          res.status(400).json({ error: 'At least one valid term or condition rule is required.' });
+          return;
+        }
+
+        updates.bookingTermsAndConditions = JSON.stringify(cleaned);
+      } catch {
+        res.status(400).json({ error: 'Invalid format for bookingTermsAndConditions. Must be a valid JSON array of strings.' });
         return;
       }
     }
