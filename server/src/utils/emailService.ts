@@ -203,26 +203,31 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
 
   const fromAddress = process.env.SMTP_FROM || 'Seminar & AV Hall System <facilities@sairamce.edu.in>';
 
-  let subject = `[${status}] Booking Request ${bookingId}: ${eventName}`;
-  let headline = `Your Booking Request is ${status}`;
-  let statusColor = '#3B82F6';
+  let subject = `Booking Update: ${hallName} [${bookingId}]`;
+  let headline = `Your Facility Booking Request`;
+  let leadParagraph = `Please find the latest update regarding your facility reservation below.`;
+  let statusColor = '#2563EB';
 
   if (status === 'APPROVED') {
-    subject = `✅ Approved: Booking ${bookingId} - ${hallName} (${eventName})`;
-    headline = 'Your Reservation Has Been Confirmed!';
-    statusColor = '#10B981';
-  } else if (status === 'REJECTED') {
-    subject = `❌ Rejection Notice: Booking Request ${bookingId} - ${hallName}`;
-    headline = 'Booking Request Could Not Be Approved';
-    statusColor = '#EF4444';
-  } else if (status === 'CANCELLED') {
-    subject = `⚠️ Cancelled: Booking Request ${bookingId} - ${hallName}`;
-    headline = 'Facility Booking Has Been Cancelled';
-    statusColor = '#64748B';
+    subject = `Booking Confirmed: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = 'Your Facility Reservation is Confirmed!';
+    leadParagraph = `Great news! Your booking request for <strong>${escapeHtml(hallName)}</strong> has been approved by the administration. Your official <strong>Event Gate Pass &amp; Entry Ticket</strong> is attached to this email as a PDF.`;
+    statusColor = '#059669';
   } else if (status === 'PENDING') {
-    subject = `⏳ New Requisition: Booking Request ${bookingId} (${eventName})`;
-    headline = 'Booking Request Submitted & Under Review';
-    statusColor = '#F59E0B';
+    subject = `Booking Request Received: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = 'Booking Request Received & Under Review';
+    leadParagraph = `Thank you for submitting your booking request. Your reservation for <strong>${escapeHtml(hallName)}</strong> has been received and is currently under review by the Central Facilities Office. You will receive a confirmation once it is approved.`;
+    statusColor = '#D97706';
+  } else if (status === 'REJECTED') {
+    subject = `Booking Request Update: ${hallName} [${bookingId}]`;
+    headline = 'Booking Request Could Not Be Approved';
+    leadParagraph = `We regret to inform you that your reservation request for <strong>${escapeHtml(hallName)}</strong> on <strong>${escapeHtml(bookingDate)}</strong> could not be approved at this time.`;
+    statusColor = '#DC2626';
+  } else if (status === 'CANCELLED') {
+    subject = `Booking Cancelled: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = 'Facility Reservation Cancelled';
+    leadParagraph = `This is to inform you that your reservation for <strong>${escapeHtml(hallName)}</strong> on <strong>${escapeHtml(bookingDate)}</strong> has been cancelled. The facility has been released and is open for other campus events.`;
+    statusColor = '#475569';
   }
 
   // Parse equipment list
@@ -243,102 +248,144 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
   const safeBookingId = escapeHtml(bookingId);
   const safeEventName = escapeHtml(eventName);
   const safeHallName = escapeHtml(hallName);
+  const safeLocation = escapeHtml(hallLocation || 'Campus Main Block');
   const safeDate = escapeHtml(bookingDate + (endDate && endDate !== bookingDate ? ` to ${endDate}` : ''));
   const safeTimeSlot = escapeHtml(timeSlot);
   const safeStatus = escapeHtml(status);
   const safeReason = escapeHtml(rejectionReason);
+  const safeAdminNotes = escapeHtml(adminNotes);
+  const safeDescription = escapeHtml(description);
+  const safePurpose = escapeHtml(purpose);
   const safeCoordinator = escapeHtml(coordinatorName || recipientName);
   const safeContact = escapeHtml(contactNumber);
   const safeDept = escapeHtml(departmentName || 'Academic Unit');
 
   const htmlContent = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
-      <div style="background-color: ${statusColor}; padding: 24px; text-align: center; color: #ffffff;">
-        <h1 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;">SRI SAIRAM COLLEGE OF ENGINEERING</h1>
-        <p style="margin: 6px 0 0; font-size: 13px; opacity: 0.95;">Central Facilities Office • AV & Seminar Hall Management</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 14px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+      <!-- Top Branding Header -->
+      <div style="background-color: #0f2b5c; padding: 24px 20px; text-align: center; color: #ffffff;">
+        <h1 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: 0.2px;">SRI SAIRAM COLLEGE OF ENGINEERING</h1>
+        <p style="margin: 5px 0 0; font-size: 12px; color: #93c5fd; letter-spacing: 0.3px;">Central Facilities Office • Official Campus Reservation Service</p>
       </div>
 
-      <div style="padding: 26px;">
-        <p style="font-size: 15px; color: #1e293b; margin: 0 0 12px;">Dear <strong>${safeRecipient}</strong>,</p>
-        <p style="font-size: 14px; color: #475569; margin: 0 0 20px; line-height: 1.5;">${headline} Please find the official confirmation details and attached PDF Gate Pass below.</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 13px;">
+      <!-- Status Banner -->
+      <div style="background-color: ${statusColor}; padding: 12px 24px; text-align: center; color: #ffffff;">
+        <span style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${headline}</span>
+      </div>
+
+      <div style="padding: 28px 24px;">
+        <p style="font-size: 15px; color: #0f172a; margin: 0 0 12px;">Dear <strong>${safeRecipient}</strong>,</p>
+        <p style="font-size: 14px; color: #334155; margin: 0 0 22px; line-height: 1.6;">${leadParagraph}</p>
+
+        <!-- Main Details Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px;">
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b; width: 160px;">Booking Reference:</td>
-            <td style="padding: 9px 0; font-weight: 700; color: #2563eb; font-family: monospace; font-size: 14px;">${safeBookingId}</td>
+            <td style="padding: 10px 0; color: #64748b; width: 160px; font-weight: 500;">Booking Reference:</td>
+            <td style="padding: 10px 0; font-weight: 700; color: #1d4ed8; font-family: monospace; font-size: 15px;">${safeBookingId}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b;">Event Name:</td>
-            <td style="padding: 9px 0; font-weight: 600; color: #0f172a;">${safeEventName}</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Event Name:</td>
+            <td style="padding: 10px 0; font-weight: 700; color: #0f172a; font-size: 14px;">${safeEventName}</td>
+          </tr>
+          ${safePurpose ? `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Purpose / Objective:</td>
+            <td style="padding: 10px 0; color: #334155;">${safePurpose}</td>
+          </tr>
+          ` : ''}
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Reserved Facility:</td>
+            <td style="padding: 10px 0; font-weight: 600; color: #0f172a;">${safeHallName} <span style="font-size: 12px; color: #64748b; font-weight: 400;">(${safeLocation})</span></td>
           </tr>
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b;">Reserved Hall:</td>
-            <td style="padding: 9px 0; font-weight: 600; color: #0f172a;">${safeHallName}</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Date & Schedule:</td>
+            <td style="padding: 10px 0; font-weight: 600; color: #0f172a;">${safeDate} &bull; ${safeTimeSlot}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b;">Date(s) & Time Slot:</td>
-            <td style="padding: 9px 0; font-weight: 600; color: #0f172a;">${safeDate} (${safeTimeSlot})</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Host Department:</td>
+            <td style="padding: 10px 0; font-weight: 600; color: #0f172a;">${safeDept}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b;">Host Department:</td>
-            <td style="padding: 9px 0; font-weight: 600; color: #0f172a;">${safeDept}</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Coordinator In-charge:</td>
+            <td style="padding: 10px 0; font-weight: 600; color: #0f172a;">${safeCoordinator} ${safeContact ? `<span style="color: #64748b; font-weight: 400;">(&bull; Phone: ${safeContact})</span>` : ''}</td>
           </tr>
+          ${safeDescription ? `
           <tr style="border-bottom: 1px solid #f1f5f9;">
-            <td style="padding: 9px 0; color: #64748b;">Coordinator In-charge:</td>
-            <td style="padding: 9px 0; font-weight: 600; color: #0f172a;">${safeCoordinator} ${safeContact ? `(${safeContact})` : ''}</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500; vertical-align: top;">Event Description:</td>
+            <td style="padding: 10px 0; color: #334155; line-height: 1.5;">${safeDescription}</td>
           </tr>
+          ` : ''}
           <tr>
-            <td style="padding: 9px 0; color: #64748b;">Status:</td>
-            <td style="padding: 9px 0; font-weight: 700; color: ${statusColor}; font-size: 14px;">${safeStatus}</td>
+            <td style="padding: 10px 0; color: #64748b; font-weight: 500;">Status:</td>
+            <td style="padding: 10px 0; font-weight: 800; color: ${statusColor}; font-size: 14px;">${safeStatus}</td>
           </tr>
         </table>
 
-        <!-- Logistics Table for Store, IQAC and Coordinator -->
+        <!-- Logistics & Store Requisition Summary -->
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 22px;">
-          <h3 style="margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
-            📦 Event Scale &amp; Store Logistics Requisition
+          <h3 style="margin: 0 0 10px; font-size: 12px; font-weight: 700; color: #0f2b5c; text-transform: uppercase; letter-spacing: 0.5px;">
+            📦 Event Scale &amp; Store Requisition Summary
           </h3>
           <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
             <tr>
-              <td style="padding: 6px 0; color: #64748b; width: 50%;">Expected Attendees:</td>
-              <td style="padding: 6px 0; font-weight: 700; color: #0f172a;">👥 ${participantCount || 0} Persons</td>
+              <td style="padding: 5px 0; color: #64748b; width: 45%;">Expected Attendees:</td>
+              <td style="padding: 5px 0; font-weight: 700; color: #0f172a;">👥 ${participantCount || 0} Persons</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748b;">No. of VIP Guests / Dignitaries:</td>
-              <td style="padding: 6px 0; font-weight: 700; color: #b45309;">🎖️ ${guestCount || 0} Dignitaries</td>
+              <td style="padding: 5px 0; color: #64748b;">Chief Guests & Dignitaries:</td>
+              <td style="padding: 5px 0; font-weight: 700; color: #b45309;">🎖️ ${guestCount || 0} Dignitaries</td>
             </tr>
             <tr>
-              <td style="padding: 6px 0; color: #64748b;">No. of Mementos (Momento):</td>
-              <td style="padding: 6px 0; font-weight: 700; color: #7e22ce;">🏆 ${mementoCount || 0} Units</td>
+              <td style="padding: 5px 0; color: #64748b;">Mementos / Shawls:</td>
+              <td style="padding: 5px 0; font-weight: 700; color: #7e22ce;">🏆 ${mementoCount || 0} Units</td>
             </tr>
             ${reqItems.length > 0 ? `
             <tr>
-              <td style="padding: 6px 0; color: #64748b; vertical-align: top;">Requested Equipment / AV:</td>
-              <td style="padding: 6px 0; font-weight: 600; color: #1e40af;">🎙️ ${reqItems.map(escapeHtml).join(', ')}</td>
+              <td style="padding: 5px 0; color: #64748b; vertical-align: top;">Requested AV & Equipment:</td>
+              <td style="padding: 5px 0; font-weight: 600; color: #1d4ed8;">⚡ ${reqItems.map(escapeHtml).join(' &bull; ')}</td>
             </tr>
             ` : ''}
           </table>
         </div>
 
+        <!-- Official Admin Notice / Notes (if present) -->
+        ${safeAdminNotes ? `
+        <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 16px; margin-bottom: 22px; font-size: 13px; color: #92400e;">
+          <strong style="display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;">📌 Official Admin Instructions / Store Notice:</strong>
+          <span>${safeAdminNotes}</span>
+        </div>
+        ` : ''}
+
+        <!-- Rejection / Cancellation Reason (if present) -->
         ${safeReason ? `
-        <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; color: #991b1b;">
-          <strong>Notice / Reason:</strong> ${safeReason}
+        <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px 16px; margin-bottom: 22px; font-size: 13px; color: #991b1b;">
+          <strong style="display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;">⚠️ Reason / Administrative Remarks:</strong>
+          <span>${safeReason}</span>
         </div>
         ` : ''}
 
         ${pdfBuffer ? `
-        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; font-size: 12px; color: #065f46; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-          <span>📎 <strong>Official PDF Gate Pass</strong> has been generated and attached to this email.</span>
+        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #065f46; margin-bottom: 22px;">
+          <span>📎 <strong>Official PDF Gate Pass &amp; Entry Ticket Attached:</strong> Please download or print the attached gate pass. It contains the security QR code and verified admission details.</span>
         </div>
         ` : ''}
 
-        <div style="background-color: #f1f5f9; border-radius: 8px; padding: 12px; font-size: 11.5px; color: #64748b; line-height: 1.4;">
-          <strong>Security &amp; Logistics Notice:</strong> Present the attached official PDF Gate Pass at the facility entrance. For equipment requisition queries, coordinate with the Store &amp; Estate Office.
+        <!-- Important Guidelines in Simple English -->
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; font-size: 12px; color: #475569; line-height: 1.5;">
+          <strong style="display: block; color: #0f172a; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;">📋 Important Guidelines for Faculty Coordinator:</strong>
+          <ul style="margin: 0; padding-left: 18px; space-y: 4px;">
+            <li><strong>Entry Pass:</strong> Please present the attached PDF Gate Pass at the campus security gate and hall entrance.</li>
+            <li><strong>Keys & AV Setup:</strong> Collect the hall key and verify equipment with the Store &amp; Estate Office before your program starts.</li>
+            <li><strong>Hall Decorum:</strong> Food, colored beverages, and sticking adhesive tapes or nails on walls/furniture are strictly prohibited.</li>
+            <li><strong>Post-Event Checklist:</strong> Ensure all lights, projectors, and air conditioning units are switched off immediately upon conclusion.</li>
+          </ul>
         </div>
       </div>
 
-      <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px; text-align: center; font-size: 11px; color: #94a3b8;">
-        Central Facilities Office • Sri Sairam College of Engineering • Automated Dispatch
+      <!-- Footer -->
+      <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 20px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.4;">
+        <span>Central Facilities Office &bull; Sri Sairam College of Engineering</span><br />
+        <span style="color: #94a3b8;">Anekal, Bengaluru, Karnataka &bull; Helpdesk: facilities@sairamce.edu.in</span>
       </div>
     </div>
   `;

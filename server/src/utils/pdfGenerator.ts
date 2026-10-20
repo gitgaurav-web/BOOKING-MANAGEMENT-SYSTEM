@@ -591,10 +591,15 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
       }
 
       // ==========================================
-      // 9. EVENT DESCRIPTION (IF PRESENT)
+      // 9. EVENT DESCRIPTION & PROTOCOL SYNOPSIS (FULL TEXT, NO TRUNCATION)
       // ==========================================
       if (data.description && data.description.trim()) {
-        const descCardH = 28;
+        const fullDesc = data.description.trim();
+        const descBoxW = contentWidth - 36;
+        doc.font('Helvetica').fontSize(7.2);
+        const descTextH = doc.heightOfString(fullDesc, { width: descBoxW, lineGap: 1.2 });
+        const descCardH = Math.max(30, descTextH + 18);
+
         doc
           .roundedRect(margin + 10, currentY, contentWidth - 20, descCardH, 5)
           .fillColor('#f8fafc')
@@ -610,18 +615,23 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
 
         doc
           .font('Helvetica')
-          .fontSize(7.5)
+          .fontSize(7.2)
           .fillColor('#334155')
-          .text(data.description.substring(0, 160), margin + 18, currentY + 14, { width: contentWidth - 36, lineBreak: false });
+          .text(fullDesc, margin + 18, currentY + 14, { width: descBoxW, lineGap: 1.2 });
 
         currentY += descCardH + 6;
       }
 
       // ==========================================
-      // 10. OFFICIAL ADMIN NOTICE / INSTRUCTION (IF PRESENT)
+      // 10. OFFICIAL ADMIN NOTICE / INSTRUCTION (IF PRESENT, FULL TEXT)
       // ==========================================
       if (data.adminNotes && data.adminNotes.trim()) {
-        const noticeH = 28;
+        const fullNotes = data.adminNotes.trim();
+        const notesBoxW = contentWidth - 36;
+        doc.font('Helvetica').fontSize(7.2);
+        const notesTextH = doc.heightOfString(fullNotes, { width: notesBoxW, lineGap: 1.2 });
+        const noticeH = Math.max(28, notesTextH + 18);
+
         doc
           .roundedRect(margin + 10, currentY, contentWidth - 20, noticeH, 5)
           .fillColor('#fffbeb')
@@ -637,15 +647,20 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
 
         doc
           .font('Helvetica')
-          .fontSize(7.5)
+          .fontSize(7.2)
           .fillColor('#78350f')
-          .text(data.adminNotes, margin + 18, currentY + 14, { width: contentWidth - 36, lineBreak: false });
+          .text(fullNotes, margin + 18, currentY + 14, { width: notesBoxW, lineGap: 1.2 });
 
         currentY += noticeH + 6;
       }
 
       if (data.rejectionReason && data.rejectionReason.trim()) {
-        const rejectH = 28;
+        const fullReject = data.rejectionReason.trim();
+        const rejectBoxW = contentWidth - 36;
+        doc.font('Helvetica').fontSize(7.2);
+        const rejectTextH = doc.heightOfString(fullReject, { width: rejectBoxW, lineGap: 1.2 });
+        const rejectH = Math.max(28, rejectTextH + 18);
+
         doc
           .roundedRect(margin + 10, currentY, contentWidth - 20, rejectH, 5)
           .fillColor('#fef2f2')
@@ -661,9 +676,9 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
 
         doc
           .font('Helvetica')
-          .fontSize(7.5)
+          .fontSize(7.2)
           .fillColor('#7f1d1d')
-          .text(data.rejectionReason, margin + 18, currentY + 14, { width: contentWidth - 36, lineBreak: false });
+          .text(fullReject, margin + 18, currentY + 14, { width: rejectBoxW, lineGap: 1.2 });
 
         currentY += rejectH + 6;
       }
