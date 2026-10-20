@@ -54,13 +54,14 @@ export const AdminBookingsPage: React.FC = () => {
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (openDropdownId && !(e.target as Element).closest('.action-dropdown-container')) {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('.action-dropdown-container')) {
         setOpenDropdownId(null);
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [openDropdownId]);
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -377,10 +378,13 @@ export const AdminBookingsPage: React.FC = () => {
                         <StatusBadge status={b.status} size="sm" />
                       </td>
                       <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <div className={`relative inline-block text-left ${openDropdownId === b.id ? 'z-40' : ''}`}>
+                        <div className={`action-dropdown-container relative inline-block text-left ${openDropdownId === b.id ? 'z-50' : ''}`}>
                           <button
                             type="button"
-                            onClick={() => setOpenDropdownId(openDropdownId === b.id ? null : b.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === b.id ? null : b.id);
+                            }}
                             className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer"
                           >
                             <span>Actions</span>
@@ -388,13 +392,12 @@ export const AdminBookingsPage: React.FC = () => {
                           </button>
 
                           {openDropdownId === b.id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setOpenDropdownId(null)} />
-                              <div
-                                className={`absolute right-0 ${
-                                  isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
-                                } w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs font-medium`}
-                              >
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className={`absolute right-0 ${
+                                isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                              } w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl py-2 z-50 text-xs font-medium`}
+                            >
                                 {/* Option 1: Notice / Remarks */}
                                 <button
                                   type="button"
@@ -468,7 +471,6 @@ export const AdminBookingsPage: React.FC = () => {
                                   <span>Delete Permanently</span>
                                 </button>
                               </div>
-                            </>
                           )}
                         </div>
                       </td>
