@@ -12,6 +12,7 @@ import {
   User,
   Phone,
   Mail,
+  Lock,
 } from 'lucide-react';
 
 export const AdminPendingPage: React.FC = () => {
@@ -206,23 +207,45 @@ export const AdminPendingPage: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedBooking(b);
-                    setRejectionModal(true);
-                  }}
-                  className="px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-600 font-semibold text-xs transition"
-                >
-                  Reject
-                </button>
-                <button
-                  disabled={actionLoading}
-                  onClick={() => handleApprove(b.id)}
-                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition flex items-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Approve & Book Date</span>
-                </button>
+                {(() => {
+                  const todayIso = new Date().toLocaleDateString('en-CA');
+                  const effectiveEnd = b.endDate && b.endDate >= b.bookingDate ? b.endDate : b.bookingDate;
+                  const isPast = effectiveEnd < todayIso;
+
+                  if (isPast) {
+                    return (
+                      <div
+                        title="Event date has passed. Historical records are frozen."
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-semibold text-xs border border-slate-200 dark:border-slate-700/60 cursor-not-allowed select-none"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Event Date Passed (Frozen)</span>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setRejectionModal(true);
+                        }}
+                        className="px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-600 font-semibold text-xs transition cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        disabled={actionLoading}
+                        onClick={() => handleApprove(b.id)}
+                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Approve & Book Date</span>
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           ))}

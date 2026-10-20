@@ -23,6 +23,7 @@ import {
   Building2,
   User,
   Calendar,
+  Lock,
 } from 'lucide-react';
 
 export const AdminBookingsPage: React.FC = () => {
@@ -299,6 +300,9 @@ export const AdminBookingsPage: React.FC = () => {
               ) : (
                 filtered.map((b, idx) => {
                   const isLastRows = filtered.length >= 3 && idx >= filtered.length - 2;
+                  const todayIso = new Date().toLocaleDateString('en-CA');
+                  const effectiveEnd = b.endDate && b.endDate >= b.bookingDate ? b.endDate : b.bookingDate;
+                  const isPast = effectiveEnd < todayIso;
 
                   return (
                     <tr
@@ -376,9 +380,23 @@ export const AdminBookingsPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-2 text-center whitespace-nowrap">
                         <StatusBadge status={b.status} size="sm" />
+                        {isPast && (
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">
+                            {b.status === 'APPROVED' ? 'Completed (Past)' : b.status === 'PENDING' ? 'Expired (Past)' : 'Historical'}
+                          </div>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <div className={`action-dropdown-container relative inline-block text-left ${openDropdownId === b.id ? 'z-50' : ''}`}>
+                        {isPast ? (
+                          <div
+                            title="This event date has passed. Historical records are permanently locked and cannot be modified."
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-semibold text-xs border border-slate-200 dark:border-slate-700/60 cursor-not-allowed select-none shadow-2xs"
+                          >
+                            <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                            <span>Locked (Past)</span>
+                          </div>
+                        ) : (
+                          <div className={`action-dropdown-container relative inline-block text-left ${openDropdownId === b.id ? 'z-50' : ''}`}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -473,6 +491,7 @@ export const AdminBookingsPage: React.FC = () => {
                               </div>
                           )}
                         </div>
+                        )}
                       </td>
                     </tr>
                   );

@@ -97,6 +97,13 @@ export async function checkBookingConflict(
   return { hasConflict: false, reason: '' };
 }
 
+// Helper to check if a booking's event date has already passed
+export function isBookingDatePast(bookingDate: string, endDate?: string | null): boolean {
+  const todayIso = getLocalIsoDate();
+  const effective = endDate && endDate >= bookingDate ? endDate : bookingDate;
+  return effective < todayIso;
+}
+
 // Create Booking Request
 router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -691,6 +698,11 @@ router.patch('/:id/approve', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       return;
     }
 
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: This booking event date has already passed. Historical records are permanently frozen.' });
+      return;
+    }
+
     // Check conflict and update inside transaction to prevent race conditions
     const updated = await prisma.$transaction(async (tx) => {
       const holidaySetting = await tx.systemSetting.findUnique({ where: { key: 'allowHolidayBookings' } });
@@ -796,6 +808,11 @@ router.patch('/:id/reject', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), a
       return;
     }
 
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: This booking event date has already passed. Historical records are permanently frozen.' });
+      return;
+    }
+
     const updated = await prisma.booking.update({
       where: { id },
       data: {
@@ -870,6 +887,11 @@ router.patch('/:id/cancel', authenticate, apiMutationRateLimiter, async (req: Au
     const existing = await prisma.booking.findUnique({ where: { id }, include: { hall: true } });
     if (!existing) {
       res.status(404).json({ error: 'Booking not found.' });
+      return;
+    }
+
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: Cannot cancel a past event. Historical bookings are permanently frozen.' });
       return;
     }
 
@@ -959,6 +981,11 @@ router.patch('/:id/pending', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), 
       return;
     }
 
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: Cannot move a past event to pending review. Historical records are permanently frozen.' });
+      return;
+    }
+
     const previousStatus = existing.status;
     if (previousStatus === 'PENDING') {
       res.status(400).json({ error: 'Booking is already in Pending Review status.' });
@@ -1042,6 +1069,11 @@ router.patch('/:id/notes', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), ap
       return;
     }
 
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: Cannot modify notices for past events. Historical records are permanently frozen.' });
+      return;
+    }
+
     const updated = await prisma.booking.update({
       where: { id },
       data: {
@@ -1106,6 +1138,11 @@ router.put('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutatio
     const existing = await prisma.booking.findUnique({ where: { id } });
     if (!existing) {
       res.status(404).json({ error: 'Booking not found.' });
+      return;
+    }
+
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: This booking event date has already passed. Historical records are permanently frozen.' });
       return;
     }
 
@@ -1244,6 +1281,11 @@ router.delete('/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (
     const existing = await prisma.booking.findUnique({ where: { id } });
     if (!existing) {
       res.status(404).json({ error: 'Booking not found.' });
+      return;
+    }
+
+    if (isBookingDatePast(existing.bookingDate, existing.endDate)) {
+      res.status(400).json({ error: 'Action Blocked: Cannot delete a past event. Historical records are permanently frozen.' });
       return;
     }
 
