@@ -27,6 +27,7 @@ import {
   parseEmailGuidelines,
 } from '../../contexts/SettingsContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { DataArchivalManager } from '../../components/admin/DataArchivalManager';
 
 export const AdminSettingsPage: React.FC = () => {
   const { refreshSettings } = useSettings();
@@ -1452,6 +1453,9 @@ export const AdminSettingsPage: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Super Admin Data Archival & Storage Retention Manager */}
+      <DataArchivalManager />
     </div>
   );
 };

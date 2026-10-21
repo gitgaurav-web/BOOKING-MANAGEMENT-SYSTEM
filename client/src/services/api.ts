@@ -50,7 +50,7 @@ export async function apiRequest<T = any>(
   return data as T;
 }
 
-export async function downloadCsvFile(endpoint: string, filename: string = 'facility_bookings_report.csv'): Promise<void> {
+export async function downloadFile(endpoint: string, filename: string): Promise<void> {
   const token = getAuthToken();
   const headers: Record<string, string> = {};
   if (token) {
@@ -62,7 +62,12 @@ export async function downloadCsvFile(endpoint: string, filename: string = 'faci
   });
 
   if (!response.ok) {
-    throw new Error('Failed to download file. Please ensure you are logged in with admin privileges.');
+    let errorMsg = 'Failed to download file. Please ensure you are logged in with appropriate privileges.';
+    try {
+      const errJson = await response.json();
+      if (errJson?.error) errorMsg = errJson.error;
+    } catch {}
+    throw new Error(errorMsg);
   }
 
   const blob = await response.blob();
@@ -75,3 +80,6 @@ export async function downloadCsvFile(endpoint: string, filename: string = 'faci
   document.body.removeChild(a);
   window.URL.revokeObjectURL(url);
 }
+
+export const downloadCsvFile = downloadFile;
+

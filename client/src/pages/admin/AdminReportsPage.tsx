@@ -30,6 +30,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { DataArchivalManager } from '../../components/admin/DataArchivalManager';
 
 export const AdminReportsPage: React.FC = () => {
   const [data, setData] = useState<any>(null);
@@ -308,6 +309,11 @@ export const AdminReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* =========================================================================
+          SUPER ADMIN EXCLUSIVE: Institutional Data Archival & Storage Manager
+      ========================================================================= */}
+      <DataArchivalManager onDataPurged={loadReports} />
 
       {/* =========================================================================
           MASTER BOOKINGS AUDIT LEDGER (Exact Data Matching Excel/CSV Export)
