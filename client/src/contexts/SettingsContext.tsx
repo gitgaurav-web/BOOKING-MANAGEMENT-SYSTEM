@@ -22,6 +22,21 @@ export interface SystemSettings {
   iqacNotificationEmail?: string;
   storeNotificationEmail?: string;
   bookingTermsAndConditions?: string;
+  // Super Admin Email Customization
+  emailHeaderTitle?: string;
+  emailHeaderSubtitle?: string;
+  emailApprovedHeadline?: string;
+  emailApprovedMessage?: string;
+  emailPendingHeadline?: string;
+  emailPendingMessage?: string;
+  emailRejectedHeadline?: string;
+  emailRejectedMessage?: string;
+  emailCancelledHeadline?: string;
+  emailCancelledMessage?: string;
+  emailGuidelinesTitle?: string;
+  emailFacultyGuidelines?: string;
+  emailFooterLine1?: string;
+  emailFooterLine2?: string;
 }
 
 export const DEFAULT_BOOKING_TERMS: string[] = [
@@ -38,6 +53,30 @@ export const DEFAULT_BOOKING_TERMS: string[] = [
   'The hosting department is responsible for ensuring that all participants follow these rules.',
 ];
 
+export const DEFAULT_EMAIL_GUIDELINES: string[] = [
+  'Entry Pass: Please present the attached PDF Gate Pass at the campus security gate and hall entrance.',
+  'Keys & AV Setup: Collect the hall key and verify equipment with the Store & Estate Office before your program starts.',
+  'Hall Decorum: Food, colored beverages, and sticking adhesive tapes or nails on walls/furniture are strictly prohibited.',
+  'Post-Event Checklist: Ensure all lights, projectors, and air conditioning units are switched off immediately upon conclusion.',
+];
+
+export const DEFAULT_EMAIL_SETTINGS = {
+  emailHeaderTitle: 'SRI SAIRAM COLLEGE OF ENGINEERING',
+  emailHeaderSubtitle: 'Central Facilities Office • Official Campus Reservation Service',
+  emailApprovedHeadline: 'Your Facility Reservation is Confirmed!',
+  emailApprovedMessage: 'Great news! Your booking request for {hallName} has been approved by the administration. Your official Event Gate Pass & Entry Ticket is attached to this email as a PDF.',
+  emailPendingHeadline: 'Booking Request Received & Under Review',
+  emailPendingMessage: 'Thank you for submitting your booking request. Your reservation for {hallName} has been received and is currently under review by the Central Facilities Office. You will receive a confirmation once it is approved.',
+  emailRejectedHeadline: 'Booking Request Could Not Be Approved',
+  emailRejectedMessage: 'We regret to inform you that your reservation request for {hallName} on {bookingDate} could not be approved at this time.',
+  emailCancelledHeadline: 'Facility Reservation Cancelled',
+  emailCancelledMessage: 'This is to inform you that your reservation for {hallName} on {bookingDate} has been cancelled. The facility has been released and is open for other campus events.',
+  emailGuidelinesTitle: 'Important Guidelines for Faculty Coordinator:',
+  emailFacultyGuidelines: JSON.stringify(DEFAULT_EMAIL_GUIDELINES),
+  emailFooterLine1: 'Central Facilities Office • Sri Sairam College of Engineering',
+  emailFooterLine2: 'Sai Leo Nagar, Guddanahalli Village, Anekal, Bengaluru, Karnataka • Helpdesk: facilities@sairamce.edu.in',
+};
+
 export const parseBookingTerms = (termsString?: string): string[] => {
   if (!termsString) return DEFAULT_BOOKING_TERMS;
   try {
@@ -51,6 +90,21 @@ export const parseBookingTerms = (termsString?: string): string[] => {
     if (lines.length > 0) return lines;
   }
   return DEFAULT_BOOKING_TERMS;
+};
+
+export const parseEmailGuidelines = (raw?: string): string[] => {
+  if (!raw) return DEFAULT_EMAIL_GUIDELINES;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const cleaned = parsed.map((item) => String(item).trim()).filter(Boolean);
+      if (cleaned.length > 0) return cleaned;
+    }
+  } catch {
+    const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 0) return lines;
+  }
+  return DEFAULT_EMAIL_GUIDELINES;
 };
 
 const defaultSettings: SystemSettings = {
@@ -74,6 +128,7 @@ const defaultSettings: SystemSettings = {
   iqacNotificationEmail: 'iqac@sairamce.edu.in',
   storeNotificationEmail: 'store@sairamce.edu.in',
   bookingTermsAndConditions: JSON.stringify(DEFAULT_BOOKING_TERMS),
+  ...DEFAULT_EMAIL_SETTINGS,
 };
 
 interface SettingsContextType {

@@ -1,4 +1,6 @@
 import nodemailer, { Transporter } from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '../prisma';
 import { generateBookingPdfBuffer, BookingPdfData } from './pdfGenerator';
 
@@ -26,6 +28,108 @@ function getTransporter(): Transporter | null {
   }
 
   return null;
+}
+
+export function getSealImagePath(): string | null {
+  const possiblePaths = [
+    path.resolve(__dirname, '../../assets/seal.png'),
+    path.resolve(process.cwd(), 'assets/seal.png'),
+    path.resolve(process.cwd(), 'server/assets/seal.png'),
+    path.resolve(__dirname, '../../../client/public/images/sairam-seal.png'),
+    path.resolve(process.cwd(), 'client/public/images/sairam-seal.png'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+export interface EmailConfig {
+  headerTitle: string;
+  headerSubtitle: string;
+  approvedHeadline: string;
+  approvedMessage: string;
+  pendingHeadline: string;
+  pendingMessage: string;
+  rejectedHeadline: string;
+  rejectedMessage: string;
+  cancelledHeadline: string;
+  cancelledMessage: string;
+  guidelinesTitle: string;
+  facultyGuidelines: string[];
+  footerLine1: string;
+  footerLine2: string;
+}
+
+export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
+  headerTitle: 'SRI SAIRAM COLLEGE OF ENGINEERING',
+  headerSubtitle: 'Central Facilities Office • Official Campus Reservation Service',
+  approvedHeadline: 'Your Facility Reservation is Confirmed!',
+  approvedMessage: 'Great news! Your booking request for {hallName} has been approved by the administration. Your official Event Gate Pass & Entry Ticket is attached to this email as a PDF.',
+  pendingHeadline: 'Booking Request Received & Under Review',
+  pendingMessage: 'Thank you for submitting your booking request. Your reservation for {hallName} has been received and is currently under review by the Central Facilities Office. You will receive a confirmation once it is approved.',
+  rejectedHeadline: 'Booking Request Could Not Be Approved',
+  rejectedMessage: 'We regret to inform you that your reservation request for {hallName} on {bookingDate} could not be approved at this time.',
+  cancelledHeadline: 'Facility Reservation Cancelled',
+  cancelledMessage: 'This is to inform you that your reservation for {hallName} on {bookingDate} has been cancelled. The facility has been released and is open for other campus events.',
+  guidelinesTitle: 'Important Guidelines for Faculty Coordinator:',
+  facultyGuidelines: [
+    'Entry Pass: Please present the attached PDF Gate Pass at the campus security gate and hall entrance.',
+    'Keys & AV Setup: Collect the hall key and verify equipment with the Store & Estate Office before your program starts.',
+    'Hall Decorum: Food, colored beverages, and sticking adhesive tapes or nails on walls/furniture are strictly prohibited.',
+    'Post-Event Checklist: Ensure all lights, projectors, and air conditioning units are switched off immediately upon conclusion.',
+  ],
+  footerLine1: 'Central Facilities Office • Sri Sairam College of Engineering',
+  footerLine2: 'Sai Leo Nagar, Guddanahalli Village, Anekal, Bengaluru, Karnataka • Helpdesk: facilities@sairamce.edu.in',
+};
+
+export async function getEmailConfig(): Promise<EmailConfig> {
+  try {
+    const list = await prisma.systemSetting.findMany();
+    const map: Record<string, string> = {};
+    for (const item of list) {
+      map[item.key] = item.value;
+    }
+
+    let guidelines = DEFAULT_EMAIL_CONFIG.facultyGuidelines;
+    if (map.emailFacultyGuidelines) {
+      try {
+        const parsed = JSON.parse(map.emailFacultyGuidelines);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          guidelines = parsed.map((item: any) => String(item).trim()).filter(Boolean);
+        }
+      } catch {
+        const lines = map.emailFacultyGuidelines.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length > 0) guidelines = lines;
+      }
+    }
+
+    return {
+      headerTitle: map.emailHeaderTitle || DEFAULT_EMAIL_CONFIG.headerTitle,
+      headerSubtitle: map.emailHeaderSubtitle || DEFAULT_EMAIL_CONFIG.headerSubtitle,
+      approvedHeadline: map.emailApprovedHeadline || DEFAULT_EMAIL_CONFIG.approvedHeadline,
+      approvedMessage: map.emailApprovedMessage || DEFAULT_EMAIL_CONFIG.approvedMessage,
+      pendingHeadline: map.emailPendingHeadline || DEFAULT_EMAIL_CONFIG.pendingHeadline,
+      pendingMessage: map.emailPendingMessage || DEFAULT_EMAIL_CONFIG.pendingMessage,
+      rejectedHeadline: map.emailRejectedHeadline || DEFAULT_EMAIL_CONFIG.rejectedHeadline,
+      rejectedMessage: map.emailRejectedMessage || DEFAULT_EMAIL_CONFIG.rejectedMessage,
+      cancelledHeadline: map.emailCancelledHeadline || DEFAULT_EMAIL_CONFIG.cancelledHeadline,
+      cancelledMessage: map.emailCancelledMessage || DEFAULT_EMAIL_CONFIG.cancelledMessage,
+      guidelinesTitle: map.emailGuidelinesTitle || DEFAULT_EMAIL_CONFIG.guidelinesTitle,
+      facultyGuidelines: guidelines,
+      footerLine1: map.emailFooterLine1 || DEFAULT_EMAIL_CONFIG.footerLine1,
+      footerLine2: map.emailFooterLine2 || DEFAULT_EMAIL_CONFIG.footerLine2,
+    };
+  } catch {
+    return DEFAULT_EMAIL_CONFIG;
+  }
+}
+
+export function interpolateTemplate(template: string, vars: Record<string, string>): string {
+  if (!template) return '';
+  return template.replace(/\{(\w+)\}/g, (match, key) => {
+    return vars[key] !== undefined ? vars[key] : match;
+  });
 }
 
 async function isEmailNotificationsEnabled(): Promise<boolean> {
@@ -202,47 +306,7 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
   }
 
   const fromAddress = process.env.SMTP_FROM || 'Seminar & AV Hall System <facilities@sairamce.edu.in>';
-
-  let subject = `Booking Update: ${hallName} [${bookingId}]`;
-  let headline = `Your Facility Booking Request`;
-  let leadParagraph = `Please find the latest update regarding your facility reservation below.`;
-  let statusColor = '#2563EB';
-
-  if (status === 'APPROVED') {
-    subject = `Booking Confirmed: ${hallName} on ${bookingDate} [${bookingId}]`;
-    headline = 'Your Facility Reservation is Confirmed!';
-    leadParagraph = `Great news! Your booking request for <strong>${escapeHtml(hallName)}</strong> has been approved by the administration. Your official <strong>Event Gate Pass &amp; Entry Ticket</strong> is attached to this email as a PDF.`;
-    statusColor = '#059669';
-  } else if (status === 'PENDING') {
-    subject = `Booking Request Received: ${hallName} on ${bookingDate} [${bookingId}]`;
-    headline = 'Booking Request Received & Under Review';
-    leadParagraph = `Thank you for submitting your booking request. Your reservation for <strong>${escapeHtml(hallName)}</strong> has been received and is currently under review by the Central Facilities Office. You will receive a confirmation once it is approved.`;
-    statusColor = '#D97706';
-  } else if (status === 'REJECTED') {
-    subject = `Booking Request Update: ${hallName} [${bookingId}]`;
-    headline = 'Booking Request Could Not Be Approved';
-    leadParagraph = `We regret to inform you that your reservation request for <strong>${escapeHtml(hallName)}</strong> on <strong>${escapeHtml(bookingDate)}</strong> could not be approved at this time.`;
-    statusColor = '#DC2626';
-  } else if (status === 'CANCELLED') {
-    subject = `Booking Cancelled: ${hallName} on ${bookingDate} [${bookingId}]`;
-    headline = 'Facility Reservation Cancelled';
-    leadParagraph = `This is to inform you that your reservation for <strong>${escapeHtml(hallName)}</strong> on <strong>${escapeHtml(bookingDate)}</strong> has been cancelled. The facility has been released and is open for other campus events.`;
-    statusColor = '#475569';
-  }
-
-  // Parse equipment list
-  let reqItems: string[] = [];
-  if (Array.isArray(specialRequirements)) {
-    reqItems = specialRequirements;
-  } else if (typeof specialRequirements === 'string') {
-    try {
-      const parsed = JSON.parse(specialRequirements);
-      if (Array.isArray(parsed)) reqItems = parsed;
-      else reqItems = [specialRequirements];
-    } catch {
-      reqItems = specialRequirements ? [specialRequirements] : [];
-    }
-  }
+  const emailConfig = await getEmailConfig();
 
   const safeRecipient = escapeHtml(recipientName);
   const safeBookingId = escapeHtml(bookingId);
@@ -260,12 +324,81 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
   const safeContact = escapeHtml(contactNumber);
   const safeDept = escapeHtml(departmentName || 'Academic Unit');
 
+  const templateVars: Record<string, string> = {
+    bookingId: safeBookingId,
+    hallName: safeHallName,
+    eventName: safeEventName,
+    bookingDate: safeDate,
+    recipientName: safeRecipient,
+    departmentName: safeDept,
+    status: safeStatus,
+    coordinatorName: safeCoordinator,
+  };
+
+  let subject = `Booking Update: ${hallName} [${bookingId}]`;
+  let headline = `Your Facility Booking Request`;
+  let leadParagraph = `Please find the latest update regarding your facility reservation below.`;
+  let statusColor = '#2563EB';
+
+  if (status === 'APPROVED') {
+    subject = `Booking Confirmed: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = interpolateTemplate(emailConfig.approvedHeadline, templateVars);
+    leadParagraph = interpolateTemplate(emailConfig.approvedMessage, templateVars);
+    statusColor = '#059669';
+  } else if (status === 'PENDING') {
+    subject = `Booking Request Received: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = interpolateTemplate(emailConfig.pendingHeadline, templateVars);
+    leadParagraph = interpolateTemplate(emailConfig.pendingMessage, templateVars);
+    statusColor = '#D97706';
+  } else if (status === 'REJECTED') {
+    subject = `Booking Request Update: ${hallName} [${bookingId}]`;
+    headline = interpolateTemplate(emailConfig.rejectedHeadline, templateVars);
+    leadParagraph = interpolateTemplate(emailConfig.rejectedMessage, templateVars);
+    statusColor = '#DC2626';
+  } else if (status === 'CANCELLED') {
+    subject = `Booking Cancelled: ${hallName} on ${bookingDate} [${bookingId}]`;
+    headline = interpolateTemplate(emailConfig.cancelledHeadline, templateVars);
+    leadParagraph = interpolateTemplate(emailConfig.cancelledMessage, templateVars);
+    statusColor = '#475569';
+  }
+
+  // Parse equipment list
+  let reqItems: string[] = [];
+  if (Array.isArray(specialRequirements)) {
+    reqItems = specialRequirements;
+  } else if (typeof specialRequirements === 'string') {
+    try {
+      const parsed = JSON.parse(specialRequirements);
+      if (Array.isArray(parsed)) reqItems = parsed;
+      else reqItems = [specialRequirements];
+    } catch {
+      reqItems = specialRequirements ? [specialRequirements] : [];
+    }
+  }
+
+  const sealPath = getSealImagePath();
+
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #cbd5e1; border-radius: 14px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-      <!-- Top Branding Header -->
-      <div style="background-color: #0f2b5c; padding: 24px 20px; text-align: center; color: #ffffff;">
-        <h1 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: 0.2px;">SRI SAIRAM COLLEGE OF ENGINEERING</h1>
-        <p style="margin: 5px 0 0; font-size: 12px; color: #93c5fd; letter-spacing: 0.3px;">Central Facilities Office • Official Campus Reservation Service</p>
+      <!-- Top Branding Header with Circular Seal Logo -->
+      <div style="background-color: #0f2b5c; padding: 22px 20px; text-align: center; color: #ffffff;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto; text-align: left;">
+          <tr>
+            ${sealPath ? `
+            <td style="vertical-align: middle; padding-right: 16px;">
+              <img src="cid:college-seal-logo" alt="College Seal" width="56" height="56" style="display: block; width: 56px; height: 56px; border-radius: 50%; border: 2px solid #ffffff; background-color: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.25);" />
+            </td>
+            ` : ''}
+            <td style="vertical-align: middle;">
+              <h1 style="margin: 0; font-size: 19px; font-weight: 800; color: #ffffff; letter-spacing: 0.3px; line-height: 1.25;">
+                ${escapeHtml(emailConfig.headerTitle)}
+              </h1>
+              <p style="margin: 4px 0 0; font-size: 12px; color: #93c5fd; letter-spacing: 0.3px; line-height: 1.2;">
+                ${escapeHtml(emailConfig.headerSubtitle)}
+              </p>
+            </td>
+          </tr>
+        </table>
       </div>
 
       <!-- Status Banner -->
@@ -372,34 +505,41 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
 
         <!-- Important Guidelines in Simple English -->
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; font-size: 12px; color: #475569; line-height: 1.5;">
-          <strong style="display: block; color: #0f172a; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;">📋 Important Guidelines for Faculty Coordinator:</strong>
-          <ul style="margin: 0; padding-left: 18px; space-y: 4px;">
-            <li><strong>Entry Pass:</strong> Please present the attached PDF Gate Pass at the campus security gate and hall entrance.</li>
-            <li><strong>Keys & AV Setup:</strong> Collect the hall key and verify equipment with the Store &amp; Estate Office before your program starts.</li>
-            <li><strong>Hall Decorum:</strong> Food, colored beverages, and sticking adhesive tapes or nails on walls/furniture are strictly prohibited.</li>
-            <li><strong>Post-Event Checklist:</strong> Ensure all lights, projectors, and air conditioning units are switched off immediately upon conclusion.</li>
+          <strong style="display: block; color: #0f172a; margin-bottom: 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;">
+            📋 ${escapeHtml(emailConfig.guidelinesTitle)}
+          </strong>
+          <ul style="margin: 0; padding-left: 18px;">
+            ${emailConfig.facultyGuidelines.map((item) => `<li style="margin-bottom: 4px;">${escapeHtml(item)}</li>`).join('')}
           </ul>
         </div>
       </div>
 
       <!-- Footer -->
       <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 20px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.4;">
-        <span>Central Facilities Office &bull; Sri Sairam College of Engineering</span><br />
-        <span style="color: #94a3b8;">Anekal, Bengaluru, Karnataka &bull; Helpdesk: facilities@sairamce.edu.in</span>
+        <span>${escapeHtml(emailConfig.footerLine1)}</span><br />
+        <span style="color: #94a3b8;">${escapeHtml(emailConfig.footerLine2)}</span>
       </div>
     </div>
   `;
 
   const activeTransporter = getTransporter();
-  const pdfAttachment = pdfBuffer
-    ? [
-        {
-          filename: `Gate-Pass-${safeBookingId}.pdf`,
-          content: pdfBuffer,
-          contentType: 'application/pdf',
-        },
-      ]
-    : [];
+  const mailAttachments: any[] = [];
+
+  if (sealPath) {
+    mailAttachments.push({
+      filename: 'sairam-seal.png',
+      path: sealPath,
+      cid: 'college-seal-logo',
+    });
+  }
+
+  if (pdfBuffer) {
+    mailAttachments.push({
+      filename: `Gate-Pass-${safeBookingId}.pdf`,
+      content: pdfBuffer,
+      contentType: 'application/pdf',
+    });
+  }
 
   const recipientEmails = recipientList.map((r) => r.email).join(', ');
 
@@ -410,9 +550,9 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
         to: recipientEmails,
         subject,
         html: htmlContent,
-        attachments: pdfAttachment,
+        attachments: mailAttachments,
       });
-      console.log(`[EmailService] Dispatched ${status} email with PDF attachment to [${recipientEmails}] for booking ${bookingId}`);
+      console.log(`[EmailService] Dispatched ${status} email with attachments to [${recipientEmails}] for booking ${bookingId}`);
       return true;
     } catch (err) {
       console.error(`[EmailService] Failed to send email via SMTP to [${recipientEmails}]:`, err);
@@ -425,7 +565,7 @@ export async function sendBookingNotificationEmail(payload: BookingEmailPayload)
     console.log(`  Subject: ${subject}`);
     console.log(`  Event: ${eventName} (${hallName})`);
     console.log(`  Status: ${status}`);
-    console.log(`  PDF Attachment: Gate-Pass-${safeBookingId}.pdf (${pdfBuffer ? pdfBuffer.length : 0} bytes)`);
+    console.log(`  Attachments: ${mailAttachments.map(a => a.filename).join(', ')}`);
     console.log(`  Logistics: Attendees=${participantCount}, VIP Guests=${guestCount}, Mementos=${mementoCount}`);
     return true;
   }

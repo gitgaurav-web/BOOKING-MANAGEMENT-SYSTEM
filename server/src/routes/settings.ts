@@ -20,6 +20,30 @@ export const DEFAULT_BOOKING_TERMS = [
   'The hosting department is responsible for ensuring that all participants follow these rules.',
 ];
 
+export const DEFAULT_EMAIL_GUIDELINES = [
+  'Entry Pass: Please present the attached PDF Gate Pass at the campus security gate and hall entrance.',
+  'Keys & AV Setup: Collect the hall key and verify equipment with the Store & Estate Office before your program starts.',
+  'Hall Decorum: Food, colored beverages, and sticking adhesive tapes or nails on walls/furniture are strictly prohibited.',
+  'Post-Event Checklist: Ensure all lights, projectors, and air conditioning units are switched off immediately upon conclusion.',
+];
+
+export const EMAIL_SETTING_KEYS = [
+  'emailHeaderTitle',
+  'emailHeaderSubtitle',
+  'emailApprovedHeadline',
+  'emailApprovedMessage',
+  'emailPendingHeadline',
+  'emailPendingMessage',
+  'emailRejectedHeadline',
+  'emailRejectedMessage',
+  'emailCancelledHeadline',
+  'emailCancelledMessage',
+  'emailGuidelinesTitle',
+  'emailFacultyGuidelines',
+  'emailFooterLine1',
+  'emailFooterLine2',
+];
+
 export const ALLOWED_SETTING_KEYS = new Set([
   'siteName',
   'institutionName',
@@ -41,6 +65,7 @@ export const ALLOWED_SETTING_KEYS = new Set([
   'iqacNotificationEmail',
   'storeNotificationEmail',
   'bookingTermsAndConditions',
+  ...EMAIL_SETTING_KEYS,
 ]);
 
 // GET /api/settings - retrieve public/configured settings
@@ -68,6 +93,20 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
       iqacNotificationEmail: 'iqac@sairamce.edu.in',
       storeNotificationEmail: 'store@sairamce.edu.in',
       bookingTermsAndConditions: JSON.stringify(DEFAULT_BOOKING_TERMS),
+      emailHeaderTitle: 'SRI SAIRAM COLLEGE OF ENGINEERING',
+      emailHeaderSubtitle: 'Central Facilities Office • Official Campus Reservation Service',
+      emailApprovedHeadline: 'Your Facility Reservation is Confirmed!',
+      emailApprovedMessage: 'Great news! Your booking request for {hallName} has been approved by the administration. Your official Event Gate Pass & Entry Ticket is attached to this email as a PDF.',
+      emailPendingHeadline: 'Booking Request Received & Under Review',
+      emailPendingMessage: 'Thank you for submitting your booking request. Your reservation for {hallName} has been received and is currently under review by the Central Facilities Office. You will receive a confirmation once it is approved.',
+      emailRejectedHeadline: 'Booking Request Could Not Be Approved',
+      emailRejectedMessage: 'We regret to inform you that your reservation request for {hallName} on {bookingDate} could not be approved at this time.',
+      emailCancelledHeadline: 'Facility Reservation Cancelled',
+      emailCancelledMessage: 'This is to inform you that your reservation for {hallName} on {bookingDate} has been cancelled. The facility has been released and is open for other campus events.',
+      emailGuidelinesTitle: 'Important Guidelines for Faculty Coordinator:',
+      emailFacultyGuidelines: JSON.stringify(DEFAULT_EMAIL_GUIDELINES),
+      emailFooterLine1: 'Central Facilities Office • Sri Sairam College of Engineering',
+      emailFooterLine2: 'Sai Leo Nagar, Guddanahalli Village, Anekal, Bengaluru, Karnataka • Helpdesk: facilities@sairamce.edu.in',
     };
 
     for (const item of list) {
@@ -129,6 +168,31 @@ router.put('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRa
       } catch {
         res.status(400).json({ error: 'Invalid format for bookingTermsAndConditions. Must be a valid JSON array of strings.' });
         return;
+      }
+    }
+
+    // 1.2 Super Admin only permission check for email templates
+    const hasEmailUpdate = EMAIL_SETTING_KEYS.some((k) => updates[k] !== undefined);
+    if (hasEmailUpdate) {
+      if (req.user?.role !== 'SUPER_ADMIN') {
+        res.status(403).json({
+          error: 'Permission Denied: Only Super Admin (IQAC) is authorized to customize email templates and content.',
+        });
+        return;
+      }
+
+      if (updates.emailFacultyGuidelines !== undefined) {
+        try {
+          const parsed = typeof updates.emailFacultyGuidelines === 'string'
+            ? JSON.parse(updates.emailFacultyGuidelines)
+            : updates.emailFacultyGuidelines;
+          if (Array.isArray(parsed)) {
+            const cleaned = parsed.map((item: any) => String(item).trim()).filter(Boolean);
+            updates.emailFacultyGuidelines = JSON.stringify(cleaned);
+          }
+        } catch {
+          // Keep as string
+        }
       }
     }
 
