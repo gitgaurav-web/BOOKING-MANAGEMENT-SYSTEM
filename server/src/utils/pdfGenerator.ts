@@ -171,9 +171,9 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
       const statusLabel = isApproved ? 'CONFIRMED / APPROVED' : data.status === 'PENDING' ? 'PENDING REVIEW' : data.status;
 
       // Status Badge
-      const statusBadgeW = 130;
+      const statusBadgeW = 145;
       doc
-        .roundedRect(margin + 12, currentY + 9, statusBadgeW, 17, 3)
+        .roundedRect(margin + 12, currentY + 10, statusBadgeW, 18, 3)
         .fillColor(statusBg)
         .strokeColor(statusBorder)
         .lineWidth(0.8)
@@ -183,56 +183,31 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
         .font('Helvetica-Bold')
         .fontSize(7.5)
         .fillColor(statusText)
-        .text(statusLabel, margin + 12, currentY + 14, { width: statusBadgeW, align: 'center' });
+        .text(statusLabel, margin + 12, currentY + 15, { width: statusBadgeW, align: 'center' });
 
       // Pass ID Label & Value
       doc
         .font('Helvetica-Bold')
-        .fontSize(7)
+        .fontSize(7.5)
         .fillColor('#64748b')
-        .text('OFFICIAL TICKET / PASS REFERENCE:', margin + 12, currentY + 31);
+        .text('OFFICIAL TICKET / PASS REFERENCE:', margin + 12, currentY + 33);
 
       doc
         .font('Courier-Bold')
-        .fontSize(16.5)
+        .fontSize(17)
         .fillColor('#1d4ed8')
-        .text(data.bookingId, margin + 12, currentY + 40);
+        .text(data.bookingId, margin + 12, currentY + 43);
 
       doc
         .font('Helvetica')
-        .fontSize(6.5)
-        .fillColor('#94a3b8')
-        .text('Present digital QR or physical gate pass at campus security & hall reception.', margin + 12, currentY + 58);
-
-      // Barcode simulation on ticket stub
-      const barcodeX = margin + 175;
-      const barcodeY = currentY + 15;
-      const barcodeW = 145;
-      const barcodeH = 26;
-
-      doc.save();
-      doc.fillColor('#1e293b');
-      const barPattern = [1.2, 2.4, 0.8, 3.2, 1.6, 0.8, 2.4, 1.2, 0.8, 2.8, 1.2, 3.2, 0.8, 1.6, 2.4, 0.8, 2.8, 1.2, 3.2, 1.6, 0.8, 2.4, 1.2, 0.8, 2.8, 1.2, 3.2, 0.8, 1.6];
-      let bX = barcodeX;
-      for (let i = 0; i < barPattern.length && bX < barcodeX + barcodeW - 4; i++) {
-        const w = barPattern[i];
-        if (i % 2 === 0) {
-          doc.rect(bX, barcodeY, w, barcodeH).fill();
-        }
-        bX += w + (i % 2 === 0 ? 0.9 : 0.6);
-      }
-      doc.restore();
-
-      doc
-        .font('Courier-Bold')
         .fontSize(7)
-        .fillColor('#475569')
-        .text(`* ${data.bookingId} *`, barcodeX, barcodeY + barcodeH + 3, { width: barcodeW, align: 'center' });
+        .fillColor('#64748b')
+        .text('Scan digital QR at campus security & hall reception for instant admission verification.', margin + 12, currentY + 62);
 
-      // High-Resolution QR Code Block (Right)
-      const qrBoxSize = 62;
+      // High-Resolution Scannable QR Code Block (Right)
+      const qrBoxSize = 64;
       const qrBoxX = margin + contentWidth - qrBoxSize - 12;
-      const qrBoxY = currentY + 6;
+      const qrBoxY = currentY + 5;
 
       doc
         .roundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 4)
@@ -242,37 +217,28 @@ export async function generateBookingPdfBuffer(data: BookingPdfData): Promise<Bu
         .fillAndStroke();
 
       const qrDateText = data.endDate && data.endDate !== data.bookingDate
-        ? `${data.bookingDate} to ${data.endDate}`
-        : data.bookingDate;
-      const qrTimeText = `${data.startTime} - ${data.endTime} (${data.bookingType.replace('_', ' ')})`;
+        ? `${formatDateReadable(data.bookingDate)} to ${formatDateReadable(data.endDate)}`
+        : formatDateReadable(data.bookingDate);
+      const qrTimeText = `${formatTimeTo12Hour(data.startTime)} - ${formatTimeTo12Hour(data.endTime)}`;
 
-      const qrData = [
-        'SRI SAIRAM COLLEGE OF ENGINEERING',
-        'OFFICIAL FACILITY GATE PASS & RESERVATION',
-        '----------------------------------------',
-        `Booking ID  : ${data.bookingId}`,
-        `Status      : ${statusLabel}`,
-        `Facility    : ${data.hallName}${data.hallLocation ? ` (${data.hallLocation})` : ''}`,
-        `Event       : ${data.eventName}`,
-        `Date        : ${qrDateText}`,
-        `Time Slot   : ${qrTimeText}`,
-        `Department  : ${data.departmentName || 'Academic Unit'}`,
-        `Coordinator : ${data.coordinatorName}`,
-        `Contact     : ${data.contactNumber}`,
-        `Email       : ${data.email}`,
-        `Attendees   : ${data.participantCount || 0} Persons`,
-        `VIP Guests  : ${data.guestCount || 0} Dignitaries`,
-        '----------------------------------------',
-        'Authority: Facilities Committee & Dean Academics',
-      ].join('\n');
+      const qrLines = [
+        `PASS ID: ${data.bookingId}`,
+        `STATUS: ${statusLabel}`,
+        `VENUE: ${data.hallName}`,
+        `DATE: ${qrDateText} (${qrTimeText})`,
+        `EVENT: ${data.eventName}`,
+        `COORDINATOR: ${data.coordinatorName}${data.contactNumber ? ` (${data.contactNumber})` : ''}`,
+        `INSTITUTION: Sri Sairam College of Engineering`,
+      ];
+      const qrData = qrLines.join('\n');
 
       try {
         const qrBuffer = await QRCode.toBuffer(qrData, {
-          width: 320,
-          margin: 1,
+          width: 400,
+          margin: 2,
           errorCorrectionLevel: 'M',
           color: {
-            dark: '#0f2b5c',
+            dark: '#000000',
             light: '#ffffff',
           },
         });

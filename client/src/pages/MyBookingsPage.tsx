@@ -63,20 +63,16 @@ export const MyBookingsPage: React.FC = () => {
 
   const getBookingQrData = (b: Booking): string => {
     const dateStr = b.endDate && b.endDate !== b.bookingDate ? `${b.bookingDate} to ${b.endDate}` : b.bookingDate;
-    const statusStr = b.status === 'APPROVED' ? 'CONFIRMED / BOOKED' : b.status;
-    return `SRI SAIRAM COLLEGE OF ENGINEERING
-OFFICIAL FACILITY BOOKING PASS
---------------------------------
-Booking ID : ${b.bookingId}
-Facility   : ${b.hall?.name || 'Seminar / AV Hall'}
-Date       : ${dateStr}
-Time Slot  : ${b.startTime} - ${b.endTime} (${b.bookingType.replace('_', ' ')})
-Event      : ${b.eventName}
-Department : ${b.department?.name || 'Academic Dept'}
-Coordinator: ${b.coordinatorName} (${b.contactNumber})
-Status     : ${statusStr}
---------------------------------
-Authority: Facilities Committee & Dean Academics`;
+    const statusStr = b.status === 'APPROVED' ? 'CONFIRMED / APPROVED' : b.status;
+    return [
+      `PASS ID: ${b.bookingId}`,
+      `STATUS: ${statusStr}`,
+      `VENUE: ${b.hall?.name || 'Seminar / AV Hall'}`,
+      `DATE: ${dateStr} (${b.startTime} - ${b.endTime})`,
+      `EVENT: ${b.eventName}`,
+      `COORDINATOR: ${b.coordinatorName}${b.contactNumber ? ` (${b.contactNumber})` : ''}`,
+      `INSTITUTION: Sri Sairam College of Engineering`,
+    ].join('\n');
   };
 
   const loadLogoAsDataUrl = async (src: string): Promise<string | null> => {
@@ -112,9 +108,9 @@ Authority: Facilities Committee & Dean Academics`;
       const qrDataText = getBookingQrData(selectedBooking);
       const [qrDataUrl, logoDataUrl, sealDataUrl] = await Promise.all([
         QRCode.toDataURL(qrDataText, {
-          width: 300,
-          margin: 1,
-          color: { dark: '#0f172a', light: '#ffffff' },
+          width: 350,
+          margin: 2,
+          color: { dark: '#000000', light: '#ffffff' },
         }),
         loadLogoAsDataUrl('/images/sairam-logo.png'),
         loadLogoAsDataUrl('/images/sairam-seal.png'),
