@@ -259,7 +259,7 @@ async function verifyGoogleAuthToken(token: string): Promise<VerifiedGoogleProfi
 
         const configuredClientId = process.env.GOOGLE_CLIENT_ID;
         if (configuredClientId && idData.aud !== configuredClientId) {
-          console.warn(`[Google SSO] Warning: Token audience (${idData.aud}) does not match configured GOOGLE_CLIENT_ID.`);
+          throw new Error('Google token audience does not match this application (untrusted client token).');
         }
 
         return {
@@ -403,7 +403,10 @@ router.post('/google', authRateLimiter, async (req: Request, res: Response): Pro
 // Development / Testing Demo Personas Login (Strictly disabled in production)
 router.post('/demo-login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_DEMO_LOGIN) {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isDemoExplicitlyAllowed = process.env.ALLOW_DEMO_LOGIN === 'true';
+
+    if (isProd && !isDemoExplicitlyAllowed) {
       res.status(403).json({ error: 'Instant demo persona login is strictly disabled in production.' });
       return;
     }
@@ -415,6 +418,13 @@ router.post('/demo-login', authRateLimiter, async (req: Request, res: Response):
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Security Guard: Super Admin demo accounts can NEVER be accessed via demo-login in production
+    if (isProd && ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(cleanEmail)) {
+      res.status(403).json({ error: 'Super Admin credentials must use standard authenticated login in production.' });
+      return;
+    }
+
     const ALLOWED_DEMO_EMAILS = [
       'iqac@sairamce.edu.in',
       'coo@sairamce.edu.in',

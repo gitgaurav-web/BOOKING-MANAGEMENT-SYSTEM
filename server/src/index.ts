@@ -18,6 +18,7 @@ import settingsRoutes from './routes/settings';
 import helmet from 'helmet';
 import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
 import { getJwtSecret } from './utils/jwt';
+import { globalApiRateLimiter } from './middleware/rateLimiter';
 
 // Validate JWT configuration
 getJwtSecret();
@@ -83,6 +84,9 @@ app.use(cors(corsOptions));
 // Input & Payload size limits: prevent memory exhaustion and DoS
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Global API rate limiting protection (Layer 04: Anti-scraping and DoS protection)
+app.use('/api', globalApiRateLimiter);
 
 // Protected file access for uploads (Requires Bearer token or ?token= query param with owner/admin authorization)
 app.get('/uploads/:filename', handleAuthorizedFileDownload);

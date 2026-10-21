@@ -21,3 +21,15 @@ export const apiMutationRateLimiter = rateLimit({
     error: 'Too many requests. Please slow down and try again shortly.',
   },
 });
+
+// Global rate limiter for general API endpoints to prevent scraping and DoS
+export const globalApiRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 300, // 300 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many requests from this IP address. Please slow down and try again shortly.',
+  },
+});
+
