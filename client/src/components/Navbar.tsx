@@ -111,8 +111,8 @@ export const Navbar: React.FC = () => {
     markSingleRead(n.id);
     setNotificationsOpen(false);
 
-    // Extract any booking reference ID (e.g., HB-2026-0005-B3E8)
-    const match = n.message.match(/HB-\d{4}-\d{4}-[A-Z0-9]+/i);
+    // Extract any booking reference ID (e.g., SH-OCT26-001, AV-OCT26-001, HB-2026-0005)
+    const match = n.message.match(/(?:SH|AV|HB)-[A-Z0-9]+(?:-[A-Z0-9]+)*/i);
     const bookingId = match ? match[0] : '';
 
     const text = (n.title + ' ' + n.message).toLowerCase();

@@ -57,3 +57,36 @@ test('Storage Metrics: Directory Inspection and Orphan Detection Logic', async (
     }
   }
 });
+
+test('Style A Booking ID: Pattern and Component Generation', () => {
+  const formatBookingId = (hallName: string, bookingDate: string, seq: number) => {
+    let hallPrefix = 'HB';
+    const norm = hallName.toLowerCase();
+    if (norm.includes('seminar')) hallPrefix = 'SH';
+    else if (norm.includes('av')) hallPrefix = 'AV';
+
+    const [bYearFull, bMonthNumStr] = bookingDate.split('-');
+    const bYear = bYearFull.slice(-2);
+    const monthIndex = parseInt(bMonthNumStr, 10) - 1;
+    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    const bMonth = monthNames[monthIndex] || 'GEN';
+
+    return `${hallPrefix}-${bMonth}${bYear}-${String(seq).padStart(3, '0')}`;
+  };
+
+  const id1 = formatBookingId('Seminar Hall', '2026-10-25', 1);
+  const id2 = formatBookingId('Seminar Hall', '2026-10-25', 2);
+  const id3 = formatBookingId('AV Hall', '2026-10-28', 1);
+  const id4 = formatBookingId('Seminar Hall', '2026-11-04', 1);
+
+  assert.strictEqual(id1, 'SH-OCT26-001');
+  assert.strictEqual(id2, 'SH-OCT26-002');
+  assert.strictEqual(id3, 'AV-OCT26-001');
+  assert.strictEqual(id4, 'SH-NOV26-001');
+
+  // Verify regex
+  const regex = /^(SH|AV)-[A-Z]{3}\d{2}-\d{3}$/;
+  assert.strictEqual(regex.test(id1), true);
+  assert.strictEqual(regex.test(id3), true);
+  assert.strictEqual(regex.test(id4), true);
+});

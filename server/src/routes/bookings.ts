@@ -355,11 +355,70 @@ router.post('/', authenticate, apiMutationRateLimiter, async (req: AuthRequest, 
         throw new Error(`CONFLICT: ${conflict.reason}`);
       }
 
-      // Generate sequential collision-proof booking ID atomically inside tx
-      const year = new Date().getFullYear();
-      const count = await tx.booking.count();
-      const entropy = crypto.randomBytes(2).toString('hex').toUpperCase();
-      const bookingId = `HB-${year}-${String(count + 1).padStart(4, '0')}-${entropy}`;
+      // Generate professional, clean Style A booking ID (e.g. SH-OCT26-001, AV-OCT26-001)
+      const targetHall = await tx.hall.findUnique({
+        where: { id: hallId },
+        select: { name: true, code: true },
+      });
+
+      let hallPrefix = 'HB';
+      if (targetHall) {
+        const normName = (targetHall.name || '').toLowerCase();
+        const normCode = (targetHall.code || '').toLowerCase();
+        if (normName.includes('seminar') || normCode.includes('seminar')) {
+          hallPrefix = 'SH';
+        } else if (normName.includes('av') || normCode.includes('av')) {
+          hallPrefix = 'AV';
+        } else {
+          const words = (targetHall.name || '').trim().split(/\s+/);
+          if (words.length >= 2) {
+            hallPrefix = (words[0][0] + words[1][0]).toUpperCase();
+          } else {
+            hallPrefix = (targetHall.code || targetHall.name || 'HB').slice(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+          }
+        }
+      }
+
+      // Extract Year and Month from bookingDate (e.g. 2026-10-25 -> OCT26)
+      const [bYearFull, bMonthNumStr] = (bookingDate || getLocalIsoDate()).split('-');
+      const bYear = (bYearFull || String(new Date().getFullYear())).slice(-2);
+      const monthIndex = Math.max(0, Math.min(11, parseInt(bMonthNumStr || '1', 10) - 1));
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const bMonth = monthNames[monthIndex] || 'GEN';
+
+      const prefixPattern = `${hallPrefix}-${bMonth}${bYear}-`;
+
+      // Find the highest sequence number for this hall and month
+      const latestBookingForMonth = await tx.booking.findFirst({
+        where: {
+          bookingId: {
+            startsWith: prefixPattern,
+          },
+        },
+        orderBy: {
+          bookingId: 'desc',
+        },
+        select: { bookingId: true },
+      });
+
+      let nextSeq = 1;
+      if (latestBookingForMonth) {
+        const parts = latestBookingForMonth.bookingId.split('-');
+        const lastPart = parts[parts.length - 1];
+        const parsed = parseInt(lastPart, 10);
+        if (!isNaN(parsed) && parsed >= 1) {
+          nextSeq = parsed + 1;
+        }
+      }
+
+      // Collision-proof guarantee
+      let bookingId = `${prefixPattern}${String(nextSeq).padStart(3, '0')}`;
+      let collision = await tx.booking.findUnique({ where: { bookingId }, select: { id: true } });
+      while (collision) {
+        nextSeq++;
+        bookingId = `${prefixPattern}${String(nextSeq).padStart(3, '0')}`;
+        collision = await tx.booking.findUnique({ where: { bookingId }, select: { id: true } });
+      }
 
       return await tx.booking.create({
         data: {
