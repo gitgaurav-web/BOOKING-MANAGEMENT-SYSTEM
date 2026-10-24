@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Landmark, ShieldCheck, Mail, Phone, MapPin, Award } from 'lucide-react';
+import { ArrowUpRight, Landmark, ShieldCheck, Mail, Phone, MapPin, Award, Lock } from 'lucide-react';
 import { useSettings } from '../contexts/SettingsContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Footer: React.FC = () => {
   const { settings } = useSettings();
+  const { user } = useAuth();
 
   return (
     <footer className="border-t-4 border-amber-500 bg-gradient-to-b from-slate-900 via-blue-950 to-slate-950 text-white">
@@ -26,13 +28,13 @@ export const Footer: React.FC = () => {
       </div>
 
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_.8fr_.8fr]">
-            <div>
-              <img
-                src="/images/sairam-logo-dark.png"
-                alt="Sri Sairam College of Engineering"
-                className="h-12 sm:h-14 w-auto object-contain"
-              />
+        <div className={user ? "grid gap-10 md:grid-cols-[1.4fr_.8fr_.8fr]" : "grid gap-10 md:grid-cols-2"}>
+          <div>
+            <img
+              src="/images/sairam-logo-dark.png"
+              alt="Sri Sairam College of Engineering"
+              className="h-12 sm:h-14 w-auto object-contain"
+            />
             <p className="mt-4 max-w-md text-sm leading-relaxed text-slate-300">
               Official centralized booking platform for campus auditoriums, seminar halls, and ICT smart facilities. Facilitating university events, conferences, and student symposiums.
             </p>
@@ -47,30 +49,46 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-[.2em] text-amber-400">Quick Navigation</h2>
-            <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/halls"><span>Facility Directory</span></Link></li>
-              <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/availability"><span>Real-time Availability</span></Link></li>
-              <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/calendar"><span>Official Campus Calendar</span></Link></li>
-              <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/how-it-works"><span>Booking Guidelines &amp; Rules</span></Link></li>
-            </ul>
-          </div>
+          {user ? (
+            <>
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-[.2em] text-amber-400">Quick Navigation</h2>
+                <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                  <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/halls"><span>Facility Directory</span></Link></li>
+                  <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/availability"><span>Real-time Availability</span></Link></li>
+                  <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/calendar"><span>Official Campus Calendar</span></Link></li>
+                  <li><Link className="transition hover:text-amber-300 flex items-center gap-1.5" to="/how-it-works"><span>Booking Guidelines &amp; Rules</span></Link></li>
+                </ul>
+              </div>
 
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-[.2em] text-amber-400">Staff &amp; Faculty</h2>
-            <ul className="mt-4 space-y-3 text-sm text-slate-300">
-              <li><Link className="transition hover:text-amber-300" to="/book">Submit Hall Reservation</Link></li>
-              <li><Link className="transition hover:text-amber-300" to="/login">Faculty / Admin Login</Link></li>
-              <li><Link className="transition hover:text-amber-300" to="/user/bookings">Track My Requisitions</Link></li>
-            </ul>
-            <Link
-              to="/availability"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-400/30 px-3.5 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
-            >
-              Check Slot Availability <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-[.2em] text-amber-400">Staff &amp; Faculty</h2>
+                <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                  <li><Link className="transition hover:text-amber-300" to="/book">Submit Hall Reservation</Link></li>
+                  <li><Link className="transition hover:text-amber-300" to="/user/bookings">Track My Requisitions</Link></li>
+                </ul>
+                <Link
+                  to="/availability"
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-400/30 px-3.5 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-500/20"
+                >
+                  Check Slot Availability <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col justify-center rounded-2xl bg-white/5 border border-white/10 p-6 text-xs text-slate-300 space-y-3">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+                <Lock className="w-4 h-4" />
+                <span>Restricted Institutional Access</span>
+              </div>
+              <p className="leading-relaxed">
+                Campus hall reservations, live schedules, and slot availability ledgers are confidential and restricted to authorized faculty members and college leadership.
+              </p>
+              <p className="text-slate-400">
+                Please sign in with your official Sri Sairam Google account or authorized faculty credentials to proceed.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-slate-400 sm:flex-row sm:items-center sm:justify-between">

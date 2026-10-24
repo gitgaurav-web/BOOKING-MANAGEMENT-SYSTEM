@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
@@ -17,11 +17,17 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, loginWithGoogle, loginDemo } = useAuth();
+  const { user, login, loginWithGoogle, loginDemo } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/';
+
+  useEffect(() => {
+    if (user) {
+      navigate(redirect, { replace: true });
+    }
+  }, [user, navigate, redirect]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

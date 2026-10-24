@@ -11,6 +11,7 @@ import {
   Bell,
   Shield,
   Layers,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -197,7 +198,7 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-[4.75rem]">
           {/* Logo with Authentic Sairam Branding */}
-          <Link to="/" className="flex items-center gap-3.5 group shrink-0">
+          <Link to={user ? '/' : '/login'} className="flex items-center gap-3.5 group shrink-0">
             <div className="flex items-center">
               <img
                 src="/images/sairam-logo-light.png"
@@ -222,22 +223,24 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  isActive(link.path)
-                    ? 'text-blue-900 dark:text-amber-300 bg-blue-50/80 dark:bg-blue-950/50 shadow-xs border border-blue-200/50 dark:border-blue-800/50'
-                    : 'text-slate-600 dark:text-slate-300 hover:text-blue-950 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/70'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          {/* Desktop Navigation - Only visible when logged in */}
+          {user && (
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    isActive(link.path)
+                      ? 'text-blue-900 dark:text-amber-300 bg-blue-50/80 dark:bg-blue-950/50 shadow-xs border border-blue-200/50 dark:border-blue-800/50'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-blue-950 dark:hover:text-white hover:bg-slate-100/70 dark:hover:bg-slate-800/70'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Right Action Icons & Auth */}
           <div className="hidden md:flex items-center gap-2">
@@ -372,19 +375,10 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
-                  className="px-3.5 py-1.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-900 dark:hover:text-white"
-                >
-                  Faculty Login
-                </Link>
-                <Link
-                  to="/book"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-amber-300 font-semibold text-sm shadow-md hover:shadow-lg transition-all transform active:scale-95 border border-amber-400/30"
-                >
-                  <span>Book Hall</span>
-                  <span className="text-amber-400 font-black">→</span>
-                </Link>
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-950 dark:text-amber-300 border border-blue-200/80 dark:border-blue-800/80 flex items-center gap-1.5 shadow-2xs">
+                  <Lock className="w-3.5 h-3.5 text-blue-600 dark:text-amber-400" />
+                  <span>Official Access Portal</span>
+                </span>
               </div>
             )}
           </div>
@@ -410,18 +404,20 @@ export const Navbar: React.FC = () => {
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
             </button>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            {user && (
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileMenuOpen && (
+      {/* Mobile Drawer Menu - Only accessible when logged in */}
+      {user && mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-3 pb-6 space-y-2">
           {navLinks.map((link) => (
             <Link

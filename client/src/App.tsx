@@ -52,11 +52,39 @@ export function App() {
               <div className="flex-1">
                 <Suspense fallback={<PageLoader />}>
                   <Routes>
-                    {/* Public & User Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/halls" element={<HallsPage />} />
-                    <Route path="/availability" element={<AvailabilityPage />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
+                    {/* Authenticated Routes: Only accessible after login */}
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <HomePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/halls"
+                      element={
+                        <ProtectedRoute>
+                          <HallsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/availability"
+                      element={
+                        <ProtectedRoute>
+                          <AvailabilityPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <ProtectedRoute>
+                          <CalendarPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route
                       path="/book"
                       element={
@@ -65,8 +93,14 @@ export function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route path="/how-it-works" element={<HowItWorksPage />} />
-                    <Route path="/login" element={<LoginPage />} />
+                    <Route
+                      path="/how-it-works"
+                      element={
+                        <ProtectedRoute>
+                          <HowItWorksPage />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route
                       path="/user/bookings"
                       element={
@@ -75,6 +109,9 @@ export function App() {
                         </ProtectedRoute>
                       }
                     />
+
+                    {/* Login Portal */}
+                    <Route path="/login" element={<LoginPage />} />
 
                     {/* Admin Management Routes */}
                     <Route
