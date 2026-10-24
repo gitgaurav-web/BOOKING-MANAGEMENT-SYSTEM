@@ -65,11 +65,19 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
-    // In production, strictly restrict to allowed CLIENT_URL origins
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    if (allowedOrigins.length > 0 && allowedOrigins.includes(normalizedOrigin)) {
-      return callback(null, true);
-    }
+    // In production, allow if wildcard '*', or in allowedOrigins, or vercel.app domain
+    try {
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      const hostname = new URL(origin).hostname;
+      if (
+        allowedOrigins.includes('*') ||
+        allowedOrigins.includes(normalizedOrigin) ||
+        hostname.endsWith('.vercel.app') ||
+        hostname === 'localhost'
+      ) {
+        return callback(null, true);
+      }
+    } catch {}
 
     console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
     return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
