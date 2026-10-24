@@ -136,17 +136,15 @@ router.post('/login', authRateLimiter, async (req: Request, res: Response): Prom
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Institutional domain verification on login
+    // Strict Institutional Domain Verification (Strictly @sairamce.edu.in only)
     const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
-    if (domainSetting?.value) {
-      const allowedDomain = domainSetting.value.trim().toLowerCase().replace(/^@/, '');
-      const isSystemAdminEmail = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'].includes(cleanEmail);
-      if (allowedDomain && !cleanEmail.endsWith(`@${allowedDomain}`) && !isSystemAdminEmail) {
-        res.status(403).json({
-          error: `Only @${allowedDomain} email is allowed.`,
-        });
-        return;
-      }
+    const allowedDomain = (domainSetting?.value || 'sairamce.edu.in').trim().toLowerCase().replace(/^@/, '');
+    const isDevDemoAccount = process.env.NODE_ENV !== 'production' && ['admin@college.edu', 'faculty@college.edu'].includes(cleanEmail);
+    if (!cleanEmail.endsWith(`@${allowedDomain}`) && !isDevDemoAccount) {
+      res.status(403).json({
+        error: `Access Denied: Only official @${allowedDomain} institutional email accounts are authorized to access this portal.`,
+      });
+      return;
     }
 
     const user = await prisma.user.findUnique({
