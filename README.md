@@ -2,7 +2,7 @@
 
 A modern, responsive, ultra-fast full-stack web application designed for colleges, universities, and academic institutions to manage date-wise availability and whole-hall reservations for:
 
-1. **Seminar Hall** (~200 capacity, tiered auditorium, podium, surround sound, full AC)
+1. **Seminar Hall** (~600 capacity, tiered auditorium, podium, surround sound, full AC)
 2. **AV Hall (Audio Visual Hall)** (~120 capacity, interactive smartboards, PTZ telepresence conferencing)
 
 > [!IMPORTANT]
