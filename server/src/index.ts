@@ -127,10 +127,27 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
+import { prisma } from './prisma';
+import { seedDatabase } from './seed';
+
+async function autoInitDatabase() {
+  try {
+    const hallCount = await prisma.hall.count();
+    if (hallCount === 0) {
+      console.log('[System Init] No facilities found in database. Initializing default institutional data...');
+      await seedDatabase();
+      console.log('[System Init] Institutional database seeded successfully!');
+    }
+  } catch (err: any) {
+    console.error('[System Init] Database auto-init error:', err?.message || err);
+  }
+}
+
 const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => arg.includes('test'));
 if (!isTestEnv) {
-  app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  app.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT}`);
+    await autoInitDatabase();
   });
 }
 
