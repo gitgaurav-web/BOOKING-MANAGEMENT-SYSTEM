@@ -22,7 +22,7 @@ router.get('/', async (_req: Request, res: Response): Promise<void> => {
     res.json(parsedHalls);
   } catch (error) {
     console.error('Error fetching halls:', error);
-    res.status(500).json({ error: 'Failed to fetch halls.' });
+    res.status(500).json({ error: 'Failed to fetch halls.', details: String(error) });
   }
 });
 
