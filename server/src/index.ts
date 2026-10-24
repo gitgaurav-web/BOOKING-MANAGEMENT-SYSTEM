@@ -124,6 +124,7 @@ app.get('/api/health', (_req, res) => {
 
 // Serve React Client in Single-Host Production Mode
 const possibleClientDistPaths = [
+  path.join(__dirname, 'public'),
   path.resolve(__dirname, '../../client/dist'),
   path.resolve(process.cwd(), 'client/dist'),
   path.resolve(process.cwd(), '../client/dist'),
@@ -132,6 +133,7 @@ const possibleClientDistPaths = [
 const clientDistPath = possibleClientDistPaths.find((p) => fs.existsSync(p));
 
 if (clientDistPath) {
+  console.log(`[PRODUCTION] Serving React client static build from: ${clientDistPath}`);
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
@@ -139,6 +141,8 @@ if (clientDistPath) {
     }
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
+} else {
+  console.warn('[PRODUCTION WARNING] Client static build directory was not found. Please verify client build output.');
 }
 
 // Global Safe Error Boundary (Layer 04: Don't leak stack traces or internal DB info)
