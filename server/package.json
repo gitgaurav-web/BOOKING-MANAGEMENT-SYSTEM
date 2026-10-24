@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm --prefix ../client install && npm --prefix ../client run build && prisma generate && tsc && node -e \"const fs=require('fs'); if(fs.existsSync('../client/dist')){fs.cpSync('../client/dist','dist/public',{recursive:true});}\"",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push --skip-generate",
     "install:all": "npm install",
-    "start": "node dist/index.js",
+    "start": "prisma db push --skip-generate && node dist/index.js",
     "seed": "tsx src/seed.ts",
     "test": "tsx --test src/tests/**/*.test.ts"
   },
