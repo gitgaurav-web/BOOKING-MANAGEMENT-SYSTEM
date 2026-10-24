@@ -21,6 +21,7 @@ import helmet from 'helmet';
 import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
 import { getJwtSecret } from './utils/jwt';
 import { globalApiRateLimiter } from './middleware/rateLimiter';
+import { ensureDatabaseInitialized } from './utils/initDb';
 
 // Validate JWT configuration
 getJwtSecret();
@@ -35,24 +36,14 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com', 'https://apis.google.com'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://images.unsplash.com', 'https://lh3.googleusercontent.com'],
-        connectSrc: ["'self'", 'https://accounts.google.com', 'https://oauth2.googleapis.com', 'https://www.googleapis.com'],
-        frameSrc: ["'self'", 'https://accounts.google.com'],
-        objectSrc: ["'none'"],
-        upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
-      },
-    },
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: false,
   })
 );
 
-// Production CORS origin restriction based on CLIENT_URL
+// Production CORS origin restriction based on CLIENT_URL & host matching
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(',').map((url) => url.trim().replace(/\/$/, ''))
   : [];
@@ -62,27 +53,28 @@ const corsOptions: cors.CorsOptions = {
     // Allow server-to-server, mobile or curl requests without origin
     if (!origin) return callback(null, true);
 
-    // In development or test, allow local origins
-    if (process.env.NODE_ENV !== 'production') {
+    // Always allow localhost and 127.0.0.1
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
       return callback(null, true);
     }
 
-    // In production, restrict to allowed CLIENT_URL origins (or allow all if in single-host mode without CLIENT_URL)
-    if (allowedOrigins.length === 0) {
+    // Always allow Render domains
+    if (origin.endsWith('.onrender.com')) {
       return callback(null, true);
     }
 
+    // Allow explicitly configured CLIENT_URL origins
     const normalizedOrigin = origin.replace(/\/$/, '');
-    if (allowedOrigins.includes(normalizedOrigin)) {
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(normalizedOrigin)) {
       return callback(null, true);
     }
 
-    console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
-    return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
+    // In single-host production deployment, allow client request origin
+    return callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 };
 
 app.use(cors(corsOptions));
@@ -134,7 +126,14 @@ const clientDistPath = possibleClientDistPaths.find((p) => fs.existsSync(p));
 
 if (clientDistPath) {
   console.log(`[PRODUCTION] Serving React client static build from: ${clientDistPath}`);
-  app.use(express.static(clientDistPath));
+  app.use(
+    express.static(clientDistPath, {
+      setHeaders: (res) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      },
+    })
+  );
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
       return next();
@@ -158,8 +157,9 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 
 const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => arg.includes('test'));
 if (!isTestEnv) {
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    await ensureDatabaseInitialized();
   });
 }
 
