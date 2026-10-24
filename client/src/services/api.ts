@@ -1,4 +1,11 @@
-const API_BASE = '/api';
+const API_URL = import.meta.env.VITE_API_URL ? (import.meta.env.VITE_API_URL as string).replace(/\/$/, '') : '';
+const API_BASE = API_URL ? `${API_URL}/api` : '/api';
+
+export function getFileUrl(pathOrUrl?: string | null): string {
+  if (!pathOrUrl) return '';
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) return pathOrUrl;
+  return `${API_URL}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
+}
 
 export function getAuthToken(): string | null {
   return localStorage.getItem('token');
