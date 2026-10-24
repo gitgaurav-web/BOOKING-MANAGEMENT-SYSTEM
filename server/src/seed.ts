@@ -4,8 +4,15 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-export async function seedDatabase() {
+async function main() {
   console.log('Seeding initial data...');
+
+  // Production Protection
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_PRODUCTION_SEED) {
+    throw new Error(
+      'FATAL: Seeding demo accounts is strictly blocked in production! If you explicitly wish to initialize an admin, set ALLOW_PRODUCTION_SEED=true with strong SEED_ADMIN_PASSWORD and SEED_SUPERADMIN_PASSWORD environment variables.'
+    );
+  }
 
   // 1. Departments (Sri Sairam College of Engineering Curriculum)
   const departmentsData = [
@@ -29,9 +36,22 @@ export async function seedDatabase() {
   }
 
   // 2. Users (Admin, Super Admin, Faculty)
+  // In development, default fallback demo passwords are used. In production or custom runs, environment variables override them.
   const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'admin123';
   const superAdminPassword = process.env.SEED_SUPERADMIN_PASSWORD || 'superadmin123';
   const facultyPassword = process.env.SEED_FACULTY_PASSWORD || 'faculty123';
+
+  if (process.env.NODE_ENV === 'production') {
+    if (
+      adminPassword === 'admin123' ||
+      superAdminPassword === 'superadmin123' ||
+      facultyPassword === 'faculty123'
+    ) {
+      throw new Error(
+        'FATAL: Default demo passwords cannot be used to seed users in production. Supply secure SEED_ADMIN_PASSWORD, SEED_SUPERADMIN_PASSWORD, and SEED_FACULTY_PASSWORD.'
+      );
+    }
+  }
 
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(adminPassword, salt);
@@ -424,13 +444,11 @@ export async function seedDatabase() {
   console.log('Seeding completed successfully!');
 }
 
-if (require.main === module) {
-  seedDatabase()
-    .catch((e) => {
-      console.error(e);
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

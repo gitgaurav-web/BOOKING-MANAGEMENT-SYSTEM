@@ -1,0 +1,16 @@
+{
+  "name": "ssce-hall-booking-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Central Campus Facility & Seminar Hall Booking Management System - Sri Sairam College of Engineering",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "build:client": "npm --prefix client run build",
+    "build:server": "npm --prefix server run build",
+    "build": "npm run build:client && npm run build:server",
+    "seed": "npm --prefix server run seed",
+    "start": "node server/dist/index.js",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev"
+  }
+}

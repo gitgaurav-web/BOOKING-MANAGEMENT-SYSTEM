@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
 
 import authRoutes from './routes/auth';
 import hallsRoutes from './routes/halls';
@@ -65,19 +67,15 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
 
-    // In production, allow if wildcard '*', or in allowedOrigins, or vercel.app domain
-    try {
-      const normalizedOrigin = origin.replace(/\/$/, '');
-      const hostname = new URL(origin).hostname;
-      if (
-        allowedOrigins.includes('*') ||
-        allowedOrigins.includes(normalizedOrigin) ||
-        hostname.endsWith('.vercel.app') ||
-        hostname === 'localhost'
-      ) {
-        return callback(null, true);
-      }
-    } catch {}
+    // In production, restrict to allowed CLIENT_URL origins (or allow all if in single-host mode without CLIENT_URL)
+    if (allowedOrigins.length === 0) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      return callback(null, true);
+    }
 
     console.warn(`[CORS Blocked] Origin not allowed: ${origin}`);
     return callback(new Error(`Origin ${origin} is not allowed by CORS policy.`));
@@ -124,6 +122,25 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// Serve React Client in Single-Host Production Mode
+const possibleClientDistPaths = [
+  path.resolve(__dirname, '../../client/dist'),
+  path.resolve(process.cwd(), 'client/dist'),
+  path.resolve(process.cwd(), '../client/dist'),
+  path.resolve(__dirname, '../client/dist'),
+];
+const clientDistPath = possibleClientDistPaths.find((p) => fs.existsSync(p));
+
+if (clientDistPath) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
 // Global Safe Error Boundary (Layer 04: Don't leak stack traces or internal DB info)
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[SERVER UNHANDLED ERROR]:', err);
@@ -135,27 +152,10 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
-import { prisma } from './prisma';
-import { seedDatabase } from './seed';
-
-async function autoInitDatabase() {
-  try {
-    const hallCount = await prisma.hall.count();
-    if (hallCount === 0) {
-      console.log('[System Init] No facilities found in database. Initializing default institutional data...');
-      await seedDatabase();
-      console.log('[System Init] Institutional database seeded successfully!');
-    }
-  } catch (err: any) {
-    console.error('[System Init] Database auto-init error:', err?.message || err);
-  }
-}
-
 const isTestEnv = process.env.NODE_ENV === 'test' || process.argv.some(arg => arg.includes('test'));
 if (!isTestEnv) {
-  app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    await autoInitDatabase();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
