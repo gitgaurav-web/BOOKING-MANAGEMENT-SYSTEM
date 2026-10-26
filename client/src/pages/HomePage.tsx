@@ -162,7 +162,7 @@ export const HomePage: React.FC = () => {
               <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 bg-slate-900/90 py-3.5 px-4 text-center">
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Capacity</p>
-                  <p className="text-sm font-bold text-amber-400">350 Seats</p>
+                  <p className="text-sm font-bold text-amber-400">600 Seats</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Smart AV</p>

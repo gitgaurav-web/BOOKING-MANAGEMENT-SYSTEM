@@ -112,7 +112,7 @@ export const MyBookingsPage: React.FC = () => {
           margin: 2,
           color: { dark: '#000000', light: '#ffffff' },
         }),
-        loadLogoAsDataUrl('/images/sairam-logo.png'),
+        loadLogoAsDataUrl('/images/sairam-logo-light.png'),
         loadLogoAsDataUrl('/images/sairam-seal.png'),
       ]);
 
@@ -580,7 +580,7 @@ export const MyBookingsPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-3">
                   <img
-                    src="/images/sairam-logo.png"
+                    src="/images/sairam-logo-light.png"
                     alt="Sri Sairam College of Engineering"
                     className="h-12 sm:h-14 w-auto object-contain bg-white rounded-xl p-1 shadow-xs border border-slate-100"
                   />
