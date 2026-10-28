@@ -1,4 +1,7 @@
 services:
+  # ----------------------------------------------------------------------------
+  # Backend Web Service (Node.js + Express + Prisma + Supabase PostgreSQL)
+  # ----------------------------------------------------------------------------
   - type: web
     name: ssce-hall-booking-portal
     env: node
@@ -14,11 +17,15 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
-        value: file:./dev.db
+        sync: false
+      - key: DIRECT_URL
+        sync: false
       - key: UPLOADS_DIR
         value: ./uploads
       - key: ALLOW_PRODUCTION_SEED
         value: "true"
+      - key: CLIENT_URL
+        sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
@@ -30,4 +37,4 @@ services:
       - key: SMTP_PASS
         sync: false
       - key: SMTP_FROM
-        value: "Sri Sairam Central Facilities <ama.gauravkumar@gmail.com>"
+        value: "Sri Sairam Central Facilities <facilities@sairamce.edu.in>"
