@@ -5,13 +5,13 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc && node -e \"const fs=require('fs'); if(fs.existsSync('../client/dist')){fs.cpSync('../client/dist','dist/public',{recursive:true});}\"",
+    "build": "npm --prefix ../client install && npm --prefix ../client install @rolldown/binding-linux-x64-gnu@1.2.12 lightningcss-linux-x64-gnu@1.32.0 --no-save && npm --prefix ../client run build && prisma generate && tsc && node -e \"const fs=require('fs'); if(fs.existsSync('../client/dist')){fs.cpSync('../client/dist','dist/public',{recursive:true});}\"",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push --skip-generate",
     "prisma:migrate": "prisma migrate deploy",
     "db:backup": "tsx src/scripts/backup-sqlite.ts",
     "db:restore": "tsx src/scripts/restore-to-postgres.ts",
-    "install:all": "npm install",
+    "install:all": "npm install && npm --prefix ../client install",
     "start": "prisma db push --skip-generate && node dist/index.js",
     "seed": "tsx src/seed.ts",
     "test": "tsx --test src/tests/**/*.test.ts"
