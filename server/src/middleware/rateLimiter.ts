@@ -2,12 +2,12 @@ import rateLimit from 'express-rate-limit';
 
 // Rate limiter for authentication endpoints (Login & Register)
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes window
-  max: 15, // limit each IP to 15 login/register attempts per window
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  windowMs: 60 * 1000, // 1 minute window
+  max: 100, // allow up to 100 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
   message: {
-    error: 'Too many authentication attempts from this IP address. Please try again after 15 minutes.',
+    error: 'Too many authentication attempts. Please wait a moment and try again.',
   },
 });
 
