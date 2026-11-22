@@ -15,6 +15,7 @@ import {
   ScrollText,
   Settings,
   Bell,
+  Bus,
 } from 'lucide-react';
 
 export const AdminSidebar: React.FC = () => {
@@ -22,6 +23,7 @@ export const AdminSidebar: React.FC = () => {
     { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
     { label: 'Booking Management', path: '/admin/bookings', icon: Layers },
     { label: 'Pending Requests', path: '/admin/pending', icon: Clock },
+    { label: 'Fleet & Transport Trips', path: '/admin/transport', icon: Bus },
     { label: 'Calendar Desk', path: '/admin/calendar', icon: Calendar },
     { label: 'Hall Management', path: '/admin/halls', icon: Building2 },
     { label: 'Blocked Dates', path: '/admin/blocked-dates', icon: Ban },

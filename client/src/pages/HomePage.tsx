@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Building2, CalendarDays, Check, ChevronRight, Clock3,
-  Landmark, MapPin, ShieldCheck, Users,
+  Landmark, MapPin, ShieldCheck, Users, Bus, Car,
 } from 'lucide-react';
 import { apiRequest } from '../services/api';
 import { Hall, Booking } from '../types';
@@ -321,6 +321,58 @@ export const HomePage: React.FC = () => {
             Facility listings will appear here once they are configured in the administrative catalog.
           </div>
         )}
+      </section>
+
+      {/* Central Transport & Vehicle Reservation Portal (CTVRP) Section */}
+      <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 p-8 sm:p-12 text-white shadow-xl border border-blue-800/40">
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.2fr_.8fr] items-center">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/20 px-3.5 py-1 text-xs font-bold text-amber-300 border border-amber-400/30">
+                <Bus className="h-4 w-4" /> Central Transport &amp; Vehicle Reservation Portal (CTVRP)
+              </div>
+              <h2 className="font-serif-college text-3xl font-extrabold tracking-tight sm:text-4xl text-white">
+                Official Campus Fleet &amp; Logistics Service
+              </h2>
+              <p className="text-sm leading-relaxed text-slate-300 max-w-xl">
+                Reserve institutional buses, official executive staff cars, and project vans for academic industrial visits, university conferences, student competitions, and guest logistics with real-time driver allocation and security gate passes.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Link
+                  to="/transport/book"
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-5 py-3 text-xs font-bold text-slate-950 shadow-md transition"
+                >
+                  <Bus className="h-4 w-4" /> Book a Campus Vehicle Now
+                </Link>
+                <Link
+                  to="/transport"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 px-5 py-3 text-xs font-semibold text-white border border-white/20 transition backdrop-blur-sm"
+                >
+                  View Fleet Vehicles &amp; Capacity
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-2xl bg-white/10 backdrop-blur-md p-4 border border-white/10 space-y-1">
+                <div className="text-amber-400 font-bold text-base">Deluxe Buses</div>
+                <div className="text-slate-300">55-Seater Leo Muthu fleet with AC, GPS tracking &amp; speed governor.</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-md p-4 border border-white/10 space-y-1">
+                <div className="text-amber-400 font-bold text-base">Executive Cars</div>
+                <div className="text-slate-300">Innova Crysta for guest pickup, airport transfers &amp; dignitary visits.</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-md p-4 border border-white/10 space-y-1">
+                <div className="text-amber-400 font-bold text-base">Department Vans</div>
+                <div className="text-slate-300">14-Seater Force Travellers for faculty teams &amp; student projects.</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-md p-4 border border-white/10 space-y-1">
+                <div className="text-amber-400 font-bold text-base">Digital Pass</div>
+                <div className="text-slate-300">Automated QR security clearance for gate logging and toll coordination.</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Sri Sairam Engineering Campus Showcase */}

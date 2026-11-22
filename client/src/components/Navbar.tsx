@@ -156,7 +156,8 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Halls', path: '/halls' },
+    { label: 'Seminar Halls', path: '/halls' },
+    { label: 'Transport (CTVRP)', path: '/transport' },
     { label: 'Availability', path: '/availability' },
     { label: 'Calendar', path: '/calendar' },
     { label: 'How It Works', path: '/how-it-works' },

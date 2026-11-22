@@ -169,3 +169,51 @@ export interface AvailabilityDayInfo {
   occupiedSlots?: string[];
   freeWindows?: Array<{ start: string; end: string }>;
 }
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  registrationNo: string;
+  vehicleType: 'BUS' | 'CAR' | 'VAN' | 'AMBULANCE';
+  capacity: number;
+  fuelType: string;
+  acAvailable: boolean;
+  image?: string;
+  features: string | string[];
+  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  driverName?: string;
+  driverPhone?: string;
+}
+
+export interface VehicleBooking {
+  id: string;
+  bookingId: string;
+  userId: string;
+  vehicleId: string;
+  vehicle?: Vehicle;
+  departmentId?: string;
+  department?: Department;
+  tripTitle: string;
+  pickupLocation: string;
+  dropLocation: string;
+  passengerCount: number;
+  tripPurpose: string;
+  coordinatorName: string;
+  coordinatorPhone: string;
+  email: string;
+  startDate: string;
+  endDate?: string;
+  departureTime: string;
+  returnTime: string;
+  estimatedKilometers?: number;
+  tollPaymentRequired: boolean;
+  specialRequirements?: string;
+  attachmentUrl?: string;
+  additionalNotes?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+  assignedDriverName?: string;
+  assignedDriverPhone?: string;
+  adminNotes?: string;
+  createdAt: string;
+}
+

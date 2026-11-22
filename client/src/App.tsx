@@ -18,10 +18,14 @@ const BookingRequestPage = lazy(() => import('./pages/BookingRequestPage').then(
 const LoginPage = lazy(() => import('./pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then(m => ({ default: m.HowItWorksPage })));
 const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage').then(m => ({ default: m.MyBookingsPage })));
+const TransportPage = lazy(() => import('./pages/TransportPage').then(m => ({ default: m.TransportPage })));
+const VehicleBookingPage = lazy(() => import('./pages/VehicleBookingPage').then(m => ({ default: m.VehicleBookingPage })));
+const VehicleTripsPage = lazy(() => import('./pages/VehicleTripsPage').then(m => ({ default: m.VehicleTripsPage })));
 
 // Lazy load admin layout and pages
 const AdminLayout = lazy(() => import('./layouts/AdminLayout').then(m => ({ default: m.AdminLayout })));
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const AdminTransportPage = lazy(() => import('./pages/admin/AdminTransportPage').then(m => ({ default: m.AdminTransportPage })));
 const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage').then(m => ({ default: m.AdminBookingsPage })));
 const AdminPendingPage = lazy(() => import('./pages/admin/AdminPendingPage').then(m => ({ default: m.AdminPendingPage })));
 const AdminHallsPage = lazy(() => import('./pages/admin/AdminHallsPage').then(m => ({ default: m.AdminHallsPage })));
@@ -70,6 +74,30 @@ export function App() {
                       }
                     />
                     <Route
+                      path="/transport"
+                      element={
+                        <ProtectedRoute>
+                          <TransportPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/transport/book"
+                      element={
+                        <ProtectedRoute>
+                          <VehicleBookingPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/transport/trips"
+                      element={
+                        <ProtectedRoute>
+                          <VehicleTripsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/availability"
                       element={
                         <ProtectedRoute>
@@ -109,6 +137,7 @@ export function App() {
                         </ProtectedRoute>
                       }
                     />
+                    <Route path="/my-bookings" element={<Navigate to="/user/bookings" replace />} />
 
                     {/* Login Portal */}
                     <Route path="/login" element={<LoginPage />} />
@@ -125,6 +154,7 @@ export function App() {
                       <Route index element={<AdminDashboardPage />} />
                       <Route path="bookings" element={<AdminBookingsPage />} />
                       <Route path="pending" element={<AdminPendingPage />} />
+                      <Route path="transport" element={<AdminTransportPage />} />
                       <Route path="calendar" element={<CalendarPage />} />
                       <Route path="halls" element={<AdminHallsPage />} />
                       <Route path="blocked-dates" element={<AdminBlockedDatesPage />} />

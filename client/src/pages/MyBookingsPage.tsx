@@ -15,6 +15,7 @@ import {
   MessageSquare,
   AlertTriangle,
   ShieldAlert,
+  Bus,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
@@ -455,13 +456,22 @@ export const MyBookingsPage: React.FC = () => {
             Track your submitted requests, approval updates, and download official confirmation slips.
           </p>
         </div>
-        <Link
-          to="/book"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Reservation Request</span>
-        </Link>
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          <Link
+            to="/transport/trips"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs shadow-xs transition"
+          >
+            <Bus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>My Transport Requisitions</span>
+          </Link>
+          <Link
+            to="/book"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Hall Reservation</span>
+          </Link>
+        </div>
       </div>
 
       {loading ? (

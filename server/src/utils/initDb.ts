@@ -186,6 +186,82 @@ export async function ensureDatabaseInitialized(): Promise<void> {
       },
     });
 
+    // 3b. Sairam Campus Transport Fleet (CTVRP)
+    await prisma.vehicle.upsert({
+      where: { registrationNo: 'KA-51-E-7707' },
+      update: {},
+      create: {
+        name: 'Leo Muthu Deluxe Campus Bus (Bus 07)',
+        registrationNo: 'KA-51-E-7707',
+        vehicleType: 'BUS',
+        capacity: 55,
+        fuelType: 'DIESEL',
+        acAvailable: true,
+        image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
+        features: JSON.stringify([
+          'High-Back Pushback Seats',
+          'Central HVAC Air Conditioning',
+          'Dual Front & Cabin Dashcams',
+          'First Aid Emergency Kit',
+          'PA Announcement Audio System',
+          'Speed Governor 60 km/h',
+          'Fire Extinguisher',
+        ]),
+        status: 'ACTIVE',
+        driverName: 'Mr. Murugan R',
+        driverPhone: '+91 98451 22301',
+      },
+    });
+
+    await prisma.vehicle.upsert({
+      where: { registrationNo: 'KA-51-M-2026' },
+      update: {},
+      create: {
+        name: 'Executive Official Staff Car (Innova Crysta)',
+        registrationNo: 'KA-51-M-2026',
+        vehicleType: 'CAR',
+        capacity: 7,
+        fuelType: 'DIESEL',
+        acAvailable: true,
+        image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
+        features: JSON.stringify([
+          'Captain Leather Seats',
+          'Automatic Climate Control',
+          'Fastag Enabled',
+          'Dash Camera & Reverse Sensor',
+          'Spacious Luggage Boot',
+          'GPS Real-Time Tracking',
+        ]),
+        status: 'ACTIVE',
+        driverName: 'Mr. Venkatesh K',
+        driverPhone: '+91 98451 22302',
+      },
+    });
+
+    await prisma.vehicle.upsert({
+      where: { registrationNo: 'KA-51-T-1414' },
+      update: {},
+      create: {
+        name: 'Department Field & Project Van (Force Traveller)',
+        registrationNo: 'KA-51-T-1414',
+        vehicleType: 'VAN',
+        capacity: 14,
+        fuelType: 'DIESEL',
+        acAvailable: true,
+        image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1200&q=80',
+        features: JSON.stringify([
+          'Individual Reclining Seats',
+          'First Aid Kit',
+          'Roof Luggage Carrier',
+          'Emergency Glass Breaker',
+          'Dual AC Blowers',
+        ]),
+        status: 'ACTIVE',
+        driverName: 'Mr. Shankar G',
+        driverPhone: '+91 98451 22303',
+      },
+    });
+
     // 4. Default Settings
     const defaultSettings: Record<string, string> = {
       siteName: 'Sri Sairam College Facility Booking Portal',

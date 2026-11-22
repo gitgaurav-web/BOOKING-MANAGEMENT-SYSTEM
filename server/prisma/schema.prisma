@@ -25,6 +25,7 @@ model User {
   bookings       Booking[]
   notifications  Notification[]
   activityLogs   ActivityLog[]
+  vehicleBookings VehicleBooking[]
 }
 
 model Department {
@@ -35,6 +36,7 @@ model Department {
   status      String    @default("ACTIVE")
   users       User[]
   bookings    Booking[]
+  vehicleBookings VehicleBooking[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -152,3 +154,59 @@ model SystemSetting {
   key   String @unique
   value String
 }
+
+model Vehicle {
+  id              String            @id @default(uuid())
+  name            String            // e.g. Ashok Leyland College Bus 07, Innova Staff Car, Force Traveller
+  registrationNo  String            @unique // e.g. KA-51-E-7707
+  vehicleType     String            // BUS, CAR, VAN, AMBULANCE
+  capacity        Int               // Total passenger seating capacity
+  fuelType        String            // DIESEL, PETROL, EV, CNG
+  acAvailable     Boolean           @default(false)
+  image           String?
+  features        String            // JSON array string: GPS, First Aid, Speed Governor, PA System
+  status          String            @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
+  driverName      String?
+  driverPhone     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  bookings        VehicleBooking[]
+}
+
+model VehicleBooking {
+  id                  String      @id @default(uuid())
+  bookingId           String      @unique // e.g. BUS-NOV26-001, CAR-NOV26-002
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  vehicleId           String
+  vehicle             Vehicle     @relation(fields: [vehicleId], references: [id])
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  tripTitle           String      // e.g. Industrial Visit to ISRO Bengaluru
+  pickupLocation      String      // e.g. College Campus Gate 1
+  dropLocation        String      // Destination / Route
+  passengerCount      Int         @default(1)
+  tripPurpose         String      // INDUSTRIAL_VISIT, GUEST_TRANSFER, SPORTS_MEET, CONFERENCE, EMERGENCY
+  coordinatorName     String      // Faculty coordinator
+  coordinatorPhone    String      // Phone
+  email               String
+  startDate           String      // YYYY-MM-DD
+  endDate             String?     // YYYY-MM-DD
+  departureTime       String      // HH:mm
+  returnTime          String      // HH:mm
+  estimatedKilometers Int?        @default(0)
+  tollPaymentRequired Boolean     @default(false)
+  specialRequirements String?     // JSON array
+  attachmentUrl       String?     // HOD letter PDF
+  additionalNotes     String?
+  status              String      @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
+  assignedDriverName  String?
+  assignedDriverPhone String?
+  adminNotes          String?
+  approvedById        String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+

@@ -16,6 +16,7 @@ import reportsRoutes from './routes/reports';
 import notificationsRoutes from './routes/notifications';
 import activityLogsRoutes from './routes/activityLogs';
 import settingsRoutes from './routes/settings';
+import vehiclesRoutes from './routes/vehicles';
 
 import helmet from 'helmet';
 import uploadRoutes, { handleAuthorizedFileDownload } from './routes/upload';
@@ -104,6 +105,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/activity-logs', activityLogsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/vehicles', vehiclesRoutes);
 
 // Health Check
 app.get('/api/health', (_req, res) => {
