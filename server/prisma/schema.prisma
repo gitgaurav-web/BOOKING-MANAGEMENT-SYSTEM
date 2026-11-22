@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  phone          String?
+  departmentId   String?
+  department     Department?    @relation(fields: [departmentId], references: [id])
+  role           String         @default("USER") // USER, FACULTY, ADMIN, SUPER_ADMIN
+  status         String         @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  bookings       Booking[]
+  notifications  Notification[]
+  activityLogs   ActivityLog[]
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  code        String     @unique // CSE, AIML, ISE, ECE, MECH, CIVIL, etc.
+  description String?
+  status      String     @default("ACTIVE")
+  users       User[]
+  bookings    Booking[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  name            String        // e.g., Ashok Leyland College Bus 12, Toyota Innova Staff Car, Force Traveller Van
+  code            String        @unique // e.g. CAR-01, BUS-12, VAN-05
+  registrationNo  String        @unique // e.g., KA-51-E-1234
+  vehicleType     String        // BUS, CAR, VAN, AMBULANCE
+  location        String        @default("Campus Gate 1 Transport Bay")
+  description     String
+  capacity        Int           // Total passenger seating capacity
+  fuelType        String        @default("DIESEL") // DIESEL, PETROL, EV, CNG
+  acAvailable     Boolean       @default(true)
+  image           String?
+  features        String        // JSON array of strings
+  facilities      String        @default("[]") // JSON string alias
+  status          String        @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
+  driverName      String?       // Assigned regular driver
+  driverPhone     String?       // Driver contact number
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  bookings        Booking[]
+  maintenances    Maintenance[]
+  blockedDates    BlockedDate[]
+}
+
+model Booking {
+  id                  String      @id @default(uuid())
+  bookingId           String      @unique // e.g. BUS-NOV26-001, CAR-NOV26-002
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  vehicleId           String
+  vehicle             Vehicle     @relation(fields: [vehicleId], references: [id])
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  
+  // Trip Logistics
+  eventName           String      // Trip Title / Event Name
+  purpose             String      // Purpose Summary
+  description         String?
+  requestedBy         String
+  coordinatorName     String?
+  contactNumber       String
+  email               String
+  pickupLocation      String?     @default("College Campus Gate 1")
+  dropLocation        String?     // Destination Address
+  passengerCount      Int         @default(1)
+  participantCount    Int         @default(1)
+  guestCount          Int?        @default(0)
+  mementoCount        Int?        @default(0)
+  estimatedKilometers Int?        @default(0)
+  
+  // Schedule
+  bookingDate         String      // YYYY-MM-DD (Start Date)
+  endDate             String?     // YYYY-MM-DD (Optional End Date for multi-day tours)
+  bookingType         String      @default("FULL_DAY") // FULL_DAY, MORNING, AFTERNOON, CUSTOM
+  startTime           String      @default("08:30")
+  endTime             String      @default("18:00")
+  
+  // Verification & Toll Requisitions
+  tollPaymentRequired Boolean     @default(false)
+  specialRequirements String?     // JSON array of strings
+  attachmentUrl       String?     // PDF of HOD Approval / Sanction Letter
+  additionalNotes     String?
+  
+  // Administrative Workflow
+  status              String      @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED
+  assignedDriverName  String?
+  assignedDriverPhone String?
+  driverNotifiedAt    DateTime?
+  driverNotifyMethod  String?     // WHATSAPP, SMS, BOTH
+  adminNotes          String?
+  approvedById        String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  odometerStart       Int?        // Recorded at trip start
+  odometerEnd         Int?        // Recorded at trip end
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model Maintenance {
+  id                String   @id @default(uuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id])
+  startDate         String   // YYYY-MM-DD
+  endDate           String   // YYYY-MM-DD
+  maintenanceType   String   @default("REGULAR_SERVICE")
+  reason            String
+  description       String?
+  notes             String?
+  garageName        String?
+  cost              Float?   @default(0.0)
+  responsiblePerson String?
+  createdAt         DateTime @default(now())
+}
+
+model BlockedDate {
+  id          String   @id @default(uuid())
+  vehicleId   String?  // null if applies to all campus vehicles
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  startDate   String   // YYYY-MM-DD
+  endDate     String   // YYYY-MM-DD
+  reason      String   // ELECTION_DUTY, UNIVERSITY_EXAMS, CAMPUS_CLOSURE
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+}
+
+model Holiday {
+  id           String   @id @default(uuid())
+  name         String
+  date         String   // YYYY-MM-DD
+  description  String?
+  vehicleScope String   @default("ALL") // ALL, BUS_ONLY, CAR_ONLY
+  hallScope    String   @default("ALL") // Backward compat
+  createdAt    DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ALERT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // VEHICLE_BOOKED, TRIP_APPROVED, TRIP_REJECTED
+  entityType  String
+  entityId    String?
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model SystemSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+model CampusRoute {
+  id                    String      @id @default(uuid())
+  routeNumber           String      @unique // e.g. "Route 101"
+  routeName             String      // e.g. "Majestic & Silk Board Express Corridor"
+  origin                String
+  destination           String      @default("Sri Sairam College Campus Gate 1")
+  vehicleType           String      @default("BUS") // BUS, VAN, CAR
+  vehicleName           String?
+  registrationNo        String?
+  acAvailable           Boolean     @default(false)
+  totalSeats            Int         @default(55)
+  availableSeats        Int         @default(15)
+  driverName            String?
+  driverPhone           String?
+  status                String      @default("ON_TIME") // ON_TIME, DELAYED_10M, BOARDING, MAINTENANCE
+  currentSpeedKmH       Int         @default(0)
+  distanceKm            Float       @default(40.0)
+  estimatedDurationMins Int         @default(90)
+  isActive              Boolean     @default(true)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  stops                 RouteStop[]
+}
+
+model RouteStop {
+  id          String      @id @default(uuid())
+  routeId     String
+  route       CampusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  name        String
+  timeMorning String      // e.g. "06:45 AM"
+  timeEvening String      // e.g. "06:30 PM"
+  latitude    Float
+  longitude   Float
+  stopOrder   Int         @default(0)
+  isCollege   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}

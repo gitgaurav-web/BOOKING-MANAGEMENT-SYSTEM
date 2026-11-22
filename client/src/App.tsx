@@ -1,0 +1,165 @@
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
+import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Eager load primary landing page
+import { HomePage } from './pages/HomePage';
+
+// Lazy load public & user pages
+const VehiclesPage = lazy(() => import('./pages/VehiclesPage').then((m) => ({ default: m.VehiclesPage })));
+const AvailabilityPage = lazy(() => import('./pages/AvailabilityPage').then((m) => ({ default: m.AvailabilityPage })));
+const CalendarPage = lazy(() => import('./pages/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+const BookingRequestPage = lazy(() => import('./pages/BookingRequestPage').then((m) => ({ default: m.BookingRequestPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage').then((m) => ({ default: m.HowItWorksPage })));
+const MyBookingsPage = lazy(() => import('./pages/MyBookingsPage').then((m) => ({ default: m.MyBookingsPage })));
+const CampusRoutesPage = lazy(() => import('./pages/CampusRoutesPage').then((m) => ({ default: m.CampusRoutesPage })));
+
+// Lazy load admin layout and pages
+const AdminLayout = lazy(() => import('./layouts/AdminLayout').then((m) => ({ default: m.AdminLayout })));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
+const AdminBookingsPage = lazy(() => import('./pages/admin/AdminBookingsPage').then((m) => ({ default: m.AdminBookingsPage })));
+const AdminPendingPage = lazy(() => import('./pages/admin/AdminPendingPage').then((m) => ({ default: m.AdminPendingPage })));
+const AdminVehiclesPage = lazy(() => import('./pages/admin/AdminVehiclesPage').then((m) => ({ default: m.AdminVehiclesPage })));
+const AdminBlockedDatesPage = lazy(() => import('./pages/admin/AdminBlockedDatesPage').then((m) => ({ default: m.AdminBlockedDatesPage })));
+const AdminMaintenancePage = lazy(() => import('./pages/admin/AdminMaintenancePage').then((m) => ({ default: m.AdminMaintenancePage })));
+const AdminHolidaysPage = lazy(() => import('./pages/admin/AdminHolidaysPage').then((m) => ({ default: m.AdminHolidaysPage })));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })));
+const AdminDepartmentsPage = lazy(() => import('./pages/admin/AdminDepartmentsPage').then((m) => ({ default: m.AdminDepartmentsPage })));
+const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage').then((m) => ({ default: m.AdminReportsPage })));
+const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage').then((m) => ({ default: m.AdminLogsPage })));
+const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage').then((m) => ({ default: m.AdminSettingsPage })));
+const AdminRoutesPage = lazy(() => import('./pages/admin/AdminRoutesPage').then((m) => ({ default: m.AdminRoutesPage })));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh] text-slate-500 text-xs">
+    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
+    <span>Loading transport logistics portal...</span>
+  </div>
+);
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <BrowserRouter>
+            <div className="min-h-screen flex flex-col bg-[#f7f6f1] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+              <Navbar />
+              <div className="flex-1">
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    {/* Authenticated Routes: Protected for Sri Sairam College */}
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <HomePage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/routes"
+                      element={
+                        <ProtectedRoute>
+                          <CampusRoutesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/vehicles"
+                      element={
+                        <ProtectedRoute>
+                          <VehiclesPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/availability"
+                      element={
+                        <ProtectedRoute>
+                          <AvailabilityPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <ProtectedRoute>
+                          <CalendarPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/book"
+                      element={
+                        <ProtectedRoute>
+                          <BookingRequestPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/how-it-works"
+                      element={
+                        <ProtectedRoute>
+                          <HowItWorksPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/user/bookings"
+                      element={
+                        <ProtectedRoute>
+                          <MyBookingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Login Portal with Domain Lock & Google SSO */}
+                    <Route path="/login" element={<LoginPage />} />
+
+                    {/* Transport Admin Management Routes */}
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                          <AdminLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<AdminDashboardPage />} />
+                      <Route path="bookings" element={<AdminBookingsPage />} />
+                      <Route path="pending" element={<AdminPendingPage />} />
+                      <Route path="calendar" element={<CalendarPage />} />
+                      <Route path="routes" element={<AdminRoutesPage />} />
+                      <Route path="vehicles" element={<AdminVehiclesPage />} />
+                      <Route path="blocked-dates" element={<AdminBlockedDatesPage />} />
+                      <Route path="maintenance" element={<AdminMaintenancePage />} />
+                      <Route path="holidays" element={<AdminHolidaysPage />} />
+                      <Route path="users" element={<AdminUsersPage />} />
+                      <Route path="departments" element={<AdminDepartmentsPage />} />
+                      <Route path="reports" element={<AdminReportsPage />} />
+                      <Route path="logs" element={<AdminLogsPage />} />
+                      <Route path="settings" element={<AdminSettingsPage />} />
+                    </Route>
+
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
+              </div>
+              <Footer />
+            </div>
+          </BrowserRouter>
+        </SettingsProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;

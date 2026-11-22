@@ -1,0 +1,880 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { apiRequest, downloadCsvFile } from '../../services/api';
+import { Booking, Hall, Department } from '../../types';
+import { StatusBadge } from '../../components/StatusBadge';
+import {
+  Layers,
+  Search,
+  Filter,
+  Trash2,
+  Edit,
+  CheckCircle2,
+  XCircle,
+  FileSpreadsheet,
+  Printer,
+  ChevronDown,
+  MessageSquare,
+  X,
+  AlertTriangle,
+  Clock,
+  Sparkles,
+  Send,
+  Building2,
+  User,
+  Calendar,
+  Lock,
+  Phone,
+  Check,
+  ExternalLink,
+} from 'lucide-react';
+
+export const AdminBookingsPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [driverNoticeToast, setDriverNoticeToast] = useState<string | null>(null);
+
+  // Filters
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [hallFilter, setHallFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const handleNotifyDriver = async (booking: Booking, overrideDriverPhone?: string, overrideDriverName?: string) => {
+    try {
+      const res = await apiRequest<{
+        success: boolean;
+        waMeUrl: string;
+        message: string;
+        driverPhone: string;
+        driverName: string;
+      }>(`/bookings/${booking.id}/notify-driver`, {
+        method: 'POST',
+        body: JSON.stringify({
+          driverPhone: overrideDriverPhone || booking.assignedDriverPhone || booking.vehicle?.driverPhone,
+          driverName: overrideDriverName || booking.assignedDriverName || booking.vehicle?.driverName,
+        }),
+      });
+
+      if (res.waMeUrl) {
+        window.open(res.waMeUrl, '_blank');
+      }
+
+      setDriverNoticeToast(`Official trip duty slip dispatched to Driver ${res.driverName} (${res.driverPhone}) via WhatsApp & SMS!`);
+      setTimeout(() => setDriverNoticeToast(null), 5000);
+
+      const nowIso = new Date().toISOString();
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === booking.id
+            ? { ...b, driverNotifiedAt: nowIso, driverNotifyMethod: 'WHATSAPP_SMS', assignedDriverPhone: res.driverPhone, assignedDriverName: res.driverName }
+            : b
+        )
+      );
+      setSelectedBookingForAction((prev) =>
+        prev && prev.id === booking.id
+          ? { ...prev, driverNotifiedAt: nowIso, driverNotifyMethod: 'WHATSAPP_SMS', assignedDriverPhone: res.driverPhone, assignedDriverName: res.driverName }
+          : prev
+      );
+    } catch (err: any) {
+      alert(err.message || 'Failed to dispatch driver notification.');
+    }
+  };
+
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query !== null) {
+      setSearch(query);
+    }
+  }, [searchParams]);
+
+  // Action & Faculty Notice Modal state
+  const [selectedBookingForAction, setSelectedBookingForAction] = useState<Booking | null>(null);
+  const [actionNotes, setActionNotes] = useState('');
+  const [actionDriverName, setActionDriverName] = useState('');
+  const [actionDriverPhone, setActionDriverPhone] = useState('');
+  const [actionSubmitting, setActionSubmitting] = useState(false);
+
+  // Action Dropdown state
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('.action-dropdown-container')) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [hallFilter, statusFilter]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [bData, hData, dData] = await Promise.all([
+        apiRequest<Booking[]>(`/bookings?hallId=${hallFilter}&status=${statusFilter}`),
+        apiRequest<Hall[]>('/halls'),
+        apiRequest<Department[]>('/users/departments'),
+      ]);
+      setBookings(bData);
+      setHalls(hData);
+      setDepartments(dData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openActionModal = (booking: Booking) => {
+    setSelectedBookingForAction(booking);
+    setActionNotes(booking.adminNotes || '');
+    setActionDriverName(booking.assignedDriverName || booking.vehicle?.driverName || '');
+    setActionDriverPhone(booking.assignedDriverPhone || booking.vehicle?.driverPhone || '');
+  };
+
+  const closeActionModal = () => {
+    setSelectedBookingForAction(null);
+    setActionNotes('');
+    setActionDriverName('');
+    setActionDriverPhone('');
+  };
+
+  const handleSaveNoticeOnly = async () => {
+    if (!selectedBookingForAction) return;
+    try {
+      setActionSubmitting(true);
+      await apiRequest(`/bookings/${selectedBookingForAction.id}/notes`, {
+        method: 'PATCH',
+        body: JSON.stringify({ adminNotes: actionNotes }),
+      });
+      alert('Official notice updated and sent to faculty coordinator.');
+      closeActionModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save notice');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleApproveWithNotice = async (bookingId?: string, notes?: string) => {
+    const id = bookingId || selectedBookingForAction?.id;
+    if (!id) return;
+    const finalNotes = notes !== undefined ? notes : actionNotes;
+    try {
+      setActionSubmitting(true);
+      await apiRequest(`/bookings/${id}/approve`, {
+        method: 'PATCH',
+        body: JSON.stringify({ adminNotes: finalNotes }),
+      });
+      alert('Booking approved successfully! Faculty coordinator has been notified.');
+      closeActionModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Approval failed');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleCancelWithNotice = async (bookingId?: string, notes?: string) => {
+    const id = bookingId || selectedBookingForAction?.id;
+    if (!id) return;
+    const finalNotes = notes !== undefined ? notes : actionNotes;
+    if (!window.confirm('Are you sure you want to cancel this booking reservation?')) return;
+    try {
+      setActionSubmitting(true);
+      await apiRequest(`/bookings/${id}/cancel`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          reason: finalNotes || 'Admin cancelled reservation',
+          adminNotes: finalNotes,
+        }),
+      });
+      alert('Booking cancelled successfully.');
+      closeActionModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Cancellation failed');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleRevertToPendingWithNotice = async (bookingId?: string, notes?: string) => {
+    const id = bookingId || selectedBookingForAction?.id;
+    if (!id) return;
+    const finalNotes = notes !== undefined ? notes : actionNotes;
+    if (!window.confirm('Are you sure you want to revert this booking back to Pending Review status? It will reappear in the Pending Requests desk.')) return;
+    try {
+      setActionSubmitting(true);
+      await apiRequest(`/bookings/${id}/pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ adminNotes: finalNotes }),
+      });
+      alert('Booking reverted back to Pending Review successfully! It is now accessible in the Pending Requests desk.');
+      closeActionModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to revert booking to pending');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string, bookingId: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete booking ${bookingId}?`)) return;
+    try {
+      await apiRequest(`/bookings/${id}`, { method: 'DELETE' });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Delete failed');
+    }
+  };
+
+  const presetRemarks = [
+    'Please collect room keys & AV remote from Central Facilities Office 15 mins prior to the event.',
+    'Approved as per approval of Principal & Dean Academics.',
+    'AV technician has been assigned for audio & projection assistance.',
+    'Kindly ensure lights, AC, and equipment are switched off post program.',
+    'Reservation cancelled due to unavoidable institutional scheduling conflict.',
+  ];
+
+  const filtered = bookings.filter((b) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      b.eventName.toLowerCase().includes(q) ||
+      b.bookingId.toLowerCase().includes(q) ||
+      b.requestedBy.toLowerCase().includes(q) ||
+      b.department?.name?.toLowerCase().includes(q) ||
+      (b.adminNotes && b.adminNotes.toLowerCase().includes(q))
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            All Vehicle &amp; Fleet Bookings
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Manage approvals, cancellations, and send official admin notices or instructions directly to faculty coordinators.
+          </p>
+        </div>
+
+        <button
+          onClick={async () => {
+            try {
+              await downloadCsvFile('/reports/export-csv', 'fleet_bookings_report.csv');
+            } catch (err: any) {
+              alert(err.message || 'Failed to download CSV');
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold text-xs transition cursor-pointer"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5" />
+          <span>Export All Bookings CSV</span>
+        </button>
+      </div>
+
+      {/* Outbound Driver WhatsApp & SMS Toast Alert */}
+      {driverNoticeToast && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-md animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <span>{driverNoticeToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDriverNoticeToast(null)}
+            className="text-emerald-600 hover:text-emerald-800 text-xs font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Filter Bar */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap gap-3 items-center">
+        <div className="flex-1 min-w-[200px] relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <input
+            type="text"
+            placeholder="Search event, booking ID, coordinator, or admin notice..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+          />
+        </div>
+
+        <select
+          value={hallFilter}
+          onChange={(e) => setHallFilter(e.target.value)}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+        >
+          <option value="ALL">All Vehicles</option>
+          {halls.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs"
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="APPROVED">Approved / Booked</option>
+          <option value="PENDING">Pending</option>
+          <option value="CANCELLED">Cancelled</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col">
+        {/* Table Top Status Bar */}
+        <div className="px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs bg-slate-50/70 dark:bg-slate-800/40 select-none">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Booking Records:
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-[11px]">
+              {filtered.length} total
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
+            ↕ Scroll table vertically &bull; Header stays locked at top
+          </span>
+        </div>
+
+        <div className="w-full overflow-x-auto overflow-y-auto max-h-[580px] scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700 pb-28">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700 text-[11px] uppercase tracking-wider shadow-xs">
+              <tr>
+                <th className="py-3 px-3.5 font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Booking ID</th>
+                <th className="py-3 px-3 font-bold w-36 bg-slate-100 dark:bg-slate-800">Vehicle / Driver</th>
+                <th className="py-3 px-3 font-bold min-w-[180px] bg-slate-100 dark:bg-slate-800">Event Details & Notice</th>
+                <th className="py-3 px-3 font-bold w-32 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Date & Slot</th>
+                <th className="py-3 px-3 font-bold min-w-[160px] bg-slate-100 dark:bg-slate-800">Department / Coordinator</th>
+                <th className="py-3 px-2 text-center font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Status</th>
+                <th className="py-3 px-3 text-center font-bold w-28 whitespace-nowrap bg-slate-100 dark:bg-slate-800">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
+                    No vehicle requisitions found.
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((b, idx) => {
+                  const isLastRows = filtered.length >= 3 && idx >= filtered.length - 2;
+                  const todayIso = new Date().toLocaleDateString('en-CA');
+                  const effectiveEnd = b.endDate && b.endDate >= b.bookingDate ? b.endDate : b.bookingDate;
+                  const isPast = effectiveEnd < todayIso;
+
+                  return (
+                    <tr
+                      key={b.id}
+                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition ${
+                        openDropdownId === b.id ? 'relative z-30' : ''
+                      }`}
+                    >
+                      <td className="py-3 px-3.5 font-mono font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                        {b.bookingId}
+                      </td>
+                      <td className="py-3 px-3 font-semibold text-slate-900 dark:text-white">
+                        <div className="line-clamp-2 leading-tight" title={b.hall?.name}>
+                          {b.hall?.name}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px]">
+                          <span className="text-slate-500 font-medium">
+                            {b.assignedDriverName || b.vehicle?.driverName || 'Driver Pending'}
+                          </span>
+                          {b.driverNotifiedAt ? (
+                            <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-bold inline-flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>Notified</span>
+                            </span>
+                          ) : (
+                            (b.assignedDriverPhone || b.vehicle?.driverPhone) && (
+                              <button
+                                type="button"
+                                onClick={() => handleNotifyDriver(b)}
+                                className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-bold hover:underline flex items-center gap-0.5"
+                                title="Send WhatsApp duty assignment"
+                              >
+                                <Phone className="w-2.5 h-2.5" />
+                                <span>WhatsApp</span>
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate max-w-[220px]" title={b.eventName}>
+                          {b.eventName}
+                        </span>
+                        <span className="text-[11px] text-slate-400 block truncate max-w-[220px] mt-0.5" title={b.purpose}>
+                          {b.purpose}
+                        </span>
+                        {/* Admin Notice Pill if present */}
+                        {b.adminNotes && (
+                          <div className="mt-1.5 flex items-start gap-1 text-[11px] bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-md px-2 py-0.5 max-w-[240px] shadow-2xs">
+                            <MessageSquare className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                            <span className="truncate" title={b.adminNotes}>
+                              <strong className="font-semibold">Notice:</strong> {b.adminNotes}
+                            </span>
+                          </div>
+                        )}
+                        {b.rejectionReason && b.status === 'REJECTED' && (
+                          <div className="mt-1 flex items-start gap-1 text-[11px] bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-md px-2 py-0.5 max-w-[240px]">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                            <span className="truncate" title={b.rejectionReason}>
+                              <strong className="font-semibold">Reason:</strong> {b.rejectionReason}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">
+                          {b.bookingDate}
+                          {b.endDate && b.endDate !== b.bookingDate && (
+                            <span className="ml-1.5 text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
+                              to {b.endDate}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                          {b.startTime} - {b.endTime}
+                        </div>
+                        {b.attachmentUrl && (
+                          <a
+                            href={b.attachmentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-block text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold mt-0.5"
+                          >
+                            📎 Proposal ↗
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[170px]" title={b.department?.name || 'Academic Dept'}>
+                          {b.department?.name || 'Academic Dept'}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{b.requestedBy}</span>
+                          {b.contactNumber && (
+                            <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{b.contactNumber}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2 text-center whitespace-nowrap">
+                        <StatusBadge status={b.status} size="sm" />
+                        {isPast && (
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-1">
+                            {b.status === 'APPROVED' ? 'Completed (Past)' : b.status === 'PENDING' ? 'Expired (Past)' : 'Historical'}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center whitespace-nowrap">
+                        {isPast ? (
+                          <div
+                            title="This event date has passed. Historical records are permanently locked and cannot be modified."
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-slate-500 font-semibold text-xs border border-slate-200 dark:border-slate-700/60 cursor-not-allowed select-none shadow-2xs"
+                          >
+                            <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                            <span>Locked (Past)</span>
+                          </div>
+                        ) : (
+                          <div className={`action-dropdown-container relative inline-block text-left ${openDropdownId === b.id ? 'z-50' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === b.id ? null : b.id);
+                            }}
+                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition border border-slate-200 dark:border-slate-700 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer"
+                          >
+                            <span>Actions</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${openDropdownId === b.id ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {openDropdownId === b.id && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className={`absolute right-0 ${
+                                isLastRows ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+                              } w-52 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl py-2 z-50 text-xs font-medium`}
+                            >
+                                {/* Option 1: Notice / Remarks */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenDropdownId(null);
+                                    openActionModal(b);
+                                  }}
+                                  className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 dark:hover:text-blue-400 transition cursor-pointer"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
+                                  <span>{b.adminNotes ? 'Notice / Remarks' : 'Add Notice / Remarks'}</span>
+                                </button>
+
+                                {/* Option 1.5: WhatsApp Duty Slip to Driver */}
+                                {(b.assignedDriverPhone || b.vehicle?.driverPhone) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      handleNotifyDriver(b);
+                                    }}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition cursor-pointer"
+                                  >
+                                    <Phone className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>Dispatch Driver WhatsApp</span>
+                                  </button>
+                                )}
+
+                                {/* Option 2: Approve */}
+                                {b.status !== 'APPROVED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      handleApproveWithNotice(b.id, b.adminNotes || '');
+                                    }}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                    <span>{b.status === 'PENDING' ? 'Approve Booking' : 'Re-Approve'}</span>
+                                  </button>
+                                )}
+
+                                {/* Option 2.5: Move to Pending Review */}
+                                {b.status !== 'PENDING' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      handleRevertToPendingWithNotice(b.id, b.adminNotes || '');
+                                    }}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition cursor-pointer"
+                                  >
+                                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                    <span>Move to Pending Review</span>
+                                  </button>
+                                )}
+
+                                {/* Option 3: Cancel */}
+                                {b.status !== 'CANCELLED' && b.status !== 'REJECTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenDropdownId(null);
+                                      handleCancelWithNotice(b.id, b.adminNotes || 'Admin cancelled reservation');
+                                    }}
+                                    className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
+                                    <span>Cancel Booking</span>
+                                  </button>
+                                )}
+
+                                <div className="my-1.5 border-t border-slate-100 dark:border-slate-800" />
+
+                                {/* Option 4: Delete */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenDropdownId(null);
+                                    handleDelete(b.id, b.bookingId);
+                                  }}
+                                  className="w-full text-left px-4 py-2 flex items-center gap-2.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-slate-400" />
+                                  <span>Delete Permanently</span>
+                                </button>
+                              </div>
+                          )}
+                        </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Action & Faculty Notice Modal */}
+      {selectedBookingForAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl w-full p-6 space-y-5 my-8">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md">
+                    {selectedBookingForAction.bookingId}
+                  </span>
+                  <StatusBadge status={selectedBookingForAction.status} size="sm" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Booking Actions & Faculty Notice
+                </h3>
+              </div>
+              <button
+                onClick={closeActionModal}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Details Banner */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700/60 text-xs space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 dark:text-white text-sm">
+                  {selectedBookingForAction.eventName}
+                </span>
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {selectedBookingForAction.hall?.name}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Date & Time</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {selectedBookingForAction.bookingDate} ({selectedBookingForAction.startTime} - {selectedBookingForAction.endTime})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Faculty Coordinator</span>
+                  <span className="font-medium text-slate-800 dark:text-slate-200">
+                    {selectedBookingForAction.requestedBy} • {selectedBookingForAction.contactNumber}
+                  </span>
+                </div>
+              </div>
+
+              {/* Logistics & Dignitaries Count Row */}
+              <div className="flex flex-wrap gap-2 text-xs pt-1 border-t border-slate-100 dark:border-slate-800">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]">
+                  👥 Attendees: {selectedBookingForAction.participantCount || 0}
+                </span>
+                {(selectedBookingForAction.guestCount || 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-medium text-[11px]">
+                    🎖️ VIP Guests: {selectedBookingForAction.guestCount}
+                  </span>
+                )}
+                {(selectedBookingForAction.mementoCount || 0) > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-medium text-[11px]">
+                    🏆 Mementos: {selectedBookingForAction.mementoCount}
+                  </span>
+                )}
+              </div>
+
+              {selectedBookingForAction.description && (
+                <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 space-y-0.5">
+                  <strong className="text-slate-800 dark:text-slate-200 block text-[11px]">Description &amp; Agenda:</strong>
+                  <p className="whitespace-pre-wrap">{selectedBookingForAction.description}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Driver Duty Assignment & WhatsApp Dispatch Panel */}
+            <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    <Phone className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
+                      Driver Trip Assignment &amp; WhatsApp Dispatch
+                    </h4>
+                    <p className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                      Sri Sairam College Institutional Transport Dispatch
+                    </p>
+                  </div>
+                </div>
+                {selectedBookingForAction.driverNotifiedAt ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700">
+                    <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-300" />
+                    Notified ({new Date(selectedBookingForAction.driverNotifiedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    Awaiting Dispatch
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label className="text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Assigned Driver Name
+                  </label>
+                  <input
+                    type="text"
+                    value={actionDriverName}
+                    onChange={(e) => setActionDriverName(e.target.value)}
+                    placeholder="e.g. Ramesh Kumar"
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10.5px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                    Driver Mobile Phone (with Country Code)
+                  </label>
+                  <input
+                    type="tel"
+                    value={actionDriverPhone}
+                    onChange={(e) => setActionDriverPhone(e.target.value)}
+                    placeholder="e.g. +91 98450 12345"
+                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-emerald-100 dark:border-emerald-900/40">
+                <span className="text-[10.5px] text-slate-500 dark:text-slate-400">
+                  Vehicle: <strong className="text-slate-700 dark:text-slate-200">{selectedBookingForAction.vehicle?.name || selectedBookingForAction.hall?.name || 'College Fleet'}</strong> ({selectedBookingForAction.vehicle?.registrationNo || 'KA-51-F-1001'})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleNotifyDriver(selectedBookingForAction, actionDriverPhone, actionDriverName)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Dispatch WhatsApp &amp; SMS Slip</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Notice / Remarks Textarea */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Official Admin Notice / Instructions for Faculty</span>
+                </label>
+                <span className="text-[10px] text-slate-400">Visible on Faculty's Pass & Dashboard</span>
+              </div>
+
+              <textarea
+                rows={4}
+                value={actionNotes}
+                onChange={(e) => setActionNotes(e.target.value)}
+                placeholder="Write official notice, key pickup instructions, AV requirements, or cancellation notes for the faculty coordinator..."
+                className="w-full p-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed"
+              />
+
+              {/* Quick Template Chips */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  <span>Quick Templates / Presets:</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {presetRemarks.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActionNotes(preset)}
+                      className="text-[10.5px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-left transition cursor-pointer"
+                    >
+                      {preset.length > 40 ? `${preset.substring(0, 40)}...` : preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={closeActionModal}
+                disabled={actionSubmitting}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-semibold text-xs transition cursor-pointer"
+              >
+                Close
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Save Notice Only */}
+                <button
+                  type="button"
+                  onClick={handleSaveNoticeOnly}
+                  disabled={actionSubmitting}
+                  className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold text-xs transition shadow-xs cursor-pointer"
+                  title="Save notice without changing booking status"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Save Notice Only</span>
+                </button>
+
+                {/* Move to Pending Review */}
+                {selectedBookingForAction.status !== 'PENDING' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevertToPendingWithNotice()}
+                    disabled={actionSubmitting}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer"
+                    title="Move this booking back to Pending Review status"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Move to Pending</span>
+                  </button>
+                )}
+
+                {/* Cancel Booking */}
+                {selectedBookingForAction.status !== 'CANCELLED' && selectedBookingForAction.status !== 'REJECTED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancelWithNotice()}
+                    disabled={actionSubmitting}
+                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    <span>Cancel Booking</span>
+                  </button>
+                )}
+
+                {/* Approve Booking */}
+                {selectedBookingForAction.status !== 'APPROVED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleApproveWithNotice()}
+                    disabled={actionSubmitting}
+                    className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-xs cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Approve Booking</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

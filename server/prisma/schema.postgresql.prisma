@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  phone          String?
+  departmentId   String?
+  department     Department?    @relation(fields: [departmentId], references: [id])
+  role           String         @default("USER") // USER, FACULTY, TRANSPORT_ADMIN, SUPER_ADMIN
+  status         String         @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  bookings       Booking[]
+  notifications  Notification[]
+  activityLogs   ActivityLog[]
+}
+
+model Department {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  code        String     @unique // CSE, AIML, ISE, ECE, MECH, CIVIL, etc.
+  description String?
+  status      String     @default("ACTIVE")
+  users       User[]
+  bookings    Booking[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Vehicle {
+  id              String        @id @default(uuid())
+  name            String        // e.g., Ashok Leyland College Bus 12, Toyota Innova Staff Car, Force Traveller Van
+  registrationNo  String        @unique // e.g., KA-51-E-1234
+  vehicleType     String        // BUS, CAR, VAN, AMBULANCE
+  capacity        Int           // Total passenger seating capacity (e.g., 55 for Bus, 7 for Car, 14 for Van)
+  fuelType        String        // DIESEL, PETROL, EV, CNG
+  acAvailable     Boolean       @default(false)
+  image           String?
+  features        String        // JSON array of strings: GPS Tracking, First Aid, Speed Governor, PA System, Luggage Rack
+  status          String        @default("ACTIVE") // ACTIVE, INACTIVE, MAINTENANCE
+  driverName      String?       // Assigned regular driver
+  driverPhone     String?       // Driver contact number
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  bookings        Booking[]
+  maintenances    Maintenance[]
+  blockedDates    BlockedDate[]
+}
+
+model Booking {
+  id                  String      @id @default(uuid())
+  bookingId           String      @unique // e.g. BUS-NOV26-001, CAR-NOV26-002
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  vehicleId           String
+  vehicle             Vehicle     @relation(fields: [vehicleId], references: [id])
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  
+  // Trip Logistics
+  tripTitle           String      // e.g., Industrial Visit to ISRO Bengaluru, Guest Speaker Airport Pickup
+  pickupLocation      String      // e.g., College Campus Gate 1, Majestic Railway Station, Airport Terminal 2
+  dropLocation        String      // Destination Address / Route Summary
+  passengerCount      Int         @default(1)
+  tripPurpose         String      // INDUSTRIAL_VISIT, GUEST_TRANSFER, SPORTS_MEET, CONFERENCE, EXCURSION, EMERGENCY
+  coordinatorName     String      // Faculty coordinator traveling
+  coordinatorPhone    String      // Contact number
+  email               String      // Notification email
+  
+  // Schedule
+  startDate           String      // YYYY-MM-DD
+  endDate             String?     // YYYY-MM-DD (For multi-day tours)
+  departureTime       String      // HH:mm (e.g. 08:30)
+  returnTime          String      // HH:mm (e.g. 18:00)
+  estimatedKilometers Int?        @default(0)
+  
+  // Verification & Toll Requisitions
+  tollPaymentRequired Boolean     @default(false)
+  specialRequirements String?     // JSON array: Extra Luggage, Night Halt, AC Mandatory, Student Name List Attached
+  attachmentUrl       String?     // PDF of HOD Approval / Event Sanction Letter
+  additionalNotes     String?
+  
+  // Administrative Workflow
+  status              String      @default("PENDING") // PENDING, APPROVED, REJECTED, CANCELLED, COMPLETED
+  assignedDriverName  String?
+  assignedDriverPhone String?
+  adminNotes          String?
+  approvedById        String?
+  approvedAt          DateTime?
+  rejectionReason     String?
+  odometerStart       Int?        // Recorded at trip start
+  odometerEnd         Int?        // Recorded at trip end
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+}
+
+model Maintenance {
+  id                String   @id @default(uuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id])
+  startDate         String   // YYYY-MM-DD
+  endDate           String   // YYYY-MM-DD
+  maintenanceType   String   // REGULAR_SERVICE, RTO_FITNESS_TEST, TYRE_REPLACEMENT, ENGINE_REPAIR, INSURANCE_RENEWAL
+  description       String
+  garageName        String?
+  cost              Float?   @default(0.0)
+  responsiblePerson String?
+  createdAt         DateTime @default(now())
+}
+
+model BlockedDate {
+  id          String   @id @default(uuid())
+  vehicleId   String?  // null if applies to all campus vehicles
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  startDate   String   // YYYY-MM-DD
+  endDate     String   // YYYY-MM-DD
+  reason      String   // ELECTION_DUTY, UNIVERSITY_EXAMS_ONLY, CAMPUS_CLOSURE, FUEL_AUDIT
+  description String?
+  createdById String?
+  createdAt   DateTime @default(now())
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  name        String
+  date        String   // YYYY-MM-DD
+  description String?
+  vehicleScope String  @default("ALL") // ALL, BUS_ONLY, CAR_ONLY
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ALERT
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // VEHICLE_BOOKED, TRIP_APPROVED, TRIP_REJECTED, VEHICLE_MAINTENANCE_ADDED
+  entityType  String
+  entityId    String?
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model SystemSetting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}

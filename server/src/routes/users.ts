@@ -1,0 +1,388 @@
+import { Router, Request, Response } from 'express';
+import { prisma } from '../prisma';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import bcrypt from 'bcryptjs';
+import { logActivity } from '../utils/helpers';
+import { apiMutationRateLimiter } from '../middleware/rateLimiter';
+
+const router = Router();
+
+// Departments: List all
+router.get('/departments', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const list = await prisma.department.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: { users: true, bookings: true },
+        },
+      },
+    });
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch departments.' });
+  }
+});
+
+// Departments: Create new
+router.post('/departments', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, code, description } = req.body;
+    if (!name || !code) {
+      res.status(400).json({ error: 'Department name and code are required.' });
+      return;
+    }
+
+    const dept = await prisma.department.create({
+      data: { name, code, description },
+    });
+
+    await logActivity(req.user!.id, 'CREATE_DEPARTMENT', 'DEPARTMENT', dept.id, `Created department ${name}`);
+    res.status(201).json(dept);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create department.' });
+  }
+});
+
+// Departments: Update department
+router.put('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { name, code, description, status } = req.body;
+
+    const updated = await prisma.department.update({
+      where: { id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(code ? { code } : {}),
+        ...(description !== undefined ? { description } : {}),
+        ...(status ? { status } : {}),
+      },
+    });
+
+    await logActivity(req.user!.id, 'UPDATE_DEPARTMENT', 'DEPARTMENT', id, `Updated department ${updated.name}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update department.' });
+  }
+});
+
+// Departments: Delete department (unassigns users and bookings cleanly)
+router.delete('/departments/:id', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    const existing = await prisma.department.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { users: true, bookings: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      res.status(404).json({ error: 'Department not found.' });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Safely unassign all users referencing this department to null (General / Campus Wide)
+      await tx.user.updateMany({
+        where: { departmentId: id },
+        data: { departmentId: null },
+      });
+
+      // 2. Safely unassign all bookings referencing this department to null
+      await tx.booking.updateMany({
+        where: { departmentId: id },
+        data: { departmentId: null },
+      });
+
+      // 3. Delete the department record completely
+      await tx.department.delete({
+        where: { id },
+      });
+    });
+
+    await logActivity(
+      req.user!.id,
+      'DELETE_DEPARTMENT',
+      'DEPARTMENT',
+      id,
+      `Permanently deleted department ${existing.name} (${existing.code}). Unassigned from ${existing._count.users} users and ${existing._count.bookings} bookings.`
+    );
+
+    res.json({
+      message: `Department "${existing.name}" deleted successfully and unassigned from all users and bookings.`,
+      deletedId: id,
+    });
+  } catch (error: any) {
+    console.error('Failed to delete department:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete department.' });
+  }
+});
+
+// Users: List all (Admin only)
+router.get('/', authenticate, requireRole('ADMIN', 'SUPER_ADMIN'), async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        department: true,
+        _count: { select: { bookings: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users.' });
+  }
+});
+
+// Users: Update user role / status
+router.put('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { name, phone, role, status, departmentId, password } = req.body;
+
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    if (targetUser.role === 'SUPER_ADMIN') {
+      if (role && role !== 'SUPER_ADMIN') {
+        const count = await prisma.user.count({ where: { role: 'SUPER_ADMIN' } });
+        if (count <= 1) {
+          res.status(400).json({ error: 'Cannot demote the last remaining Super Admin.' });
+          return;
+        }
+      }
+      if (status === 'INACTIVE' && req.user!.id === targetUser.id) {
+        res.status(400).json({ error: 'Cannot deactivate your own Super Admin account.' });
+        return;
+      }
+    }
+
+    let passwordHash: string | undefined = undefined;
+    if (password && typeof password === 'string' && password.trim().length > 0) {
+      if (password.length < 8) {
+        res.status(400).json({ error: 'New password must contain at least 8 characters.' });
+        return;
+      }
+      const salt = await bcrypt.genSalt(10);
+      passwordHash = await bcrypt.hash(password, salt);
+    }
+
+    let finalDeptId: string | null | undefined = undefined;
+    if (departmentId !== undefined) {
+      if (departmentId) {
+        const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+        if (!dept) {
+          res.status(400).json({ error: 'Selected department does not exist.' });
+          return;
+        }
+        finalDeptId = dept.id;
+      } else {
+        finalDeptId = null;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(name && typeof name === 'string' && name.trim() ? { name: name.trim() } : {}),
+        ...(phone !== undefined ? { phone: phone ? phone.trim() : null } : {}),
+        ...(role ? { role } : {}),
+        ...(status ? { status } : {}),
+        ...(finalDeptId !== undefined ? { departmentId: finalDeptId } : {}),
+        ...(passwordHash ? { passwordHash } : {}),
+      },
+      include: {
+        department: true,
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    const changeDetails: string[] = [];
+    if (name && name.trim() !== targetUser.name) changeDetails.push('name');
+    if (phone !== undefined && phone !== targetUser.phone) changeDetails.push('phone');
+    if (role && role !== targetUser.role) changeDetails.push(`role to ${role}`);
+    if (status && status !== targetUser.status) changeDetails.push(`status to ${status}`);
+    if (passwordHash) changeDetails.push('password reset');
+
+    await logActivity(
+      req.user!.id,
+      'UPDATE_USER',
+      'USER',
+      id,
+      `Super Admin updated account of ${updatedUser.name} (${updatedUser.email}): ${changeDetails.join(', ') || 'profile updated'}`
+    );
+
+    res.json({
+      message: passwordHash
+        ? `Account for ${updatedUser.name} updated and new password set successfully.`
+        : `Account for ${updatedUser.name} updated successfully.`,
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        department: updatedUser.department,
+        _count: updatedUser._count,
+      },
+    });
+  } catch (error: any) {
+    console.error('Update user error:', error);
+    res.status(500).json({ error: error.message || 'Failed to update user.' });
+  }
+});
+
+// Users: Create new user (Super Admin only)
+router.post('/', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { name, email, password, phone, departmentId, role, status } = req.body;
+    if (!name || !email || !password) {
+      res.status(400).json({ error: 'Name, email, and temporary password are required.' });
+      return;
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      res.status(400).json({ error: 'Please provide a valid email address.' });
+      return;
+    }
+
+    const domainSetting = await prisma.systemSetting.findUnique({ where: { key: 'allowedEmailDomain' } });
+    const allowedDomain = domainSetting?.value?.trim().toLowerCase().replace(/^@/, '') || 'sairamce.edu.in';
+    if (!cleanEmail.endsWith(`@${allowedDomain}`)) {
+      res.status(400).json({
+        error: `Access Restricted: Only official institutional accounts ending with @${allowedDomain} are permitted.`,
+      });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) {
+      res.status(400).json({ error: 'A user with this email address is already registered.' });
+      return;
+    }
+
+    let finalDeptId: string | null = null;
+    if (departmentId) {
+      const dept = await prisma.department.findUnique({ where: { id: departmentId } });
+      if (!dept) {
+        res.status(400).json({ error: 'Selected department does not exist.' });
+        return;
+      }
+      finalDeptId = dept.id;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email: cleanEmail,
+        passwordHash,
+        phone: phone || null,
+        departmentId: finalDeptId,
+        role: role || 'FACULTY',
+        status: status || 'ACTIVE',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        department: true,
+        _count: { select: { bookings: true } },
+      },
+    });
+
+    await logActivity(req.user!.id, 'CREATE_USER', 'USER', newUser.id, `Created user ${newUser.name} (${newUser.role})`);
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user.' });
+  }
+});
+
+// Users: Delete user (Super Admin only)
+router.delete('/:id', authenticate, requireRole('SUPER_ADMIN'), apiMutationRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+
+    if (req.user!.id === id) {
+      res.status(400).json({ error: 'Security restriction: You cannot delete your own active administrator account.' });
+      return;
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+      include: { _count: { select: { bookings: true } } },
+    });
+
+    if (!targetUser) {
+      res.status(404).json({ error: 'User account not found.' });
+      return;
+    }
+
+    const rootAdminEmails = ['iqac@sairamce.edu.in', 'coo@sairamce.edu.in'];
+    if (rootAdminEmails.includes(targetUser.email.toLowerCase())) {
+      res.status(403).json({ error: 'Protected account: The primary institution root administrator cannot be deleted.' });
+      return;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete user's notifications
+      await tx.notification.deleteMany({ where: { userId: id } });
+
+      // 2. Detach user from activity logs to preserve audit integrity
+      await tx.activityLog.updateMany({
+        where: { userId: id },
+        data: { userId: null },
+      });
+
+      // 3. Delete user's bookings
+      await tx.booking.deleteMany({ where: { userId: id } });
+
+      // 4. Delete the user
+      await tx.user.delete({ where: { id } });
+    });
+
+    await logActivity(
+      req.user!.id,
+      'DELETE_USER',
+      'USER',
+      id,
+      `Super Admin permanently deleted user account ${targetUser.name} (${targetUser.email}, ${targetUser.role})`
+    );
+
+    res.json({ message: `User ${targetUser.name} has been permanently removed.` });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user account.' });
+  }
+});
+
+export default router;
